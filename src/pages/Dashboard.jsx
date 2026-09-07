@@ -75,6 +75,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.06, ease: EASE }}
+            whileHover={{ y: -4, scale: 1.01, transition: { type: 'spring', stiffness: 360, damping: 24 } }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
               <span className="chip chip-blue"><BookOpen size={11} /> {t ? t('dashboard.viewedCount', 'Catalog Coverage') : 'Catalog Coverage'}</span>
@@ -101,6 +102,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.1, ease: EASE }}
+            whileHover={{ y: -4, scale: 1.01, transition: { type: 'spring', stiffness: 360, damping: 24 } }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
               <span className="chip chip-green"><Trophy size={11} /> {t ? t('dashboard.masteryRate', 'Exam Mastery') : 'Exam Mastery'}</span>

@@ -84,62 +84,62 @@
    ========================================================================== */
 
 [data-theme="dark"] {
-  /* ── Canvas & Surface ── */
-  --bg-main: #0c0e12;
-  --bg-surface: #14171f;
-  --bg-subtle: #1c202a;
-  --bg-muted: #242936;
-  --glass-bg: rgba(18, 21, 28, 0.88);
+  /* ── Canvas & Surface (Deep Obsidian Night) ── */
+  --bg-main: #0b0d11;
+  --bg-surface: #131720;
+  --bg-subtle: #191e2b;
+  --bg-muted: #22293a;
+  --glass-bg: rgba(19, 23, 32, 0.90);
 
-  /* ── Typography Colors ── */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --text-inverse: #0c0e12;
+  /* ── Typography Colors (High-Contrast Academic Readability) ── */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #8292a7;
+  --text-inverse: #0b0d11;
 
   /* ── Hairline Borders & Dividers ── */
-  --border-hairline: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.13);
-  --border-hover: rgba(255, 255, 255, 0.24);
-  --border-focus: #f1f5f9;
+  --border-hairline: rgba(255, 255, 255, 0.09);
+  --border-subtle: rgba(255, 255, 255, 0.15);
+  --border-hover: rgba(255, 255, 255, 0.28);
+  --border-focus: #93c5fd;
 
-  /* ── Low-Saturation Mineral Accents (Luminous in Dark Mode) ── */
+  /* ── Calibrated Luminous Mineral Accents for Dark Mode ── */
   --accent-primary: #f8fafc;
 
-  /* Low-Saturation Slate Blue */
-  --accent-blue: #7ba3cd;
-  --accent-blue-subtle: rgba(59, 93, 130, 0.22);
-  --accent-blue-border: rgba(123, 163, 205, 0.28);
+  /* Luminous Slate Blue */
+  --accent-blue: #8fb5e0;
+  --accent-blue-subtle: rgba(74, 122, 173, 0.20);
+  --accent-blue-border: rgba(143, 181, 224, 0.32);
 
-  /* Low-Saturation Mineral Sage */
-  --accent-sage: #78a886;
-  --accent-sage-subtle: rgba(72, 106, 85, 0.22);
-  --accent-sage-border: rgba(120, 168, 134, 0.28);
+  /* Luminous Mineral Sage */
+  --accent-sage: #8ec39e;
+  --accent-sage-subtle: rgba(90, 148, 108, 0.20);
+  --accent-sage-border: rgba(142, 195, 158, 0.32);
 
-  /* Low-Saturation Dried Terracotta */
-  --accent-terracotta: #c97f83;
-  --accent-terracotta-subtle: rgba(141, 82, 85, 0.22);
-  --accent-terracotta-border: rgba(201, 127, 131, 0.28);
+  /* Luminous Dried Terracotta */
+  --accent-terracotta: #e29195;
+  --accent-terracotta-subtle: rgba(179, 98, 103, 0.20);
+  --accent-terracotta-border: rgba(226, 145, 149, 0.32);
 
-  /* Low-Saturation Sepia Umber */
-  --accent-ochre: #bda075;
-  --accent-ochre-subtle: rgba(125, 99, 63, 0.22);
-  --accent-ochre-border: rgba(189, 160, 117, 0.28);
+  /* Luminous Sepia Umber */
+  --accent-ochre: #d6ba8f;
+  --accent-ochre-subtle: rgba(163, 131, 85, 0.20);
+  --accent-ochre-border: rgba(214, 186, 143, 0.32);
 
   /* ── Elevation & Shadows ── */
-  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 2px 8px -2px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.14);
-  --shadow-float: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
-  --shadow-lightbox: 0 25px 60px -15px rgba(0, 0, 0, 0.85);
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 10px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --shadow-card-hover: 0 14px 34px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.16);
+  --shadow-float: 0 20px 40px -10px rgba(0, 0, 0, 0.75);
+  --shadow-lightbox: 0 25px 60px -15px rgba(0, 0, 0, 0.9);
 }
 
 [data-theme="dark"] body {
   background-color: var(--bg-main);
   background-image: 
-    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(59, 93, 130, 0.07), transparent 70%),
-    radial-gradient(ellipse 60% 40% at 85% 15%, rgba(72, 106, 85, 0.05), transparent 70%),
-    radial-gradient(ellipse 50% 50% at 90% 90%, rgba(125, 99, 63, 0.04), transparent 70%);
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(74, 122, 173, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 15%, rgba(90, 148, 108, 0.06), transparent 70%),
+    radial-gradient(ellipse 50% 50% at 90% 90%, rgba(163, 131, 85, 0.04), transparent 70%);
 }
 
 /* ==========================================================================
@@ -310,7 +310,7 @@ h3 {
 }
 
 /* ==========================================================================
-   Interactive Mouse Spotlight & Dynamic Background Glow
+   Interactive Mouse Spotlight & Dynamic Background Glow (Hardware-Accelerated)
    ========================================================================== */
 
 .mouse-spotlight-wrapper {
@@ -319,29 +319,115 @@ h3 {
   min-height: 100vh;
 }
 
-.spotlight-glow-canvas {
+.spotlight-viewport {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   pointer-events: none;
   z-index: 0;
+  overflow: hidden;
+}
+
+/* Layer 1: Ambient Flashlight Spill (Atmospheric Dark-Room Bounce) */
+.spotlight-ambient {
+  position: absolute;
+  top: -490px;
+  left: -490px;
+  width: 980px;
+  height: 980px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translate3d(-9999px, -9999px, 0);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none;
+}
+
+/* Layer 2: Main Parabolic Beam (Daylight Shadow / Night Flashlight Cone) */
+.spotlight-orb {
+  position: absolute;
+  top: -300px;
+  left: -300px;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translate3d(-9999px, -9999px, 0);
   background: radial-gradient(
-    720px circle at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
+    circle,
     rgba(24, 24, 28, 0.16) 0%,
-    rgba(38, 38, 44, 0.10) 35%,
-    rgba(60, 60, 68, 0.04) 65%,
-    transparent 85%
+    rgba(38, 38, 44, 0.09) 35%,
+    rgba(60, 60, 68, 0.035) 65%,
+    transparent 80%
   );
   mix-blend-mode: multiply;
-  will-change: background;
-  opacity: var(--spotlight-opacity, 0.9);
-  transition: opacity 0.4s ease;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Layer 3: Concentrated Flashlight LED Hotspot Core */
+.spotlight-core {
+  position: absolute;
+  top: -85px;
+  left: -85px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translate3d(-9999px, -9999px, 0);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none;
+}
+
+/* ── Dark Mode: Authentic Phone Flashlight (手机闪光灯) Optics ── */
+[data-theme="dark"] .spotlight-ambient {
+  display: block;
+  background: radial-gradient(
+    circle,
+    rgba(186, 210, 245, 0.055) 0%,
+    rgba(148, 163, 184, 0.024) 36%,
+    rgba(71, 85, 105, 0.008) 65%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  filter: blur(20px);
+}
+
+[data-theme="dark"] .spotlight-orb {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(248, 250, 252, 0.24) 14%,
+    rgba(226, 232, 240, 0.15) 28%,
+    rgba(203, 213, 225, 0.08) 45%,
+    rgba(148, 163, 184, 0.038) 62%,
+    rgba(100, 116, 139, 0.014) 78%,
+    rgba(71, 85, 105, 0.003) 90%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  filter: blur(4px);
+}
+
+[data-theme="dark"] .spotlight-core {
+  display: block;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.45) 20%,
+    rgba(240, 246, 255, 0.18) 50%,
+    rgba(220, 235, 255, 0.04) 75%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  filter: blur(5px);
 }
 
 /* ==========================================================================
-   Cards & Editorial Panels with Proximity Illumination
+   Cards & Editorial Panels with Flashlight Proximity Illumination
    ========================================================================== */
 
 .card {
@@ -350,9 +436,8 @@ h3 {
   padding: var(--space-lg);
   border: 1px solid var(--border-hairline);
   box-shadow: var(--shadow-subtle);
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
+  transition: box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, background-color 0.35s ease;
   position: relative;
-  will-change: transform;
   overflow: hidden;
 }
 
@@ -369,7 +454,7 @@ h3 {
   );
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1;
 }
 
@@ -393,7 +478,7 @@ h3 {
   border-radius: var(--radius-md);
   padding: clamp(1.5rem, 3.5vw, 2.5rem);
   box-shadow: var(--shadow-card);
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
+  transition: box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, background-color 0.35s ease;
   position: relative;
   overflow: hidden;
 }
@@ -411,7 +496,7 @@ h3 {
   );
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1;
 }
 
@@ -437,37 +522,41 @@ h3 {
   border-color: var(--accent-terracotta-border);
 }
 
-/* ==========================================================================
-   Dark Mode Adaptive Lighting System
-   ========================================================================== */
-
-[data-theme="dark"] .spotlight-glow-canvas {
-  background: radial-gradient(
-    740px circle at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
-    rgba(226, 232, 240, 0.14) 0%,
-    rgba(148, 163, 184, 0.075) 35%,
-    rgba(71, 85, 105, 0.025) 65%,
-    transparent 85%
-  );
-  mix-blend-mode: screen;
-  opacity: var(--spotlight-opacity, 0.95);
+[data-theme="dark"] .card-highlight-blue:hover {
+  border-color: rgba(143, 181, 224, 0.45);
+  box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.7), 0 0 24px rgba(143, 181, 224, 0.14);
 }
 
+[data-theme="dark"] .card-highlight-sage:hover {
+  border-color: rgba(142, 195, 158, 0.45);
+  box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.7), 0 0 24px rgba(142, 195, 158, 0.14);
+}
+
+[data-theme="dark"] .card-highlight-terracotta:hover {
+  border-color: rgba(226, 145, 149, 0.45);
+  box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.7), 0 0 24px rgba(226, 145, 149, 0.14);
+}
+
+/* ── Dark Mode: Card Surface Flashlight Specular Sheen ── */
 [data-theme="dark"] .card::before {
   background: radial-gradient(
-    480px circle at var(--card-mouse-x, -9999px) var(--card-mouse-y, -9999px),
-    rgba(255, 255, 255, 0.13) 0%,
-    rgba(148, 163, 184, 0.05) 45%,
-    transparent 75%
+    520px circle at var(--card-mouse-x, -9999px) var(--card-mouse-y, -9999px),
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.12) 18%,
+    rgba(226, 232, 240, 0.05) 42%,
+    rgba(148, 163, 184, 0.015) 68%,
+    transparent 85%
   );
 }
 
 [data-theme="dark"] .card-editorial::before {
   background: radial-gradient(
-    650px circle at var(--card-mouse-x, -9999px) var(--card-mouse-y, -9999px),
-    rgba(255, 255, 255, 0.11) 0%,
-    rgba(148, 163, 184, 0.04) 45%,
-    transparent 70%
+    680px circle at var(--card-mouse-x, -9999px) var(--card-mouse-y, -9999px),
+    rgba(255, 255, 255, 0.20) 0%,
+    rgba(255, 255, 255, 0.10) 22%,
+    rgba(226, 232, 240, 0.04) 48%,
+    rgba(148, 163, 184, 0.012) 72%,
+    transparent 90%
   );
 }
 
@@ -538,23 +627,38 @@ h3 {
   font-weight: 520;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: opacity var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  transition: background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease;
   font-family: inherit;
   user-select: none;
   will-change: transform;
 }
 
+.btn:hover {
+  transform: translateY(-1.5px);
+}
+
+.btn:active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
 .btn-primary {
   background-color: var(--accent-primary);
   color: var(--text-inverse);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-primary:hover {
-  opacity: 0.88;
+  opacity: 0.92;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
 .btn-primary:active {
-  opacity: 0.78;
+  opacity: 0.85;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-outline {
@@ -568,13 +672,18 @@ h3 {
   background-color: var(--bg-subtle);
 }
 
+.btn-outline:active {
+  background-color: var(--bg-muted);
+}
+
 .btn-accent-blue {
   background-color: var(--accent-blue);
   color: #ffffff;
 }
 
 .btn-accent-blue:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+  box-shadow: 0 3px 8px rgba(59, 93, 130, 0.22);
 }
 
 .btn-accent-terracotta {
@@ -583,7 +692,8 @@ h3 {
 }
 
 .btn-accent-terracotta:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+  box-shadow: 0 3px 8px rgba(141, 82, 85, 0.22);
 }
 
 /* ==========================================================================
@@ -609,13 +719,18 @@ h3 {
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   z-index: 1;
 }
 
 .tab-item:hover {
   color: var(--text-primary);
+  transform: translateY(-0.5px);
+}
+
+.tab-item:active {
+  transform: scale(0.98);
 }
 
 .tab-item.active {

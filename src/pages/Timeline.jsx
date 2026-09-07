@@ -191,12 +191,12 @@ export default function Timeline() {
                     </div>
 
                     {/* Timeline Event Card */}
-                    <div
+                    <motion.div
                       className={`card-editorial ${isArch ? 'card-highlight-sage' : 'card-highlight-blue'}`}
+                      whileHover={{ y: -4, scale: 1.008, transition: { type: 'spring', stiffness: 360, damping: 24 } }}
                       style={{
                         flex: 1,
                         padding: '1.4rem 1.5rem',
-                        transition: 'box-shadow 0.3s ease',
                       }}
                     >
                       {/* Top Header Row */}
@@ -286,7 +286,7 @@ export default function Timeline() {
                                       textDecoration: 'none',
                                       color: 'var(--text-primary)',
                                       fontSize: '0.76rem',
-                                      transition: 'all 0.2s ease'
+                                      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
                                     }}
                                   >
                                     <img
@@ -340,7 +340,7 @@ export default function Timeline() {
                           </div>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   </motion.div>
                 );
               })}

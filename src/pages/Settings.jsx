@@ -253,10 +253,12 @@ export default function Settings() {
               const Icon = item.icon;
               const isSelected = theme === item.key;
               return (
-                <button
+                <motion.button
                   key={item.key}
                   type="button"
                   onClick={() => setTheme(item.key)}
+                  whileHover={{ y: -2.5, scale: 1.012, transition: { type: 'spring', stiffness: 420, damping: 24 } }}
+                  whileTap={{ scale: 0.985, transition: { type: 'spring', stiffness: 500, damping: 25 } }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -267,7 +269,7 @@ export default function Settings() {
                     backgroundColor: isSelected ? 'var(--accent-blue-subtle)' : 'var(--bg-surface)',
                     color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease',
                     textAlign: 'left',
                     position: 'relative'
                   }}
@@ -295,7 +297,7 @@ export default function Settings() {
                     </div>
                   </div>
                   {isSelected && <Check size={16} style={{ color: 'var(--accent-blue)' }} />}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -323,10 +325,12 @@ export default function Settings() {
             {LANGUAGES.map((langItem) => {
               const isSelected = language === langItem.code;
               return (
-                <button
+                <motion.button
                   key={langItem.code}
                   type="button"
                   onClick={() => setLanguage(langItem.code)}
+                  whileHover={{ y: -2.5, scale: 1.012, transition: { type: 'spring', stiffness: 420, damping: 24 } }}
+                  whileTap={{ scale: 0.985, transition: { type: 'spring', stiffness: 500, damping: 25 } }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -337,7 +341,7 @@ export default function Settings() {
                     backgroundColor: isSelected ? 'var(--accent-blue-subtle)' : 'var(--bg-surface)',
                     color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease',
                     textAlign: 'left'
                   }}
                 >
@@ -353,7 +357,7 @@ export default function Settings() {
                     </div>
                   </div>
                   {isSelected && <Check size={16} style={{ color: 'var(--accent-blue)' }} />}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -386,10 +390,12 @@ export default function Settings() {
               {PROVIDER_PRESETS.map((p) => {
                 const isActive = inputEndpoint === p.endpoint && inputModel === p.model;
                 return (
-                  <button
+                  <motion.button
                     key={p.name}
                     type="button"
                     onClick={() => handleApplyPreset(p)}
+                    whileHover={{ y: -1.5, scale: 1.03, transition: { type: 'spring', stiffness: 450, damping: 22 } }}
+                    whileTap={{ scale: 0.97 }}
                     style={{
                       padding: '5px 12px',
                       borderRadius: 'var(--radius-pill)',
@@ -401,12 +407,13 @@ export default function Settings() {
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '5px',
+                      transition: 'border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease'
                     }}
                   >
                     <Sparkles size={11} style={{ color: isActive ? 'var(--accent-blue)' : 'var(--text-tertiary)' }} />
                     {p.name}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
