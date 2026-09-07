@@ -23,6 +23,42 @@ export const AppProvider = ({ children }) => {
   const [cfWorkerUrl, setCfWorkerUrl] = useState(localStorage.getItem('cfWorkerUrl') || '');
   const [language, setLanguageState] = useState(() => localStorage.getItem('app_lang') || 'zh');
   
+  const [theme, setThemeState] = useState(() => localStorage.getItem('app_theme') || 'light');
+  const [systemIsDark, setSystemIsDark] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => setSystemIsDark(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  const resolvedTheme = theme === 'auto' ? (systemIsDark ? 'dark' : 'light') : theme;
+  const isDark = resolvedTheme === 'dark';
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+  }, [resolvedTheme]);
+
+  const setTheme = useCallback((newTheme) => {
+    setThemeState(newTheme);
+    localStorage.setItem('app_theme', newTheme);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const next = (prev === 'dark' || (prev === 'auto' && systemIsDark)) ? 'light' : 'dark';
+      localStorage.setItem('app_theme', next);
+      return next;
+    });
+  }, [systemIsDark]);
+
   const setLanguage = useCallback((lang) => {
     setLanguageState(lang);
     localStorage.setItem('app_lang', lang);
@@ -289,6 +325,10 @@ export const AppProvider = ({ children }) => {
       setCfWorkerUrl,
       language,
       setLanguage,
+      theme,
+      setTheme,
+      isDark,
+      toggleTheme,
       t,
       l,
       lArray,

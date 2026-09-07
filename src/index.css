@@ -80,6 +80,69 @@
 }
 
 /* ==========================================================================
+   Dark / Night Mode Design System Tokens
+   ========================================================================== */
+
+[data-theme="dark"] {
+  /* ── Canvas & Surface ── */
+  --bg-main: #0c0e12;
+  --bg-surface: #14171f;
+  --bg-subtle: #1c202a;
+  --bg-muted: #242936;
+  --glass-bg: rgba(18, 21, 28, 0.88);
+
+  /* ── Typography Colors ── */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-inverse: #0c0e12;
+
+  /* ── Hairline Borders & Dividers ── */
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.13);
+  --border-hover: rgba(255, 255, 255, 0.24);
+  --border-focus: #f1f5f9;
+
+  /* ── Low-Saturation Mineral Accents (Luminous in Dark Mode) ── */
+  --accent-primary: #f8fafc;
+
+  /* Low-Saturation Slate Blue */
+  --accent-blue: #7ba3cd;
+  --accent-blue-subtle: rgba(59, 93, 130, 0.22);
+  --accent-blue-border: rgba(123, 163, 205, 0.28);
+
+  /* Low-Saturation Mineral Sage */
+  --accent-sage: #78a886;
+  --accent-sage-subtle: rgba(72, 106, 85, 0.22);
+  --accent-sage-border: rgba(120, 168, 134, 0.28);
+
+  /* Low-Saturation Dried Terracotta */
+  --accent-terracotta: #c97f83;
+  --accent-terracotta-subtle: rgba(141, 82, 85, 0.22);
+  --accent-terracotta-border: rgba(201, 127, 131, 0.28);
+
+  /* Low-Saturation Sepia Umber */
+  --accent-ochre: #bda075;
+  --accent-ochre-subtle: rgba(125, 99, 63, 0.22);
+  --accent-ochre-border: rgba(189, 160, 117, 0.28);
+
+  /* ── Elevation & Shadows ── */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 2px 8px -2px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.14);
+  --shadow-float: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+  --shadow-lightbox: 0 25px 60px -15px rgba(0, 0, 0, 0.85);
+}
+
+[data-theme="dark"] body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(59, 93, 130, 0.07), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 15%, rgba(72, 106, 85, 0.05), transparent 70%),
+    radial-gradient(ellipse 50% 50% at 90% 90%, rgba(125, 99, 63, 0.04), transparent 70%);
+}
+
+/* ==========================================================================
    Reset & Base with Neutral Low-Saturation Ambient Vignette
    ========================================================================== */
 
@@ -372,6 +435,40 @@ h3 {
 
 .card-highlight-terracotta:hover {
   border-color: var(--accent-terracotta-border);
+}
+
+/* ==========================================================================
+   Dark Mode Adaptive Lighting System
+   ========================================================================== */
+
+[data-theme="dark"] .spotlight-glow-canvas {
+  background: radial-gradient(
+    740px circle at var(--mouse-x, -9999px) var(--mouse-y, -9999px),
+    rgba(226, 232, 240, 0.14) 0%,
+    rgba(148, 163, 184, 0.075) 35%,
+    rgba(71, 85, 105, 0.025) 65%,
+    transparent 85%
+  );
+  mix-blend-mode: screen;
+  opacity: var(--spotlight-opacity, 0.95);
+}
+
+[data-theme="dark"] .card::before {
+  background: radial-gradient(
+    480px circle at var(--card-mouse-x, -9999px) var(--card-mouse-y, -9999px),
+    rgba(255, 255, 255, 0.13) 0%,
+    rgba(148, 163, 184, 0.05) 45%,
+    transparent 75%
+  );
+}
+
+[data-theme="dark"] .card-editorial::before {
+  background: radial-gradient(
+    650px circle at var(--card-mouse-x, -9999px) var(--card-mouse-y, -9999px),
+    rgba(255, 255, 255, 0.11) 0%,
+    rgba(148, 163, 184, 0.04) 45%,
+    transparent 70%
+  );
 }
 
 /* ==========================================================================
@@ -699,4 +796,57 @@ h3 {
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================================
+   Dark Mode Component Styles & Global Smooth Transitions
+   ========================================================================== */
+
+[data-theme="dark"] .chip-purple {
+  background-color: rgba(147, 51, 234, 0.16);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.24);
+}
+
+[data-theme="dark"] .chip-neutral {
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+[data-theme="dark"] .input-field,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .input-field:focus,
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--accent-blue);
+  background-color: var(--bg-surface);
+  box-shadow: 0 0 0 3px rgba(123, 163, 205, 0.18);
+}
+
+[data-theme="dark"] .image-box {
+  background-color: #11141a;
+  border: 1px solid var(--border-hairline);
+}
+
+[data-theme="dark"] .image-shimmer {
+  background: linear-gradient(90deg, #14171f 25%, #1f2430 50%, #14171f 75%) !important;
+  background-size: 200% 100% !important;
+}
+
+[data-theme="dark"] .modal-backdrop {
+  background: rgba(0, 0, 0, 0.78);
+}
+
+/* Global Theme Transition Smoothness */
+body, .navbar, .card, .card-editorial, .tab-bar, .tab-item, .btn, .chip, input, textarea, select, .image-box {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
 }

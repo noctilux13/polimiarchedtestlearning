@@ -2,11 +2,11 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppContext } from '../context/AppContext';
-import { Compass, History, Brain, Award, Settings as SettingsIcon, Globe, ChevronDown, Check } from 'lucide-react';
+import { Compass, History, Brain, Award, Settings as SettingsIcon, Globe, ChevronDown, Check, Sun, Moon } from 'lucide-react';
 
 export default function Navbar() {
   const location = useLocation();
-  const { t, language, setLanguage, LANGUAGES } = useContext(AppContext);
+  const { t, language, setLanguage, LANGUAGES, isDark, toggleTheme } = useContext(AppContext);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const langMenuRef = useRef(null);
 
@@ -75,6 +75,47 @@ export default function Navbar() {
             );
           })}
         </div>
+
+        {/* Night / Light Mode Toggle Button */}
+        <motion.button
+          type="button"
+          className="btn btn-outline"
+          onClick={toggleTheme}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.94 }}
+          style={{
+            width: '32px',
+            height: '32px',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 'var(--radius-pill)',
+            border: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            cursor: 'pointer'
+          }}
+          title={isDark ? (t('settings.lightMode') || '切换为日间明亮模式') : (t('settings.darkMode') || '切换为夜间深邃模式')}
+          aria-label="Toggle Night Mode"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={isDark ? 'dark' : 'light'}
+              initial={{ opacity: 0, rotate: -40, scale: 0.7 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: 40, scale: 0.7 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              {isDark ? (
+                <Moon size={14} style={{ color: '#cbd5e1' }} />
+              ) : (
+                <Sun size={14} style={{ color: '#d97706' }} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.button>
 
         {/* Language Selector Dropdown */}
         <div ref={langMenuRef} style={{ position: 'relative' }}>

@@ -19,10 +19,19 @@ import {
   Check,
   Cpu,
   Server,
-  Sparkles
+  Sparkles,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 
 const EASE = [0.16, 1, 0.3, 1];
+
+const THEME_OPTIONS = [
+  { key: 'light', labelKey: 'settings.themeLight', fallback: '日间明亮', icon: Sun, desc: '经典白底画廊与灰黑微光' },
+  { key: 'dark', labelKey: 'settings.themeDark', fallback: '夜间深邃', icon: Moon, desc: '黑曜石夜幕与月白手电光束' },
+  { key: 'auto', labelKey: 'settings.themeAuto', fallback: '跟随系统', icon: Monitor, desc: '自动适配操作系统的明暗偏好' },
+];
 
 const PROVIDER_PRESETS = [
   {
@@ -79,6 +88,9 @@ export default function Settings() {
     setCustomImage,
     language,
     setLanguage,
+    theme,
+    setTheme,
+    isDark,
     t,
     LANGUAGES
   } = useContext(AppContext);
@@ -217,6 +229,77 @@ export default function Settings() {
             {t ? t('settings.subtitle', 'Configure multi-language options, AI models, API keys, and custom image overrides.') : 'Configure language, AI model endpoints, API keys, and custom image overrides.'}
           </p>
         </div>
+
+        {/* ── Theme Preference Card ── */}
+        <motion.div
+          className="card-editorial"
+          style={{ marginBottom: '2rem' }}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.02, ease: EASE }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.4rem' }}>
+            {isDark ? <Moon size={18} style={{ color: 'var(--accent-blue)' }} /> : <Sun size={18} style={{ color: 'var(--accent-ochre)' }} />}
+            <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-serif)', margin: 0 }}>
+              {t ? t('settings.themeTitle', 'Appearance & Theme') : 'Appearance & Theme'}
+            </h2>
+          </div>
+          <p style={{ fontSize: '0.84rem', color: 'var(--text-tertiary)', marginBottom: '1.35rem' }}>
+            {t ? t('settings.themeSubtitle', 'Toggle between daylight gallery mode and nighttime museum exhibition spotlight mode.') : 'Toggle between daylight gallery mode and nighttime museum exhibition spotlight mode.'}
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.85rem' }}>
+            {THEME_OPTIONS.map((item) => {
+              const Icon = item.icon;
+              const isSelected = theme === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setTheme(item.key)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.95rem 1.15rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: isSelected ? '1.5px solid var(--accent-blue)' : '1px solid var(--border-subtle)',
+                    backgroundColor: isSelected ? 'var(--accent-blue-subtle)' : 'var(--bg-surface)',
+                    color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    textAlign: 'left',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: 'var(--radius-xs)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isSelected ? 'var(--bg-surface)' : 'var(--bg-subtle)',
+                      border: '1px solid var(--border-hairline)'
+                    }}>
+                      <Icon size={16} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: isSelected ? 600 : 500, fontSize: '0.92rem', color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
+                        {t ? t(item.labelKey, item.fallback) : item.fallback}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                        {item.desc}
+                      </div>
+                    </div>
+                  </div>
+                  {isSelected && <Check size={16} style={{ color: 'var(--accent-blue)' }} />}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
 
         {/* ── Language Preference Card ── */}
         <motion.div
