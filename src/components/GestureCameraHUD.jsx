@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CameraOff, Sparkles, Hand, ChevronDown, ChevronUp, AlertCircle, Bug, CheckCircle2, XCircle, Cpu } from 'lucide-react';
+import { Camera, CameraOff, Sparkles, Hand, ChevronDown, ChevronUp, AlertCircle, Bug, CheckCircle2, XCircle, Cpu, ShieldCheck } from 'lucide-react';
 
 export const GESTURE_STATES = {
   NO_HAND: 'NO_HAND',
@@ -28,25 +28,15 @@ function loadExternalScript(src) {
   });
 }
 
-// Landmark connections for drawing skeleton
-const HAND_CONNECTIONS = [
-  [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
-  [0, 5], [5, 6], [6, 7], [7, 8],       // Index
-  [5, 9], [9, 10], [10, 11], [11, 12],  // Middle
-  [9, 13], [13, 14], [14, 15], [15, 16],// Ring
-  [13, 17], [17, 18], [18, 19], [19, 20],// Pinky
-  [0, 17]                               // Palm base
-];
-
-export default function GestureCameraHUD({ onGestureAction, isRegionSelected, selectedRegion }) {
+export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [showDebug, setShowDebug] = useState(true);
+  const [showDebug, setShowDebug] = useState(false); // Default clean mode
   const [engineType, setEngineType] = useState('MediaPipe Hands');
   const [errorMsg, setErrorMsg] = useState(null);
   const [currentGesture, setCurrentGesture] = useState({ type: 'none', label: '等待手势...', icon: '✋' });
 
-  // Lightweight state for Debug UI overlay
+  // Lightweight state for Debug UI overlay & radar feedback
   const [debugState, setDebugState] = useState({
     engine: 'MediaPipe Hands',
     handDetected: false,
@@ -62,6 +52,17 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
   const rafRef = useRef(null);
   const mediaPipeHandsRef = useRef(null);
 
+  // Keep references to props so callbacks never trigger re-renders or unmounts
+  const onGestureActionRef = useRef(onGestureAction);
+  useEffect(() => {
+    onGestureActionRef.current = onGestureAction;
+  }, [onGestureAction]);
+
+  const isRegionSelectedRef = useRef(isRegionSelected);
+  useEffect(() => {
+    isRegionSelectedRef.current = isRegionSelected;
+  }, [isRegionSelected]);
+
   // State Machine and Tracking State
   const smRef = useRef({
     state: GESTURE_STATES.NO_HAND,
@@ -76,7 +77,181 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
     lastDebugSync: 0
   });
 
-  // Start Camera with Open-Source MediaPipe Hands + Fallback
+  // Execute Confirmed Gesture without depending on props
+  const dispatchConfirmedGesture = useCallback((candidate, rawParam) => {
+    const sm = smRef.current;
+    const now = Date.now();
+
+    if (candidate === 'fist') {
+      if (isRegionSelectedRef.current && now - sm.lastFistTime < 2400) {
+        setCurrentGesture({ type: 'fist_again', label: '再次握拳：打开作品展示！', icon: '✊' });
+        onGestureActionRef.current?.({ type: 'fist_again' });
+        sm.lastFistTime = 0;
+      } else {
+        setCurrentGesture({ type: 'fist', label: '握拳：选中高亮地区', icon: '✊' });
+        onGestureActionRef.current?.({ type: 'fist' });
+        sm.lastFistTime = now;
+      }
+      sm.cooldownUntil = now + 900;
+      sm.state = GESTURE_STATES.COOLDOWN;
+      sm.stability = 0;
+    } else if (candidate === 'swipe_left' || candidate === 'swipe_right') {
+      const dir = candidate === 'swipe_left' ? 'left' : 'right';
+      setCurrentGesture({
+        type: candidate,
+        label: dir === 'left' ? '👈 向左挥动：旋转地球' : '👉 向右挥动：旋转地球',
+        icon: dir === 'left' ? '👈' : '👉'
+      });
+      onGestureActionRef.current?.({ type: 'swipe', direction: dir, velocity: rawParam || 8 });
+      sm.cooldownUntil = now + 400;
+      sm.state = GESTURE_STATES.COOLDOWN;
+      sm.stability = 0;
+    } else if (candidate === 'zoom_in' || candidate === 'zoom_out') {
+      const delta = candidate === 'zoom_in' ? -0.15 : 0.15;
+      setCurrentGesture({
+        type: candidate,
+        label: candidate === 'zoom_in' ? '🔍 靠近张开：放大视野' : '🔎 捏合远离：缩小全局',
+        icon: candidate === 'zoom_in' ? '🔍' : '🔎'
+      });
+      onGestureActionRef.current?.({ type: 'zoom', delta });
+      sm.cooldownUntil = now + 450;
+      sm.state = GESTURE_STATES.COOLDOWN;
+      sm.stability = 0;
+    } else if (candidate === 'open_palm') {
+      setCurrentGesture({ type: 'open_palm', label: '打开手掌：自由漫游探测', icon: '✋' });
+      onGestureActionRef.current?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
+    }
+  }, []);
+
+  // MediaPipe Results Processing (Runs completely off-screen, no video shown)
+  const handleMediaPipeResults = useCallback((results) => {
+    const sm = smRef.current;
+    const now = Date.now();
+
+    const hasHand = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
+
+    // Strict NO_HAND transition
+    if (!hasHand) {
+      if (sm.state !== GESTURE_STATES.NO_HAND) {
+        sm.state = GESTURE_STATES.NO_HAND;
+        sm.candidate = null;
+        sm.stability = 0;
+        sm.confidence = 0;
+        sm.prevPalmX = null;
+        sm.prevPalmY = null;
+        sm.prevPinchDist = null;
+
+        setCurrentGesture({ type: 'none', label: '等待手势...', icon: '✋' });
+        onGestureActionRef.current?.({ type: 'no_hand' });
+      }
+
+      if (now - sm.lastDebugSync > 66) {
+        sm.lastDebugSync = now;
+        setDebugState({
+          engine: 'MediaPipe Hands (开源AI)',
+          handDetected: false,
+          confidence: 0,
+          gesture: 'NONE',
+          state: GESTURE_STATES.NO_HAND,
+          stability: 0
+        });
+      }
+      return;
+    }
+
+    // Hand Landmarks Analysis
+    const lm = results.multiHandLandmarks[0];
+    const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+    const isCurled = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) < dist(lm[pipIdx], lm[0]);
+    const indexCurled = isCurled(8, 6);
+    const middleCurled = isCurled(12, 10);
+    const ringCurled = isCurled(16, 14);
+    const pinkyCurled = isCurled(20, 18);
+    const thumbCurled = dist(lm[4], lm[9]) < dist(lm[2], lm[9]);
+
+    const curledCount = (indexCurled ? 1 : 0) + (middleCurled ? 1 : 0) + (ringCurled ? 1 : 0) + (pinkyCurled ? 1 : 0) + (thumbCurled ? 1 : 0);
+
+    const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
+    const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
+    const pinchDist = dist(lm[4], lm[8]);
+
+    let rawCandidate = null;
+    let rawParam = null;
+
+    // Motion Detection (Swipe Left / Right)
+    if (sm.prevPalmX !== null) {
+      const deltaX = palmX - sm.prevPalmX;
+      if (Math.abs(deltaX) > 0.045) {
+        rawCandidate = deltaX > 0 ? 'swipe_left' : 'swipe_right';
+        rawParam = Math.abs(deltaX) * 120;
+      }
+    }
+
+    // Zoom Pinch Detection
+    if (!rawCandidate && sm.prevPinchDist !== null && !indexCurled && !middleCurled) {
+      const pinchRatio = pinchDist / sm.prevPinchDist;
+      if (pinchRatio > 1.35 && pinchDist > 0.12) {
+        rawCandidate = 'zoom_in';
+      } else if (pinchRatio < 0.75 && pinchDist < 0.08) {
+        rawCandidate = 'zoom_out';
+      }
+    }
+
+    // Static Gesture (Fist vs Open Palm)
+    if (!rawCandidate) {
+      if (curledCount >= 4) {
+        rawCandidate = 'fist';
+      } else if (curledCount <= 1) {
+        rawCandidate = 'open_palm';
+        rawParam = { x: 1 - palmX, y: palmY };
+      } else {
+        rawCandidate = sm.candidate || 'open_palm';
+      }
+    }
+
+    sm.prevPalmX = palmX;
+    sm.prevPalmY = palmY;
+    sm.prevPinchDist = pinchDist;
+
+    // Stability Temporal Verification
+    if (rawCandidate === sm.candidate) {
+      sm.stability = Math.min(REQUIRED_STABLE_FRAMES, sm.stability + 1);
+    } else {
+      sm.candidate = rawCandidate;
+      sm.stability = 1;
+    }
+
+    const confidence = 0.94;
+
+    // Cooldown and Confirmation State Machine
+    if (now < sm.cooldownUntil) {
+      sm.state = GESTURE_STATES.COOLDOWN;
+    } else {
+      if (sm.stability >= REQUIRED_STABLE_FRAMES) {
+        sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
+        dispatchConfirmedGesture(sm.candidate, rawParam);
+      } else if (sm.stability >= 2) {
+        sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
+      } else {
+        sm.state = GESTURE_STATES.HAND_DETECTED;
+      }
+    }
+
+    if (now - sm.lastDebugSync > 66) {
+      sm.lastDebugSync = now;
+      setDebugState({
+        engine: 'MediaPipe Hands (开源AI)',
+        handDetected: true,
+        confidence,
+        gesture: sm.candidate ? sm.candidate.toUpperCase() : 'NONE',
+        state: sm.state,
+        stability: sm.stability
+      });
+    }
+  }, [dispatchConfirmedGesture]);
+
+  // Start Camera
   const startCamera = async () => {
     try {
       setErrorMsg(null);
@@ -126,7 +301,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
     }
   };
 
-  // Stop Camera & Reset State Machine completely
+  // Stop Camera (Independent, never triggers re-mounting)
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -137,7 +312,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
       rafRef.current = null;
     }
     if (mediaPipeHandsRef.current) {
-      try { mediaPipeHandsRef.current.close(); } catch (_) {}
+      try { mediaPipeHandsRef.current.close(); } catch {}
       mediaPipeHandsRef.current = null;
     }
 
@@ -160,225 +335,23 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
       state: GESTURE_STATES.NO_HAND,
       stability: 0
     });
-    onGestureAction?.({ type: 'no_hand' });
-  }, [engineType, onGestureAction]);
+    onGestureActionRef.current?.({ type: 'no_hand' });
+  }, [engineType]);
 
+  // Clean up ONLY on unmount
   useEffect(() => {
     return () => {
-      stopCamera();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (mediaPipeHandsRef.current) {
+        try { mediaPipeHandsRef.current.close(); } catch {}
+      }
     };
-  }, [stopCamera]);
+  }, []);
 
-  // Execute Confirmed Gesture
-  const dispatchConfirmedGesture = useCallback((candidate, rawParam) => {
-    const sm = smRef.current;
-    const now = Date.now();
-
-    if (candidate === 'fist') {
-      if (isRegionSelected && now - sm.lastFistTime < 2400) {
-        setCurrentGesture({ type: 'fist_again', label: '再次握拳：打开作品展示！', icon: '✊' });
-        onGestureAction?.({ type: 'fist_again' });
-        sm.lastFistTime = 0;
-      } else {
-        setCurrentGesture({ type: 'fist', label: '握拳：选中高亮地区', icon: '✊' });
-        onGestureAction?.({ type: 'fist' });
-        sm.lastFistTime = now;
-      }
-      sm.cooldownUntil = now + 900;
-      sm.state = GESTURE_STATES.COOLDOWN;
-      sm.stability = 0;
-    } else if (candidate === 'swipe_left' || candidate === 'swipe_right') {
-      const dir = candidate === 'swipe_left' ? 'left' : 'right';
-      setCurrentGesture({
-        type: candidate,
-        label: dir === 'left' ? '👈 向左挥动：旋转地球' : '👉 向右挥动：旋转地球',
-        icon: dir === 'left' ? '👈' : '👉'
-      });
-      onGestureAction?.({ type: 'swipe', direction: dir, velocity: rawParam || 8 });
-      sm.cooldownUntil = now + 400;
-      sm.state = GESTURE_STATES.COOLDOWN;
-      sm.stability = 0;
-    } else if (candidate === 'zoom_in' || candidate === 'zoom_out') {
-      const delta = candidate === 'zoom_in' ? -0.15 : 0.15;
-      setCurrentGesture({
-        type: candidate,
-        label: candidate === 'zoom_in' ? '🔍 靠近张开：放大视野' : '🔎 捏合远离：缩小全局',
-        icon: candidate === 'zoom_in' ? '🔍' : '🔎'
-      });
-      onGestureAction?.({ type: 'zoom', delta });
-      sm.cooldownUntil = now + 450;
-      sm.state = GESTURE_STATES.COOLDOWN;
-      sm.stability = 0;
-    } else if (candidate === 'open_palm') {
-      setCurrentGesture({ type: 'open_palm', label: '打开手掌：自由漫游探测', icon: '✋' });
-      onGestureAction?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
-    }
-  }, [isRegionSelected, onGestureAction]);
-
-  // MediaPipe Results Processing
-  const handleMediaPipeResults = useCallback((results) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-
-    ctx.save();
-    ctx.clearRect(0, 0, w, h);
-    // Draw mirrored video
-    ctx.scale(-1, 1);
-    ctx.drawImage(results.image, -w, 0, w, h);
-    ctx.restore();
-
-    const sm = smRef.current;
-    const now = Date.now();
-
-    const hasHand = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
-
-    // 1. Strict NO_HAND transition
-    if (!hasHand) {
-      if (sm.state !== GESTURE_STATES.NO_HAND) {
-        sm.state = GESTURE_STATES.NO_HAND;
-        sm.candidate = null;
-        sm.stability = 0;
-        sm.confidence = 0;
-        sm.prevPalmX = null;
-        sm.prevPalmY = null;
-        sm.prevPinchDist = null;
-
-        setCurrentGesture({ type: 'none', label: '未检测到手部', icon: '✋' });
-        onGestureAction?.({ type: 'no_hand' });
-      }
-
-      if (now - sm.lastDebugSync > 66) {
-        sm.lastDebugSync = now;
-        setDebugState({
-          engine: 'MediaPipe Hands (开源AI)',
-          handDetected: false,
-          confidence: 0,
-          gesture: 'NONE',
-          state: GESTURE_STATES.NO_HAND,
-          stability: 0
-        });
-      }
-      return;
-    }
-
-    // 2. Hand Landmarks Analysis
-    const lm = results.multiHandLandmarks[0];
-    const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
-
-    // Draw Skeleton
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 1.8;
-    HAND_CONNECTIONS.forEach(([i, j]) => {
-      ctx.beginPath();
-      // Mirrored X for drawing
-      ctx.moveTo((1 - lm[i].x) * w, lm[i].y * h);
-      ctx.lineTo((1 - lm[j].x) * w, lm[j].y * h);
-      ctx.stroke();
-    });
-
-    // Draw Joint Points
-    lm.forEach((pt, idx) => {
-      ctx.fillStyle = idx === 0 ? '#facc15' : idx % 4 === 0 ? '#4ade80' : '#38bdf8';
-      ctx.beginPath();
-      ctx.arc((1 - pt.x) * w, pt.y * h, idx % 4 === 0 ? 3.5 : 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Calculate Finger Curvature
-    const isCurled = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) < dist(lm[pipIdx], lm[0]);
-    const indexCurled = isCurled(8, 6);
-    const middleCurled = isCurled(12, 10);
-    const ringCurled = isCurled(16, 14);
-    const pinkyCurled = isCurled(20, 18);
-    const thumbCurled = dist(lm[4], lm[9]) < dist(lm[2], lm[9]);
-
-    const curledCount = (indexCurled ? 1 : 0) + (middleCurled ? 1 : 0) + (ringCurled ? 1 : 0) + (pinkyCurled ? 1 : 0) + (thumbCurled ? 1 : 0);
-
-    const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
-    const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
-    const pinchDist = dist(lm[4], lm[8]);
-
-    let rawCandidate = null;
-    let rawParam = null;
-
-    // Motion Detection (Swipe Left / Right)
-    if (sm.prevPalmX !== null) {
-      const deltaX = palmX - sm.prevPalmX;
-      if (Math.abs(deltaX) > 0.045) {
-        // Mirrored camera coordinate conversion
-        rawCandidate = deltaX > 0 ? 'swipe_left' : 'swipe_right';
-        rawParam = Math.abs(deltaX) * 120;
-      }
-    }
-
-    // Zoom Pinch Detection
-    if (!rawCandidate && sm.prevPinchDist !== null && !indexCurled && !middleCurled) {
-      const pinchRatio = pinchDist / sm.prevPinchDist;
-      if (pinchRatio > 1.35 && pinchDist > 0.12) {
-        rawCandidate = 'zoom_in';
-      } else if (pinchRatio < 0.75 && pinchDist < 0.08) {
-        rawCandidate = 'zoom_out';
-      }
-    }
-
-    // Static Gesture (Fist vs Open Palm)
-    if (!rawCandidate) {
-      if (curledCount >= 4) {
-        rawCandidate = 'fist';
-      } else if (curledCount <= 1) {
-        rawCandidate = 'open_palm';
-        rawParam = { x: 1 - palmX, y: palmY };
-      } else {
-        rawCandidate = sm.candidate || 'open_palm';
-      }
-    }
-
-    sm.prevPalmX = palmX;
-    sm.prevPalmY = palmY;
-    sm.prevPinchDist = pinchDist;
-
-    // Stability Temporal Verification
-    if (rawCandidate === sm.candidate) {
-      sm.stability = Math.min(REQUIRED_STABLE_FRAMES, sm.stability + 1);
-    } else {
-      sm.candidate = rawCandidate;
-      sm.stability = 1;
-    }
-
-    const confidence = 0.92; // MediaPipe model provides high landmark certainty
-
-    // Cooldown and Confirmation State Machine
-    if (now < sm.cooldownUntil) {
-      sm.state = GESTURE_STATES.COOLDOWN;
-    } else {
-      if (sm.stability >= REQUIRED_STABLE_FRAMES) {
-        sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
-        dispatchConfirmedGesture(sm.candidate, rawParam);
-      } else if (sm.stability >= 2) {
-        sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
-      } else {
-        sm.state = GESTURE_STATES.HAND_DETECTED;
-      }
-    }
-
-    if (now - sm.lastDebugSync > 66) {
-      sm.lastDebugSync = now;
-      setDebugState({
-        engine: 'MediaPipe Hands (开源AI)',
-        handDetected: true,
-        confidence,
-        gesture: sm.candidate ? sm.candidate.toUpperCase() : 'NONE',
-        state: sm.state,
-        stability: sm.stability
-      });
-    }
-  }, [dispatchConfirmedGesture, onGestureAction]);
-
-  // Frame Processing Loop (Feed to MediaPipe or Fallback to Optical segmentation)
+  // Background Frame Processing Loop (Headless / Invisible to preserve privacy)
   useEffect(() => {
     if (!isEnabled) return;
 
@@ -400,7 +373,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
             console.error('MediaPipe frame processing error:', e);
           }
         } else {
-          // Fallback Optical Engine (Runs 100% locally if CDN is offline)
+          // Robust Optical Segmentation Fallback (100% offline)
           const ctx = canvas.getContext('2d', { willReadFrequently: true });
           const w = 120;
           const h = 90;
@@ -431,10 +404,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
               sumX += x; sumY += y; activePixels++;
               if (x < minX) minX = x; if (x > maxX) maxX = x;
               if (y < minY) minY = y; if (y > maxY) maxY = y;
-              data[i] = 80; data[i + 1] = 180; data[i + 2] = 255;
             }
           }
-          ctx.putImageData(imgData, 0, 0);
 
           const sm = smRef.current;
           const now = Date.now();
@@ -452,8 +423,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
               sm.state = GESTURE_STATES.NO_HAND;
               sm.candidate = null;
               sm.stability = 0;
-              setCurrentGesture({ type: 'none', label: '未检测到手部', icon: '✋' });
-              onGestureAction?.({ type: 'no_hand' });
+              setCurrentGesture({ type: 'none', label: '等待手势...', icon: '✋' });
+              onGestureActionRef.current?.({ type: 'no_hand' });
             }
           } else {
             const centroidX = sumX / activePixels;
@@ -501,7 +472,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
       isRunning = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [dispatchConfirmedGesture, isEnabled, onGestureAction]);
+  }, [dispatchConfirmedGesture, isEnabled]);
 
   return (
     <div className="gesture-camera-dock">
@@ -515,7 +486,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Sparkles size={14} style={{ color: isEnabled ? 'var(--accent-sage)' : 'var(--text-tertiary)' }} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 650 }}>AI 隔空手势识别</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 650 }}>AI 隔空手势感知</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {/* Debug UI Toggle Button */}
@@ -531,7 +502,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
               borderColor: showDebug ? 'var(--accent-blue)' : undefined,
               color: showDebug ? 'var(--accent-blue)' : undefined
             }}
-            title="开闭手势识别调试看板"
+            title="开闭手势调试面板"
           >
             <Bug size={12} />
             <span>调试</span>
@@ -549,6 +520,18 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
         </div>
       </div>
 
+      {/* Completely Invisible Headless Video & Canvas (No live webcam feed rendered) */}
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        style={{ display: 'none' }}
+      />
+      <canvas
+        ref={canvasRef}
+        style={{ display: 'none' }}
+      />
+
       {/* Main Body */}
       <AnimatePresence>
         {!isMinimized && (
@@ -558,49 +541,86 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
           >
-            {/* Video & Vision Feedback Canvas */}
-            <div style={{ position: 'relative', width: '100%', height: '145px', backgroundColor: '#070a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <video
-                ref={videoRef}
-                playsInline
-                muted
-                style={{ display: 'none' }}
-              />
-              <canvas
-                ref={canvasRef}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: isEnabled ? 'block' : 'none'
-                }}
-              />
+            {/* Privacy-First Cybernetic Radar Scanner (Replaces Live Webcam Feed) */}
+            <div className="hud-cyber-scanner">
+              <div className="hud-radar-grid" />
+              <div className="hud-scanner-crosshair" />
 
-              {!isEnabled && (
-                <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-tertiary)' }}>
-                  <Hand size={28} style={{ margin: '0 auto 6px auto', opacity: 0.6 }} />
-                  <div style={{ fontSize: '0.74rem' }}>点击下方开启手势感知</div>
-                </div>
-              )}
+              {isEnabled && <div className="hud-radar-sweeper" />}
 
-              {isEnabled && (
+              {/* Center Hologram Icon & Status */}
+              <div style={{
+                position: 'relative',
+                zIndex: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
                 <div style={{
-                  position: 'absolute',
-                  top: '6px',
-                  left: '6px',
-                  display: 'inline-flex',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'rgba(0,0,0,0.65)',
-                  padding: '2px 6px',
-                  borderRadius: 'var(--radius-pill)',
-                  fontSize: '0.66rem',
-                  color: debugState.handDetected ? '#4ade80' : '#94a3b8'
+                  justifyContent: 'center',
+                  backgroundColor: debugState.handDetected ? 'rgba(74, 222, 128, 0.15)' : 'rgba(56, 189, 248, 0.1)',
+                  border: `1px solid ${debugState.handDetected ? '#4ade80' : 'rgba(56, 189, 248, 0.3)'}`,
+                  boxShadow: debugState.handDetected ? '0 0 16px rgba(74, 222, 128, 0.4)' : '0 0 10px rgba(56, 189, 248, 0.2)',
+                  transition: 'all 0.2s ease'
                 }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: debugState.handDetected ? '#4ade80' : '#94a3b8' }} />
-                  <span>{debugState.handDetected ? '手势追踪中' : '搜索手部...'}</span>
+                  <Hand
+                    size={22}
+                    style={{
+                      color: debugState.handDetected ? '#4ade80' : isEnabled ? '#38bdf8' : 'var(--text-tertiary)',
+                      transition: 'color 0.2s ease'
+                    }}
+                  />
                 </div>
-              )}
+
+                <div style={{
+                  fontSize: '0.68rem',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  color: debugState.handDetected ? '#4ade80' : isEnabled ? '#38bdf8' : 'var(--text-tertiary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {isEnabled ? (
+                    debugState.handDetected ? (
+                      <>
+                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
+                        <span>已锁定手部信号</span>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
+                        <span>空间雷达扫描中...</span>
+                      </>
+                    )
+                  ) : (
+                    <span>摄像头已待命</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Privacy Protection Badge */}
+              <div style={{
+                position: 'absolute',
+                top: '6px',
+                left: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                padding: '2px 6px',
+                borderRadius: 'var(--radius-pill)',
+                fontSize: '0.62rem',
+                color: '#94a3b8'
+              }}>
+                <ShieldCheck size={10} style={{ color: '#4ade80' }} />
+                <span>端侧隐私保护</span>
+              </div>
             </div>
 
             {/* Gesture Status Badge */}
@@ -718,7 +738,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, se
                 {isEnabled ? (
                   <>
                     <CameraOff size={13} />
-                    <span>关闭手势摄像头</span>
+                    <span>关闭手势识别</span>
                   </>
                 ) : (
                   <>

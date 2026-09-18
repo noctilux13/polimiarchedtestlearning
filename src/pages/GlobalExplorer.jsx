@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppContext } from '../context/AppContext';
@@ -10,13 +10,10 @@ import { getAssetUrl } from '../utils/assetUrl';
 import {
   Globe as GlobeIcon,
   ArrowLeft,
-  Hand,
-  Compass,
   Landmark,
   Palette,
   X,
   ChevronRight,
-  Sparkles,
   MapPin,
   ExternalLink,
   Layers
@@ -32,30 +29,20 @@ function latLngToVector3(lat, lng, radius) {
   return new THREE.Vector3(x, y, z);
 }
 
-// Procedural Canvas Texture for High-Performance & High-Luminance Earth Globe
+// Procedural Canvas Texture for Minimalist Sci-Fi Earth Globe (Restrained, Elegant, Non-Flashy)
 function createEarthTexture(isDark) {
   const canvas = document.createElement('canvas');
   canvas.width = 2048;
   canvas.height = 1024;
   const ctx = canvas.getContext('2d');
 
-  // Background ocean with subtle radial depth gradient
-  const oceanGrad = ctx.createRadialGradient(1024, 512, 100, 1024, 512, 1200);
-  if (isDark) {
-    oceanGrad.addColorStop(0, '#152238');
-    oceanGrad.addColorStop(0.6, '#0f1828');
-    oceanGrad.addColorStop(1, '#090e18');
-  } else {
-    oceanGrad.addColorStop(0, '#f1f5f9');
-    oceanGrad.addColorStop(0.6, '#e2e8f0');
-    oceanGrad.addColorStop(1, '#cbd5e1');
-  }
-  ctx.fillStyle = oceanGrad;
+  // Deep dark slate obsidian ocean
+  ctx.fillStyle = isDark ? '#0a0f18' : '#1e293b';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Lat / Long Grid lines
-  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(71, 85, 105, 0.15)';
-  ctx.lineWidth = 1.2;
+  // Subtle longitude & latitude hairline grid
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(148, 163, 184, 0.15)';
+  ctx.lineWidth = 1;
 
   // Parallels
   for (let lat = -80; lat <= 80; lat += 20) {
@@ -75,13 +62,13 @@ function createEarthTexture(isDark) {
     ctx.stroke();
   }
 
-  // Major continental landmass clusters with bright cybernetic styling
-  ctx.fillStyle = isDark ? 'rgba(40, 70, 110, 0.92)' : 'rgba(255, 255, 255, 0.95)';
-  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.65)' : 'rgba(59, 130, 246, 0.5)';
-  ctx.lineWidth = 2.5;
+  // Refined dark titanium slate continents
+  ctx.fillStyle = isDark ? 'rgba(28, 42, 62, 0.95)' : 'rgba(51, 65, 85, 0.95)';
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148, 163, 184, 0.4)';
+  ctx.lineWidth = 1.8;
 
   const landmasses = [
-    // Europe & Mediterranean (High fidelity)
+    // Europe & Mediterranean
     { x: 1040, y: 220, w: 230, h: 180 },
     // Eurasia / Central Asia
     { x: 1210, y: 210, w: 420, h: 240 },
@@ -108,8 +95,7 @@ function createEarthTexture(isDark) {
 }
 
 export default function GlobalExplorer() {
-  const { t, isDark } = useContext(AppContext);
-  const navigate = useNavigate();
+  const { isDark } = useContext(AppContext);
 
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -123,6 +109,17 @@ export default function GlobalExplorer() {
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [visibleCityLabels, setVisibleCityLabels] = useState([]);
+
+  // Keep references to state so Three.js render loop and callbacks don't trigger unmounts
+  const selectedRegionRef = useRef(selectedRegion);
+  useEffect(() => {
+    selectedRegionRef.current = selectedRegion;
+  }, [selectedRegion]);
+
+  const hoveredRegionRef = useRef(hoveredRegion);
+  useEffect(() => {
+    hoveredRegionRef.current = hoveredRegion;
+  }, [hoveredRegion]);
 
   // Orbital Controls State with Momentum & Inertia
   const controlsRef = useRef({
@@ -149,7 +146,6 @@ export default function GlobalExplorer() {
     if (!region) return;
     setSelectedRegion(region);
 
-    // Convert region Lat/Lng into target spherical coordinates
     const targetTheta = -(region.lng + 90) * (Math.PI / 180);
     const targetPhi = (90 - region.lat) * (Math.PI / 180);
 
@@ -163,7 +159,12 @@ export default function GlobalExplorer() {
     c.lastInteractionTime = Date.now();
   }, []);
 
-  // Gesture Action Dispatcher
+  const focusRegionRef = useRef(focusRegion);
+  useEffect(() => {
+    focusRegionRef.current = focusRegion;
+  }, [focusRegion]);
+
+  // Stable Gesture Action Dispatcher (No re-mount triggers)
   const handleGestureAction = useCallback((action) => {
     if (action.type === 'no_hand') {
       setHoveredRegion(null);
@@ -201,17 +202,19 @@ export default function GlobalExplorer() {
         }
       }
     } else if (action.type === 'fist') {
-      if (hoveredRegion) {
-        focusRegion(hoveredRegion);
-      } else if (selectedRegion) {
-        focusRegion(selectedRegion);
+      const currentHov = hoveredRegionRef.current;
+      const currentSel = selectedRegionRef.current;
+      if (currentHov) {
+        focusRegionRef.current?.(currentHov);
+      } else if (currentSel) {
+        focusRegionRef.current?.(currentSel);
       }
     } else if (action.type === 'fist_again') {
       setIsDrawerOpen(true);
     }
-  }, [focusRegion, hoveredRegion, selectedRegion]);
+  }, []);
 
-  // Three.js WebGL Scene Initialization
+  // Three.js WebGL Scene Initialization (ONLY RUNS ONCE ON MOUNT / THEME CHANGE)
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -233,23 +236,23 @@ export default function GlobalExplorer() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = isDark ? 1.25 : 1.1;
+    renderer.toneMappingExposure = isDark ? 1.2 : 1.1;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. High-Luminance Multi-Source Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.6 : 1.8);
+    // 4. Clean, Restrained Sci-Fi Multi-Source Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.5 : 1.7);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.6 : 2.2);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.4 : 2.0);
     dirLight1.position.set(6, 8, 7);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 1.4);
+    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 1.2);
     dirLight2.position.set(-7, -2, -5);
     scene.add(dirLight2);
 
-    const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e293b, 1.1);
+    const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e293b, 1.0);
     scene.add(hemiLight);
 
     // 5. High-Resolution Globe Sphere (Smooth 96x96 Mesh)
@@ -260,30 +263,30 @@ export default function GlobalExplorer() {
     const proceduralTexture = createEarthTexture(isDark);
     const globeMat = new THREE.MeshStandardMaterial({
       map: proceduralTexture,
-      roughness: 0.42,
-      metalness: 0.12,
-      emissive: new THREE.Color(isDark ? 0x18324f : 0x0a192f),
-      emissiveIntensity: isDark ? 0.35 : 0.08
+      roughness: 0.45,
+      metalness: 0.15,
+      emissive: new THREE.Color(isDark ? 0x0f1e33 : 0x0a1525),
+      emissiveIntensity: isDark ? 0.3 : 0.1
     });
     const globeMesh = new THREE.Mesh(globeGeo, globeMat);
     scene.add(globeMesh);
     globeRef.current = globeMesh;
 
-    // Asynchronously load real high-resolution NASA Blue Marble, Specular map, and Night Lights
+    // Asynchronously load the generated Minimalist Sci-Fi Earth Texture
     const textureLoader = new THREE.TextureLoader();
 
-    // 1. Base Map: NASA Blue Marble (True color continents & ocean depth)
+    // 1. Sci-Fi Texture (Clean dark slate/charcoal continents, obsidian oceans, subtle cyan grid)
     textureLoader.load(
-      getAssetUrl('textures/earth_atmos_2048.jpg'),
-      (baseTex) => {
-        baseTex.wrapS = THREE.RepeatWrapping;
-        baseTex.wrapT = THREE.ClampToEdgeWrapping;
-        globeMat.map = baseTex;
+      getAssetUrl('textures/earth-scifi.jpg'),
+      (scifiTex) => {
+        scifiTex.wrapS = THREE.RepeatWrapping;
+        scifiTex.wrapT = THREE.ClampToEdgeWrapping;
+        globeMat.map = scifiTex;
         globeMat.needsUpdate = true;
       },
       undefined,
       () => {
-        // Fallback to earth-dark if needed
+        // Graceful fallback to earth-dark if needed
         textureLoader.load(getAssetUrl('textures/earth-dark.jpg'), (fallbackTex) => {
           globeMat.map = fallbackTex;
           globeMat.needsUpdate = true;
@@ -298,19 +301,6 @@ export default function GlobalExplorer() {
         specTex.wrapS = THREE.RepeatWrapping;
         specTex.wrapT = THREE.ClampToEdgeWrapping;
         globeMat.roughnessMap = specTex;
-        globeMat.needsUpdate = true;
-      }
-    );
-
-    // 3. Emissive Night Lights Map (Glowing city clusters)
-    textureLoader.load(
-      getAssetUrl('textures/earth-night.jpg'),
-      (nightTex) => {
-        nightTex.wrapS = THREE.RepeatWrapping;
-        nightTex.wrapT = THREE.ClampToEdgeWrapping;
-        globeMat.emissiveMap = nightTex;
-        globeMat.emissive = new THREE.Color(isDark ? 0x38bdf8 : 0x0284c7);
-        globeMat.emissiveIntensity = isDark ? 0.48 : 0.18;
         globeMat.needsUpdate = true;
       }
     );
@@ -335,10 +325,10 @@ export default function GlobalExplorer() {
 
     pointsGeo.setAttribute('position', new THREE.Float32BufferAttribute(matrixCoords, 3));
     const pointsMat = new THREE.PointsMaterial({
-      size: 0.024,
+      size: 0.022,
       color: isDark ? 0x38bdf8 : 0x0284c7,
       transparent: true,
-      opacity: isDark ? 0.6 : 0.45,
+      opacity: isDark ? 0.55 : 0.4,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -350,7 +340,7 @@ export default function GlobalExplorer() {
     const atmoMat = new THREE.MeshBasicMaterial({
       color: isDark ? 0x38bdf8 : 0x93c5fd,
       transparent: true,
-      opacity: isDark ? 0.22 : 0.12,
+      opacity: isDark ? 0.18 : 0.10,
       side: THREE.BackSide
     });
     const atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
@@ -359,7 +349,7 @@ export default function GlobalExplorer() {
     // 5d. Deep Space Starfield
     const starsGeo = new THREE.BufferGeometry();
     const starCoords = [];
-    for (let i = 0; i < 900; i++) {
+    for (let i = 0; i < 800; i++) {
       const r = 35 + Math.random() * 25;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(Math.random() * 2 - 1);
@@ -371,10 +361,10 @@ export default function GlobalExplorer() {
     }
     starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
     const starsMat = new THREE.PointsMaterial({
-      size: 0.045,
+      size: 0.04,
       color: isDark ? 0x94a3b8 : 0xcbd5e1,
       transparent: true,
-      opacity: isDark ? 0.6 : 0.35
+      opacity: isDark ? 0.5 : 0.3
     });
     const starsMesh = new THREE.Points(starsGeo, starsMat);
     scene.add(starsMesh);
@@ -410,7 +400,7 @@ export default function GlobalExplorer() {
       const ringMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.75,
         side: THREE.DoubleSide
       });
       const ringMesh = new THREE.Mesh(flatRingGeo, ringMat);
@@ -425,7 +415,7 @@ export default function GlobalExplorer() {
     const mousePos = new THREE.Vector2();
 
     const handlePointerDown = (e) => {
-      try { container.setPointerCapture?.(e.pointerId); } catch (_) {}
+      try { container.setPointerCapture?.(e.pointerId); } catch {}
       const c = controlsRef.current;
       c.isDragging = true;
       c.dragStartX = e.clientX;
@@ -483,7 +473,7 @@ export default function GlobalExplorer() {
       const c = controlsRef.current;
       if (c.isDragging) {
         c.isDragging = false;
-        try { container.releasePointerCapture?.(e.pointerId); } catch (_) {}
+        try { container.releasePointerCapture?.(e.pointerId); } catch {}
 
         // Distinguish drag from click: small travel distance = click
         const distMoved = Math.hypot(e.clientX - c.dragStartX, e.clientY - c.dragStartY);
@@ -497,7 +487,7 @@ export default function GlobalExplorer() {
           const intersects = raycaster.intersectObjects(dots);
           if (intersects.length > 0) {
             const hitRegion = intersects[0].object.userData.region;
-            focusRegion(hitRegion);
+            focusRegionRef.current?.(hitRegion);
           }
         }
       }
@@ -565,10 +555,13 @@ export default function GlobalExplorer() {
       camera.position.set(cx, cy, cz);
       camera.lookAt(0, 0, 0);
 
-      // Pulse wave ring animation on planar pins
+      // Pulse wave ring animation on planar pins (Reads from refs for zero-overhead performance)
+      const currentSelected = selectedRegionRef.current;
+      const currentHovered = hoveredRegionRef.current;
+
       pinMeshesRef.current.forEach(({ ring, region }) => {
-        const isSel = selectedRegion?.id === region.id;
-        const isHov = hoveredRegion?.id === region.id;
+        const isSel = currentSelected?.id === region.id;
+        const isHov = currentHovered?.id === region.id;
         const baseScale = isSel ? 1.6 : isHov ? 1.3 : 1.0;
         const wave = 1 + 0.35 * Math.sin(elapsed * 4 + region.lat);
         ring.scale.set(baseScale * wave, baseScale * wave, 1);
@@ -649,7 +642,7 @@ export default function GlobalExplorer() {
       flatRingGeo.dispose();
       renderer.dispose();
     };
-  }, [focusRegion, hoveredRegion, isDark, selectedRegion]);
+  }, [isDark]); // DEPENDS ONLY ON THEME, NEVER DESTROYS CANVAS ON HOVER/SELECTION
 
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: 'calc(100vh - 80px)', padding: '0.8rem 1.2rem 3rem 1.2rem' }}>
