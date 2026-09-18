@@ -6,6 +6,7 @@ import { AppContext } from '../context/AppContext';
 import { geoRegions } from '../data/geoArtData';
 import GestureCameraHUD from '../components/GestureCameraHUD';
 import { ArtworkImage } from '../components/ArtworkImage';
+import { getAssetUrl } from '../utils/assetUrl';
 import {
   Globe as GlobeIcon,
   ArrowLeft,
@@ -145,6 +146,12 @@ export default function GlobalExplorer() {
 
   // Gesture Action Dispatcher
   const handleGestureAction = useCallback((action) => {
+    if (action.type === 'no_hand') {
+      // Hand lost: immediately cancel gesture-driven hover/target impulses
+      setHoveredRegion(null);
+      return;
+    }
+
     const c = controlsRef.current;
     c.autoRotate = false;
     c.lastInteractionTime = Date.now();
@@ -226,29 +233,103 @@ export default function GlobalExplorer() {
     dirLight2.position.set(-6, -4, -4);
     scene.add(dirLight2);
 
-    // 5. Globe Sphere
+    // 5. Globe Sphere & Texture Loading
     const globeRadius = 2.4;
     const globeGeo = new THREE.SphereGeometry(globeRadius, 64, 64);
-    const earthTexture = createEarthTexture(isDark);
+    
+    // Start with procedural canvas texture for zero-latency initial rendering
+    const proceduralTexture = createEarthTexture(isDark);
     const globeMat = new THREE.MeshStandardMaterial({
-      map: earthTexture,
-      roughness: 0.7,
+      map: proceduralTexture,
+      roughness: 0.72,
       metalness: 0.15
     });
     const globeMesh = new THREE.Mesh(globeGeo, globeMat);
     scene.add(globeMesh);
     globeRef.current = globeMesh;
 
-    // Atmosphere Rim Mesh
-    const atmoGeo = new THREE.SphereGeometry(globeRadius * 1.025, 48, 48);
+    // Asynchronously load real high-resolution NASA dark earth texture
+    const textureLoader = new THREE.TextureLoader();
+    const earthTexturePath = getAssetUrl('textures/earth-dark.jpg');
+    textureLoader.load(
+      earthTexturePath,
+      (loadedTexture) => {
+        loadedTexture.wrapS = THREE.RepeatWrapping;
+        loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
+        globeMat.map = loadedTexture;
+        globeMat.needsUpdate = true;
+      },
+      undefined,
+      (err) => {
+        console.warn('Real Earth Texture fallback to procedural canvas:', err);
+        // globeMat safely retains procedural canvas texture
+      }
+    );
+
+    // 5b. Point Matrix Layer (Cybernetic Glowing Points on Globe Surface)
+    const pointsGeo = new THREE.BufferGeometry();
+    const matrixCoords = [];
+    const matrixRadius = globeRadius * 1.008; // slightly above sphere surface to prevent z-fighting
+
+    // Sample latitude / longitude coordinates
+    for (let lat = -80; lat <= 80; lat += 4) {
+      const phi = (90 - lat) * (Math.PI / 180);
+      const circumf = Math.cos(lat * (Math.PI / 180));
+      const stepLng = circumf > 0.1 ? Math.max(4, Math.floor(6 / circumf)) : 30;
+      for (let lng = -180; lng < 180; lng += stepLng) {
+        const theta = (lng + 180) * (Math.PI / 180);
+        const x = -(matrixRadius * Math.sin(phi) * Math.cos(theta));
+        const z = matrixRadius * Math.sin(phi) * Math.sin(theta);
+        const y = matrixRadius * Math.cos(phi);
+        matrixCoords.push(x, y, z);
+      }
+    }
+
+    pointsGeo.setAttribute('position', new THREE.Float32BufferAttribute(matrixCoords, 3));
+    const pointsMat = new THREE.PointsMaterial({
+      size: 0.024,
+      color: isDark ? 0x38bdf8 : 0x0284c7,
+      transparent: true,
+      opacity: isDark ? 0.6 : 0.45,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const pointMatrixMesh = new THREE.Points(pointsGeo, pointsMat);
+    globeMesh.add(pointMatrixMesh); // Synchronized directly with globeMesh
+
+    // 5c. Atmosphere Rim Mesh (Fresnel rim glow)
+    const atmoGeo = new THREE.SphereGeometry(globeRadius * 1.028, 48, 48);
     const atmoMat = new THREE.MeshBasicMaterial({
       color: isDark ? 0x38bdf8 : 0x93c5fd,
       transparent: true,
-      opacity: isDark ? 0.12 : 0.08,
+      opacity: isDark ? 0.16 : 0.10,
       side: THREE.BackSide
     });
     const atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
     scene.add(atmoMesh);
+
+    // 5d. Deep Space Starfield
+    const starsGeo = new THREE.BufferGeometry();
+    const starCoords = [];
+    for (let i = 0; i < 900; i++) {
+      const r = 35 + Math.random() * 25;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      starCoords.push(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+    starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
+    const starsMat = new THREE.PointsMaterial({
+      size: 0.045,
+      color: isDark ? 0x94a3b8 : 0xcbd5e1,
+      transparent: true,
+      opacity: isDark ? 0.6 : 0.35
+    });
+    const starsMesh = new THREE.Points(starsGeo, starsMat);
+    scene.add(starsMesh);
 
     // 6. Geographic Region Pins
     const pinsGroup = new THREE.Group();
@@ -436,8 +517,12 @@ export default function GlobalExplorer() {
       }
       globeGeo.dispose();
       globeMat.dispose();
+      pointsGeo.dispose();
+      pointsMat.dispose();
       atmoGeo.dispose();
       atmoMat.dispose();
+      starsGeo.dispose();
+      starsMat.dispose();
       renderer.dispose();
     };
   }, [focusRegion, hoveredRegion, isDark, selectedRegion]);
