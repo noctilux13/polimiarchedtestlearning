@@ -1,6 +1,20 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CameraOff, Sparkles, Hand, ChevronDown, ChevronUp, AlertCircle, Bug, CheckCircle2, XCircle, Cpu, ShieldCheck } from 'lucide-react';
+import {
+  Camera,
+  CameraOff,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  Bug,
+  CheckCircle2,
+  XCircle,
+  Cpu,
+  ShieldCheck,
+  Minimize2,
+  Maximize2
+} from 'lucide-react';
 
 export const GESTURE_STATES = {
   NO_HAND: 'NO_HAND',
@@ -10,7 +24,23 @@ export const GESTURE_STATES = {
   COOLDOWN: 'COOLDOWN'
 };
 
-const REQUIRED_STABLE_FRAMES = 5;
+const REQUIRED_STABLE_FRAMES = 3;
+
+// MediaPipe 21 Hand Landmarks Connections
+export const HAND_CONNECTIONS = [
+  // Thumb
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  // Index
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  // Middle
+  [0, 9], [9, 10], [10, 11], [11, 12],
+  // Ring
+  [0, 13], [13, 14], [14, 15], [15, 16],
+  // Pinky
+  [0, 17], [17, 18], [18, 19], [19, 20],
+  // Palm base ring
+  [5, 9], [9, 13], [13, 17]
+];
 
 // Dynamic script loader for open-source MediaPipe Hands
 function loadExternalScript(src) {
@@ -28,31 +58,151 @@ function loadExternalScript(src) {
   });
 }
 
+// Render holographic wireframe skeleton on transparent virtual canvas
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, rollAngle, pinchRatio) {
+  ctx.clearRect(0, 0, width, height);
+
+  // 1. Cyber coordinate grid lines
+  ctx.save();
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 16; x < width; x += 28) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+  }
+  for (let y = 16; y < height; y += 28) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+  }
+  ctx.stroke();
+
+  // 2. Draw Bones (Fluorescent neon cyber lines)
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = isOptimal ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)';
+  ctx.shadowColor = '#00f0ff';
+  ctx.shadowBlur = isOptimal ? 8 : 4;
+  ctx.beginPath();
+  HAND_CONNECTIONS.forEach(([i, j]) => {
+    const x1 = (1 - lm[i].x) * width;
+    const y1 = lm[i].y * height;
+    const x2 = (1 - lm[j].x) * width;
+    const y2 = lm[j].y * height;
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+  });
+  ctx.stroke();
+
+  // 3. Two-Finger (Thumb & Index) dynamic link indicator
+  const tx = (1 - lm[4].x) * width;
+  const ty = lm[4].y * height;
+  const ix = (1 - lm[8].x) * width;
+  const iy = lm[8].y * height;
+
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = pinchRatio < 0.42 ? '#fbbf24' : pinchRatio > 0.95 ? '#4ade80' : 'rgba(250, 204, 21, 0.6)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(ix, iy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 4. Draw Joints with glowing rings
+  for (let i = 0; i < 21; i++) {
+    const cx = (1 - lm[i].x) * width;
+    const cy = lm[i].y * height;
+    const isTip = (i === 4 || i === 8 || i === 12 || i === 16 || i === 20);
+    const isTwoFinger = (i === 4 || i === 8);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, isTwoFinger ? 4.2 : isTip ? 3.4 : 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = isTwoFinger ? '#facc15' : isTip ? '#4ade80' : '#e2e8f0';
+    ctx.shadowColor = isTwoFinger ? '#facc15' : '#4ade80';
+    ctx.shadowBlur = 6;
+    ctx.fill();
+  }
+
+  // 5. Hand Roll Angle Indicator text
+  const rollDeg = Math.round((rollAngle * 180) / Math.PI);
+  if (Math.abs(rollDeg) >= 5) {
+    ctx.fillStyle = Math.abs(rollDeg) >= 16 ? '#4ade80' : 'rgba(226, 232, 240, 0.75)';
+    ctx.font = '10px monospace';
+    ctx.shadowBlur = 0;
+    const arrow = rollDeg > 0 ? '↻ +' : '↺ ';
+    ctx.fillText(`${arrow}${rollDeg}°`, width / 2 - 14, 18);
+  }
+
+  ctx.restore();
+}
+
+// Render empty / searching radar animation
+function drawEmptyViewfinder(ctx, width, height) {
+  ctx.clearRect(0, 0, width, height);
+  ctx.save();
+
+  // Concentric radar circles
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(width / 2, height / 2, 45, 0, Math.PI * 2);
+  ctx.arc(width / 2, height / 2, 26, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Subtle grid crosshair
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+  ctx.beginPath();
+  ctx.moveTo(width / 2, 10);
+  ctx.lineTo(width / 2, height - 10);
+  ctx.moveTo(10, height / 2);
+  ctx.lineTo(width - 10, height / 2);
+  ctx.stroke();
+
+  // Text status
+  ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('AI 虚拟雷达感知中...', width / 2, height / 2 + 4);
+
+  ctx.restore();
+}
+
 export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [showDebug, setShowDebug] = useState(false); // Default clean mode
+  const [isCutOut, setIsCutOut] = useState(false); // Auto-cutout when locked and stable
+  const [showDebug, setShowDebug] = useState(false);
   const [engineType, setEngineType] = useState('MediaPipe Hands');
   const [errorMsg, setErrorMsg] = useState(null);
-  const [currentGesture, setCurrentGesture] = useState({ type: 'none', label: '等待手势...', icon: '✋' });
+  const [currentGesture, setCurrentGesture] = useState({ type: 'none', label: '请将手伸入镜头', icon: '✋' });
 
-  // Lightweight state for Debug UI overlay & radar feedback
+  // Multimodal Distance Feedback State
+  const [distanceFeedback, setDistanceFeedback] = useState({
+    status: 'idle', // 'idle' | 'optimal' | 'too_far' | 'too_close'
+    label: '等待手部入镜'
+  });
+
+  // Debug UI overlay state
   const [debugState, setDebugState] = useState({
     engine: 'MediaPipe Hands',
     handDetected: false,
     confidence: 0,
     gesture: 'NONE',
     state: GESTURE_STATES.NO_HAND,
-    stability: 0
+    stability: 0,
+    rollDeg: 0,
+    pinchRatio: 0,
+    distanceRatio: 0
   });
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const wireframeCanvasRef = useRef(null);
   const streamRef = useRef(null);
   const rafRef = useRef(null);
   const mediaPipeHandsRef = useRef(null);
 
-  // Keep references to props so callbacks never trigger re-renders or unmounts
+  // Stable prop references
   const onGestureActionRef = useRef(onGestureAction);
   useEffect(() => {
     onGestureActionRef.current = onGestureAction;
@@ -71,9 +221,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     confidence: 0,
     cooldownUntil: 0,
     lastFistTime: 0,
-    prevPalmX: null,
-    prevPalmY: null,
-    prevPinchDist: null,
+    optimalStreak: 0,
+    lostStreak: 0,
     lastDebugSync: 0
   });
 
@@ -95,65 +244,79 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       sm.cooldownUntil = now + 900;
       sm.state = GESTURE_STATES.COOLDOWN;
       sm.stability = 0;
-    } else if (candidate === 'swipe_left' || candidate === 'swipe_right') {
-      const dir = candidate === 'swipe_left' ? 'left' : 'right';
+    } else if (candidate === 'rotate_left' || candidate === 'rotate_right') {
+      const dir = candidate === 'rotate_left' ? 'left' : 'right';
+      const speed = rawParam?.speed || 1.2;
       setCurrentGesture({
         type: candidate,
-        label: dir === 'left' ? '👈 向左挥动：旋转地球' : '👉 向右挥动：旋转地球',
-        icon: dir === 'left' ? '👈' : '👉'
+        label: dir === 'left' ? '🔄 向左倾斜：向左旋转地球' : '🔄 向右倾斜：向右旋转地球',
+        icon: dir === 'left' ? '↺' : '↻'
       });
-      onGestureActionRef.current?.({ type: 'swipe', direction: dir, velocity: rawParam || 8 });
-      sm.cooldownUntil = now + 400;
+      onGestureActionRef.current?.({
+        type: 'rotate',
+        direction: dir,
+        rollAngle: rawParam?.rollAngle || 0,
+        speed
+      });
+      sm.cooldownUntil = now + 65; // Highly responsive continuous control
       sm.state = GESTURE_STATES.COOLDOWN;
-      sm.stability = 0;
     } else if (candidate === 'zoom_in' || candidate === 'zoom_out') {
-      const delta = candidate === 'zoom_in' ? -0.15 : 0.15;
+      const delta = candidate === 'zoom_in' ? -0.18 : 0.18;
       setCurrentGesture({
         type: candidate,
-        label: candidate === 'zoom_in' ? '🔍 靠近张开：放大视野' : '🔎 捏合远离：缩小全局',
+        label: candidate === 'zoom_in' ? '👌 双指张开：推进放大视野' : '👌 双指捏合：拉远缩小全局',
         icon: candidate === 'zoom_in' ? '🔍' : '🔎'
       });
       onGestureActionRef.current?.({ type: 'zoom', delta });
-      sm.cooldownUntil = now + 450;
+      sm.cooldownUntil = now + 220;
       sm.state = GESTURE_STATES.COOLDOWN;
-      sm.stability = 0;
     } else if (candidate === 'open_palm') {
       setCurrentGesture({ type: 'open_palm', label: '打开手掌：自由漫游探测', icon: '✋' });
       onGestureActionRef.current?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
     }
   }, []);
 
-  // MediaPipe Results Processing (Runs completely off-screen, no video shown)
+  // MediaPipe Results Processing (Renders pure virtual skeleton wireframe, NO video feed)
   const handleMediaPipeResults = useCallback((results) => {
     const sm = smRef.current;
     const now = Date.now();
 
     const hasHand = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
+    const wireframeCanvas = wireframeCanvasRef.current;
 
     // Strict NO_HAND transition
     if (!hasHand) {
+      if (wireframeCanvas) {
+        const ctx = wireframeCanvas.getContext('2d');
+        if (ctx) drawEmptyViewfinder(ctx, wireframeCanvas.width, wireframeCanvas.height);
+      }
+
+      sm.lostStreak = (sm.lostStreak || 0) + 1;
+      if (sm.lostStreak > 35) {
+        sm.optimalStreak = 0;
+        setIsCutOut(false); // Re-open viewfinder to guide user back
+      }
+
       if (sm.state !== GESTURE_STATES.NO_HAND) {
         sm.state = GESTURE_STATES.NO_HAND;
         sm.candidate = null;
         sm.stability = 0;
         sm.confidence = 0;
-        sm.prevPalmX = null;
-        sm.prevPalmY = null;
-        sm.prevPinchDist = null;
 
-        setCurrentGesture({ type: 'none', label: '等待手势...', icon: '✋' });
+        setDistanceFeedback({ status: 'idle', label: '等待手部入镜' });
+        setCurrentGesture({ type: 'none', label: '请将手伸入镜头', icon: '✋' });
         onGestureActionRef.current?.({ type: 'no_hand' });
-      }
 
-      if (now - sm.lastDebugSync > 66) {
-        sm.lastDebugSync = now;
         setDebugState({
           engine: 'MediaPipe Hands (开源AI)',
           handDetected: false,
           confidence: 0,
           gesture: 'NONE',
           state: GESTURE_STATES.NO_HAND,
-          stability: 0
+          stability: 0,
+          rollDeg: 0,
+          pinchRatio: 0,
+          distanceRatio: 0
         });
       }
       return;
@@ -163,6 +326,38 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     const lm = results.multiHandLandmarks[0];
     const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
+    // 1. Multimodal Distance Estimation (Hand scale from wrist 0 to middle tip 12)
+    const handHeight = dist(lm[0], lm[12]);
+    let currentDistStatus = 'optimal';
+    let currentDistLabel = '🎯 最佳操作距离';
+
+    if (handHeight < 0.20) {
+      currentDistStatus = 'too_far';
+      currentDistLabel = '⚠️ 请靠近摄像头';
+    } else if (handHeight > 0.58) {
+      currentDistStatus = 'too_close';
+      currentDistLabel = '⚠️ 请稍微远离镜头';
+    }
+
+    setDistanceFeedback({ status: currentDistStatus, label: currentDistLabel });
+
+    // Auto-Cutout / Exit state machine:
+    // Once in optimal distance and recognized stably for >1.2s (approx 36 frames), auto-cutout to sleek mini-pill!
+    if (currentDistStatus === 'optimal') {
+      sm.optimalStreak = (sm.optimalStreak || 0) + 1;
+      sm.lostStreak = 0;
+      if (sm.optimalStreak >= 36) {
+        setIsCutOut(true);
+      }
+    } else {
+      sm.lostStreak = (sm.lostStreak || 0) + 1;
+      if (sm.lostStreak >= 30) {
+        sm.optimalStreak = 0;
+        setIsCutOut(false); // Re-open viewfinder to guide
+      }
+    }
+
+    // 2. Finger Curled States
     const isCurled = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) < dist(lm[pipIdx], lm[0]);
     const indexCurled = isCurled(8, 6);
     const middleCurled = isCurled(12, 10);
@@ -174,45 +369,64 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
     const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
     const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
-    const pinchDist = dist(lm[4], lm[8]);
 
+    // 3. Two-Finger Pinch / Spread Measurement (Normalized by palm base length)
+    const palmBase = Math.max(0.01, dist(lm[0], lm[9]));
+    const pinchDist = dist(lm[4], lm[8]);
+    const pinchRatio = pinchDist / palmBase;
+
+    // 4. Hand Roll / Rotation Angle (Mirrored coordinates: vector from wrist 0 to middle MCP 9)
+    const dx = -(lm[9].x - lm[0].x);
+    const dy = -(lm[9].y - lm[0].y);
+    const rollAngle = Math.atan2(dx, dy); // 0 = straight upright, >0 = tilted right, <0 = tilted left
+
+    // 5. Draw Virtual Wireframe Skeleton onto transparent Canvas
+    if (wireframeCanvas) {
+      const ctx = wireframeCanvas.getContext('2d');
+      if (ctx) {
+        drawVirtualSkeleton(
+          ctx,
+          lm,
+          wireframeCanvas.width,
+          wireframeCanvas.height,
+          currentDistStatus === 'optimal',
+          rollAngle,
+          pinchRatio
+        );
+      }
+    }
+
+    // 6. Gesture Classification Hierarchy
     let rawCandidate = null;
     let rawParam = null;
 
-    // Motion Detection (Swipe Left / Right)
-    if (sm.prevPalmX !== null) {
-      const deltaX = palmX - sm.prevPalmX;
-      if (Math.abs(deltaX) > 0.045) {
-        rawCandidate = deltaX > 0 ? 'swipe_left' : 'swipe_right';
-        rawParam = Math.abs(deltaX) * 120;
-      }
+    // Priority 1: Fist Gesture
+    if (curledCount >= 4) {
+      rawCandidate = 'fist';
     }
-
-    // Zoom Pinch Detection
-    if (!rawCandidate && sm.prevPinchDist !== null && !indexCurled && !middleCurled) {
-      const pinchRatio = pinchDist / sm.prevPinchDist;
-      if (pinchRatio > 1.35 && pinchDist > 0.12) {
-        rawCandidate = 'zoom_in';
-      } else if (pinchRatio < 0.75 && pinchDist < 0.08) {
-        rawCandidate = 'zoom_out';
-      }
+    // Priority 2: Two-Finger Pinch (Zoom Out) & Spread (Zoom In)
+    else if (pinchRatio < 0.40 || (pinchDist < 0.072 && !middleCurled)) {
+      rawCandidate = 'zoom_out';
+      rawParam = 0.18;
+    } else if (pinchRatio > 0.95 && !indexCurled) {
+      rawCandidate = 'zoom_in';
+      rawParam = -0.18;
     }
-
-    // Static Gesture (Fist vs Open Palm)
-    if (!rawCandidate) {
-      if (curledCount >= 4) {
-        rawCandidate = 'fist';
-      } else if (curledCount <= 1) {
-        rawCandidate = 'open_palm';
-        rawParam = { x: 1 - palmX, y: palmY };
-      } else {
-        rawCandidate = sm.candidate || 'open_palm';
-      }
+    // Priority 3: Hand Roll / Tilt Direction for Left / Right Rotation
+    else if (rollAngle > 0.26) {
+      rawCandidate = 'rotate_right';
+      rawParam = { rollAngle, speed: Math.min(Math.abs(rollAngle) * 2.2, 3.2) };
+    } else if (rollAngle < -0.26) {
+      rawCandidate = 'rotate_left';
+      rawParam = { rollAngle, speed: Math.min(Math.abs(rollAngle) * 2.2, 3.2) };
     }
-
-    sm.prevPalmX = palmX;
-    sm.prevPalmY = palmY;
-    sm.prevPinchDist = pinchDist;
+    // Priority 4: Open Palm Detection
+    else if (curledCount <= 1) {
+      rawCandidate = 'open_palm';
+      rawParam = { x: 1 - palmX, y: palmY };
+    } else {
+      rawCandidate = sm.candidate || 'open_palm';
+    }
 
     // Stability Temporal Verification
     if (rawCandidate === sm.candidate) {
@@ -222,19 +436,20 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       sm.stability = 1;
     }
 
-    const confidence = 0.94;
+    const confidence = 0.96;
 
     // Cooldown and Confirmation State Machine
     if (now < sm.cooldownUntil) {
       sm.state = GESTURE_STATES.COOLDOWN;
     } else {
-      if (sm.stability >= REQUIRED_STABLE_FRAMES) {
+      const isContinuous = sm.candidate === 'rotate_left' || sm.candidate === 'rotate_right' || sm.candidate === 'zoom_in' || sm.candidate === 'zoom_out';
+      const requiredFrames = isContinuous ? 2 : REQUIRED_STABLE_FRAMES;
+
+      if (sm.stability >= requiredFrames) {
         sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
         dispatchConfirmedGesture(sm.candidate, rawParam);
-      } else if (sm.stability >= 2) {
-        sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
       } else {
-        sm.state = GESTURE_STATES.HAND_DETECTED;
+        sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
       }
     }
 
@@ -246,7 +461,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         confidence,
         gesture: sm.candidate ? sm.candidate.toUpperCase() : 'NONE',
         state: sm.state,
-        stability: sm.stability
+        stability: sm.stability,
+        rollDeg: Math.round((rollAngle * 180) / Math.PI),
+        pinchRatio: parseFloat(pinchRatio.toFixed(2)),
+        distanceRatio: parseFloat(handHeight.toFixed(2))
       });
     }
   }, [dispatchConfirmedGesture]);
@@ -294,6 +512,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       }
 
       setIsEnabled(true);
+      setIsCutOut(false);
     } catch (err) {
       console.warn('Camera access denied:', err);
       setErrorMsg('无法访问摄像头或权限被拒绝。您可随时通过平滑鼠标拖拽探索地球仪。');
@@ -317,23 +536,27 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     }
 
     setIsEnabled(false);
+    setIsCutOut(false);
     const sm = smRef.current;
     sm.state = GESTURE_STATES.NO_HAND;
     sm.candidate = null;
     sm.stability = 0;
     sm.confidence = 0;
-    sm.prevPalmX = null;
-    sm.prevPalmY = null;
-    sm.prevPinchDist = null;
+    sm.optimalStreak = 0;
+    sm.lostStreak = 0;
 
     setCurrentGesture({ type: 'none', label: '手势识别已暂停', icon: '⏸️' });
+    setDistanceFeedback({ status: 'idle', label: '摄像头已关闭' });
     setDebugState({
       engine: engineType,
       handDetected: false,
       confidence: 0,
       gesture: 'NONE',
       state: GESTURE_STATES.NO_HAND,
-      stability: 0
+      stability: 0,
+      rollDeg: 0,
+      pinchRatio: 0,
+      distanceRatio: 0
     });
     onGestureActionRef.current?.({ type: 'no_hand' });
   }, [engineType]);
@@ -476,51 +699,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
   return (
     <div className="gesture-camera-dock">
-      {/* Header Bar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '8px 12px',
-        borderBottom: '1px solid var(--border-hairline)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Sparkles size={14} style={{ color: isEnabled ? 'var(--accent-sage)' : 'var(--text-tertiary)' }} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 650 }}>AI 隔空手势感知</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {/* Debug UI Toggle Button */}
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setShowDebug(!showDebug)}
-            style={{
-              padding: '3px 7px',
-              borderRadius: 'var(--radius-pill)',
-              fontSize: '0.68rem',
-              backgroundColor: showDebug ? 'var(--accent-blue-subtle)' : undefined,
-              borderColor: showDebug ? 'var(--accent-blue)' : undefined,
-              color: showDebug ? 'var(--accent-blue)' : undefined
-            }}
-            title="开闭手势调试面板"
-          >
-            <Bug size={12} />
-            <span>调试</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setIsMinimized(!isMinimized)}
-            style={{ padding: '3px', borderRadius: '4px', border: 'none' }}
-            title={isMinimized ? '展开监控视窗' : '收起视窗'}
-          >
-            {isMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Completely Invisible Headless Video & Canvas (No live webcam feed rendered) */}
+      {/* Invisible Headless Video & Internal Processing Canvas (No camera video shown) */}
       <video
         ref={videoRef}
         playsInline
@@ -532,246 +711,335 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         style={{ display: 'none' }}
       />
 
-      {/* Main Body */}
+      {/* Auto-Cutout Mini-Pill State (When locked and stable at optimal distance) */}
       <AnimatePresence>
-        {!isMinimized && (
+        {isEnabled && isCutOut && !isMinimized && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            className="hud-cutout-bar"
+            initial={{ opacity: 0, scale: 0.94, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 8 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Privacy-First Cybernetic Radar Scanner (Replaces Live Webcam Feed) */}
-            <div className="hud-cyber-scanner">
-              <div className="hud-radar-grid" />
-              <div className="hud-scanner-crosshair" />
-
-              {isEnabled && <div className="hud-radar-sweeper" />}
-
-              {/* Center Hologram Icon & Status */}
-              <div style={{
-                position: 'relative',
-                zIndex: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <div style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: debugState.handDetected ? 'rgba(74, 222, 128, 0.15)' : 'rgba(56, 189, 248, 0.1)',
-                  border: `1px solid ${debugState.handDetected ? '#4ade80' : 'rgba(56, 189, 248, 0.3)'}`,
-                  boxShadow: debugState.handDetected ? '0 0 16px rgba(74, 222, 128, 0.4)' : '0 0 10px rgba(56, 189, 248, 0.2)',
-                  transition: 'all 0.2s ease'
-                }}>
-                  <Hand
-                    size={22}
-                    style={{
-                      color: debugState.handDetected ? '#4ade80' : isEnabled ? '#38bdf8' : 'var(--text-tertiary)',
-                      transition: 'color 0.2s ease'
-                    }}
-                  />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.25rem' }}>{currentGesture.icon}</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 650, color: 'var(--text-primary)' }}>
+                  {currentGesture.label}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.64rem', color: '#4ade80' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4ade80', display: 'inline-block' }} />
+                  <span>最佳操作距离 · 手势已锁定</span>
                 </div>
+              </div>
+            </div>
 
-                <div style={{
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setIsCutOut(false)}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 'var(--radius-pill)',
                   fontSize: '0.68rem',
-                  fontFamily: 'var(--font-mono, monospace)',
-                  color: debugState.handDetected ? '#4ade80' : isEnabled ? '#38bdf8' : 'var(--text-tertiary)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px'
-                }}>
-                  {isEnabled ? (
-                    debugState.handDetected ? (
-                      <>
-                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
-                        <span>已锁定手部信号</span>
-                      </>
-                    ) : (
-                      <>
-                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
-                        <span>空间雷达扫描中...</span>
-                      </>
-                    )
-                  ) : (
-                    <span>摄像头已待命</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Privacy Protection Badge */}
-              <div style={{
-                position: 'absolute',
-                top: '6px',
-                left: '6px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                padding: '2px 6px',
-                borderRadius: 'var(--radius-pill)',
-                fontSize: '0.62rem',
-                color: '#94a3b8'
-              }}>
-                <ShieldCheck size={10} style={{ color: '#4ade80' }} />
-                <span>端侧隐私保护</span>
-              </div>
-            </div>
-
-            {/* Gesture Status Badge */}
-            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-hairline)' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                color: 'var(--text-primary)'
-              }}>
-                <span style={{ fontSize: '1.05rem' }}>{currentGesture.icon}</span>
-                <span style={{ flex: 1 }}>{currentGesture.label}</span>
-              </div>
-            </div>
-
-            {/* Debug UI Panel (Toggleable) */}
-            {showDebug && isEnabled && (
-              <div style={{
-                padding: '8px 12px',
-                backgroundColor: 'rgba(15, 23, 42, 0.92)',
-                borderBottom: '1px solid rgba(56, 189, 248, 0.2)',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '0.68rem',
-                color: '#e2e8f0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#94a3b8' }}>Engine:</span>
-                  <span style={{ color: '#38bdf8', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Cpu size={11} /> {debugState.engine}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#94a3b8' }}>Hand Detected:</span>
-                  <span style={{
-                    fontWeight: 700,
-                    color: debugState.handDetected ? '#4ade80' : '#f87171',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px'
-                  }}>
-                    {debugState.handDetected ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
-                    {debugState.handDetected ? 'YES' : 'NO'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#94a3b8' }}>Confidence:</span>
-                  <span style={{ fontWeight: 650, color: debugState.confidence >= 0.55 ? '#38bdf8' : '#cbd5e1' }}>
-                    {debugState.confidence.toFixed(2)}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#94a3b8' }}>Gesture:</span>
-                  <span style={{ fontWeight: 650, color: '#facc15' }}>{debugState.gesture}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#94a3b8' }}>State:</span>
-                  <span style={{
-                    fontWeight: 650,
-                    color: debugState.state === GESTURE_STATES.GESTURE_CONFIRMED ? '#4ade80' :
-                           debugState.state === GESTURE_STATES.COOLDOWN ? '#f59e0b' :
-                           debugState.state === GESTURE_STATES.GESTURE_CANDIDATE ? '#38bdf8' : '#94a3b8'
-                  }}>
-                    {debugState.state}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
-                  <span style={{ color: '#94a3b8' }}>Stability:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'flex-end' }}>
-                    <div style={{
-                      width: '60px',
-                      height: '5px',
-                      backgroundColor: 'rgba(255,255,255,0.15)',
-                      borderRadius: '3px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        width: `${(debugState.stability / REQUIRED_STABLE_FRAMES) * 100}%`,
-                        height: '100%',
-                        backgroundColor: debugState.stability >= REQUIRED_STABLE_FRAMES ? '#4ade80' : '#38bdf8',
-                        transition: 'width 0.1s ease'
-                      }} />
-                    </div>
-                    <span>{debugState.stability} / {REQUIRED_STABLE_FRAMES}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Gestures Legend / Tutorial Pills */}
-            <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
-              <div>• <strong>👈 / 👉 挥手</strong>：旋转地球仪</div>
-              <div>• <strong>🔍 / 🔎 张开/捏合</strong>：缩放视角</div>
-              <div>• <strong>✋ / ✊ 打开/握拳</strong>：漫游/选中高亮地区</div>
-              <div>• <strong>✊ 再次握拳</strong>：打开该地区作品详情</div>
-            </div>
-
-            {/* Toggle Switch Button */}
-            <div style={{ padding: '8px 12px' }}>
+                }}
+                title="展开虚拟骨骼取景框"
+              >
+                <Maximize2 size={11} />
+                <span>取景框</span>
+              </button>
               <button
                 type="button"
-                className={`btn ${isEnabled ? 'btn-outline' : 'btn-primary'}`}
-                onClick={isEnabled ? stopCamera : startCamera}
-                style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', borderRadius: 'var(--radius-pill)' }}
+                className="btn btn-outline"
+                onClick={stopCamera}
+                style={{ padding: '3px 7px', borderRadius: 'var(--radius-pill)', color: 'var(--accent-terracotta)' }}
+                title="关闭手势"
               >
-                {isEnabled ? (
-                  <>
-                    <CameraOff size={13} />
-                    <span>关闭手势识别</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera size={13} />
-                    <span>开启隔空手势识别</span>
-                  </>
-                )}
+                <CameraOff size={11} />
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Minimized Pill View */}
-      {isMinimized && (
-        <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
-          <span>{currentGesture.icon} {currentGesture.label}</span>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={isEnabled ? stopCamera : startCamera}
-            style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: 'var(--radius-pill)' }}
-          >
-            {isEnabled ? '关闭' : '开启'}
-          </button>
-        </div>
-      )}
+      {/* Full Viewfinder Container (Hidden when CutOut is active) */}
+      {(!isEnabled || !isCutOut || isMinimized) && (
+        <>
+          {/* Header Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            borderBottom: '1px solid var(--border-hairline)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Sparkles size={14} style={{ color: isEnabled ? '#4ade80' : 'var(--text-tertiary)' }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 650 }}>AI 隔空手势感知</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {/* Debug UI Toggle Button */}
+              {isEnabled && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowDebug(!showDebug)}
+                  style={{
+                    padding: '3px 7px',
+                    borderRadius: 'var(--radius-pill)',
+                    fontSize: '0.68rem',
+                    backgroundColor: showDebug ? 'var(--accent-blue-subtle)' : undefined,
+                    borderColor: showDebug ? 'var(--accent-blue)' : undefined,
+                    color: showDebug ? 'var(--accent-blue)' : undefined
+                  }}
+                  title="开闭手势调试面板"
+                >
+                  <Bug size={12} />
+                  <span>调试</span>
+                </button>
+              )}
 
-      {errorMsg && (
-        <div style={{ padding: '6px 10px', fontSize: '0.7rem', color: 'var(--accent-terracotta)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <AlertCircle size={12} />
-          <span>{errorMsg}</span>
-        </div>
+              {/* Manual Cutout Toggle */}
+              {isEnabled && !isMinimized && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setIsCutOut(true)}
+                  style={{ padding: '3px 6px', borderRadius: 'var(--radius-pill)', fontSize: '0.68rem' }}
+                  title="切出轻量胶囊模式"
+                >
+                  <Minimize2 size={11} />
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setIsMinimized(!isMinimized)}
+                style={{ padding: '3px', borderRadius: '4px', border: 'none' }}
+                title={isMinimized ? '展开监控视窗' : '收起视窗'}
+              >
+                {isMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Main View Body */}
+          <AnimatePresence>
+            {!isMinimized && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+              >
+                {/* Pure Holographic Wireframe Skeleton Viewfinder (NO camera video rendered) */}
+                <div className="hud-wireframe-viewfinder">
+                  {/* Viewfinder Corner Brackets */}
+                  <div className="hud-bracket hud-bracket-tl" />
+                  <div className="hud-bracket hud-bracket-tr" />
+                  <div className="hud-bracket hud-bracket-bl" />
+                  <div className="hud-bracket hud-bracket-br" />
+
+                  {/* Cyber Grid Background */}
+                  <div className="hud-scanner-crosshair" />
+
+                  {/* Virtual Wireframe Canvas for 21 Landmarks & Skeletal Bones */}
+                  <canvas
+                    ref={wireframeCanvasRef}
+                    className="hud-wireframe-canvas"
+                    width={220}
+                    height={146}
+                  />
+
+                  {/* Multimodal Distance Guidance Pill */}
+                  {isEnabled && (
+                    <div className={`hud-distance-pill ${
+                      distanceFeedback.status === 'optimal'
+                        ? 'hud-distance-optimal'
+                        : distanceFeedback.status === 'too_far' || distanceFeedback.status === 'too_close'
+                        ? 'hud-distance-warning'
+                        : 'hud-distance-idle'
+                    }`}>
+                      {distanceFeedback.status === 'optimal' ? (
+                        <CheckCircle2 size={11} />
+                      ) : (
+                        <AlertCircle size={11} />
+                      )}
+                      <span>{distanceFeedback.label}</span>
+                    </div>
+                  )}
+
+                  {/* Privacy Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '6px',
+                    left: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    padding: '2px 6px',
+                    borderRadius: 'var(--radius-pill)',
+                    fontSize: '0.62rem',
+                    color: '#94a3b8',
+                    zIndex: 4
+                  }}>
+                    <ShieldCheck size={10} style={{ color: '#4ade80' }} />
+                    <span>虚拟骨骼取景 · 隐私保护</span>
+                  </div>
+                </div>
+
+                {/* Gesture Status Bar */}
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-hairline)' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)'
+                  }}>
+                    <span style={{ fontSize: '1.05rem' }}>{currentGesture.icon}</span>
+                    <span style={{ flex: 1 }}>{currentGesture.label}</span>
+                  </div>
+                </div>
+
+                {/* Debug Panel */}
+                {showDebug && isEnabled && (
+                  <div style={{
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+                    borderBottom: '1px solid rgba(56, 189, 248, 0.2)',
+                    fontFamily: 'var(--font-mono, monospace)',
+                    fontSize: '0.68rem',
+                    color: '#e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#94a3b8' }}>Engine:</span>
+                      <span style={{ color: '#38bdf8', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <Cpu size={11} /> {debugState.engine}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#94a3b8' }}>Hand Detected:</span>
+                      <span style={{
+                        fontWeight: 700,
+                        color: debugState.handDetected ? '#4ade80' : '#f87171',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}>
+                        {debugState.handDetected ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                        {debugState.handDetected ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Roll Angle:</span>
+                      <span style={{ fontWeight: 650, color: Math.abs(debugState.rollDeg) >= 16 ? '#4ade80' : '#cbd5e1' }}>
+                        {debugState.rollDeg}° {debugState.rollDeg > 16 ? '(右旋)' : debugState.rollDeg < -16 ? '(左旋)' : '(居中)'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Pinch Ratio:</span>
+                      <span style={{ fontWeight: 650, color: debugState.pinchRatio < 0.42 ? '#fbbf24' : debugState.pinchRatio > 0.95 ? '#4ade80' : '#cbd5e1' }}>
+                        {debugState.pinchRatio} {debugState.pinchRatio < 0.42 ? '(捏合缩小)' : debugState.pinchRatio > 0.95 ? '(张开放大)' : ''}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Gesture:</span>
+                      <span style={{ fontWeight: 650, color: '#facc15' }}>{debugState.gesture}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
+                      <span style={{ color: '#94a3b8' }}>Stability:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'flex-end' }}>
+                        <div style={{
+                          width: '60px',
+                          height: '5px',
+                          backgroundColor: 'rgba(255,255,255,0.15)',
+                          borderRadius: '3px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            width: `${(debugState.stability / REQUIRED_STABLE_FRAMES) * 100}%`,
+                            height: '100%',
+                            backgroundColor: debugState.stability >= REQUIRED_STABLE_FRAMES ? '#4ade80' : '#38bdf8',
+                            transition: 'width 0.1s ease'
+                          }} />
+                        </div>
+                        <span>{debugState.stability} / {REQUIRED_STABLE_FRAMES}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Gestures Legend / Tutorial Pills */}
+                <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
+                  <div>• <strong>👌 双指张开 / 捏合</strong>：放大 / 缩小视角</div>
+                  <div>• <strong>🔄 手掌向左 / 右倾斜</strong>：向左 / 右旋转地球</div>
+                  <div>• <strong>✋ / ✊ 打开 / 握拳</strong>：漫游探测 / 选中高亮地区</div>
+                  <div>• <strong>✊ 再次握拳</strong>：打开该地区考点地标档案</div>
+                </div>
+
+                {/* Toggle Switch Button */}
+                <div style={{ padding: '8px 12px' }}>
+                  <button
+                    type="button"
+                    className={`btn ${isEnabled ? 'btn-outline' : 'btn-primary'}`}
+                    onClick={isEnabled ? stopCamera : startCamera}
+                    style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', borderRadius: 'var(--radius-pill)' }}
+                  >
+                    {isEnabled ? (
+                      <>
+                        <CameraOff size={13} />
+                        <span>关闭手势识别</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={13} />
+                        <span>开启隔空手势感知</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Minimized Pill View */}
+          {isMinimized && (
+            <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+              <span>{currentGesture.icon} {currentGesture.label}</span>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={isEnabled ? stopCamera : startCamera}
+                style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: 'var(--radius-pill)' }}
+              >
+                {isEnabled ? '关闭' : '开启'}
+              </button>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div style={{ padding: '6px 10px', fontSize: '0.7rem', color: 'var(--accent-terracotta)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <AlertCircle size={12} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

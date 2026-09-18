@@ -175,11 +175,16 @@ export default function GlobalExplorer() {
     c.autoRotate = false;
     c.lastInteractionTime = Date.now();
 
-    if (action.type === 'swipe') {
+    if (action.type === 'rotate') {
+      const dir = action.direction === 'left' ? -1 : 1;
+      const speed = (action.speed || 1.2) * 0.018;
+      c.targetTheta += dir * speed;
+      c.velocityX = dir * speed * 0.4;
+    } else if (action.type === 'swipe') {
       const impulse = (action.direction === 'left' ? -0.45 : 0.45) * Math.min(action.velocity / 7, 1.8);
       c.targetTheta += impulse;
     } else if (action.type === 'zoom') {
-      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + action.delta * 2.8));
+      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + action.delta * 2.2));
     } else if (action.type === 'open_palm') {
       let closest = null;
       let minAngle = Infinity;
@@ -755,7 +760,7 @@ export default function GlobalExplorer() {
 
           {/* Interaction Instruction Badge */}
           <div className="globe-pill" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-            <span>🖱️ 惯性甩动 / 滚轮缩放显现地名 · 📷 右下角开启手势</span>
+            <span>🖱️ 惯性甩动 / 滚轮缩放 · 📷 隔空手势 (👌双指缩放 · 🔄手掌倾斜旋转 · ✊握拳选中)</span>
           </div>
         </div>
 
