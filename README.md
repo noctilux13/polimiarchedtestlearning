@@ -1,4 +1,4 @@
-# ARCHED TEST Art & Architecture History Learning Platform 
+# Art & Architecture History Learning Platform (艺术与建筑史研考知识典藏)
 
 A modern, minimalist, and interactive learning platform covering Western Art History and Classical European Architecture movements, master artists/architects, authoritative artworks, 3D flashcards, and an AI study assistant.
 

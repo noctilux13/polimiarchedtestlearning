@@ -10,6 +10,7 @@ import ArtworkDetail from './pages/ArtworkDetail';
 import Quiz from './pages/Quiz';
 import Dashboard from './pages/Dashboard';
 import SettingsPage from './pages/Settings';
+import GlobalExplorer from './pages/GlobalExplorer';
 import AIFloatingAssistant from './components/AIFloatingAssistant';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <main className="container" style={{ flex: 1 }}>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/explorer" element={<GlobalExplorer />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/movement/:id" element={<MovementDetail />} />
               <Route path="/artist/:movementId/:id" element={<ArtistDetail />} />

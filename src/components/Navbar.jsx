@@ -14,6 +14,7 @@ export default function Navbar() {
 
   const NAV_ITEMS = [
     { to: '/', label: t('nav.overview', '全景'), icon: Compass, end: true },
+    { to: '/explorer', label: t('nav.explorer', '全球探索'), icon: Globe, badge: '3D' },
     { to: '/timeline', label: t('nav.timeline', '时间轴'), icon: History },
     { to: '/quiz', label: t('nav.quiz', '测验'), icon: Brain },
     { to: '/dashboard', label: t('nav.dashboard', '看板'), icon: Award },
@@ -38,15 +39,14 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="navbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <nav className="navbar">
       <NavLink to="/" className="nav-brand" style={{ textDecoration: 'none' }}>
         <span className="nav-brand-badge"></span>
         <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 600 }}>{t('nav.brand', 'Art & Architecture')}</span>
       </NavLink>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-        {/* Navigation Links */}
-        <div className="nav-links">
+      {/* Navigation Links */}
+      <div className="nav-links">
           {NAV_ITEMS.map((item, idx) => {
             const Icon = item.icon;
             const isActive = activeIndex === idx;
@@ -60,29 +60,53 @@ export default function Navbar() {
                 style={{
                   color: isActive ? 'var(--text-primary)' : undefined,
                   fontWeight: isActive ? 550 : undefined,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
                 {isActive && (
                   <motion.div
                     layoutId="nav-active-indicator"
                     className="nav-indicator"
-                    transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.5 }}
                   />
                 )}
                 <Icon size={14} style={{ position: 'relative', zIndex: 1 }} />
                 <span style={{ position: 'relative', zIndex: 1 }}>{item.label}</span>
+                {item.badge && (
+                  <span
+                    style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      fontSize: '0.62rem',
+                      lineHeight: 1,
+                      padding: '2px 5px',
+                      borderRadius: 'var(--radius-pill)',
+                      backgroundColor: isActive ? 'var(--text-primary)' : 'var(--bg-subtle)',
+                      color: isActive ? 'var(--bg-canvas)' : 'var(--accent-blue)',
+                      border: '1px solid var(--border-hairline)',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em'
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </NavLink>
             );
           })}
         </div>
 
-        {/* Night / Light Mode Toggle Button */}
-        <motion.button
+        {/* Right side controls (Night Mode & Language Selector) */}
+        <div className="nav-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          {/* Night / Light Mode Toggle Button */}
+          <motion.button
           type="button"
           className="btn btn-outline"
           onClick={toggleTheme}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
+          whileHover={{ scale: 1.08, transition: { type: 'spring', stiffness: 400, damping: 18 } }}
+          whileTap={{ scale: 0.92 }}
           style={{
             width: '32px',
             height: '32px',
@@ -102,10 +126,10 @@ export default function Navbar() {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={isDark ? 'dark' : 'light'}
-              initial={{ opacity: 0, rotate: -40, scale: 0.7 }}
+              initial={{ opacity: 0, rotate: -70, scale: 0.6 }}
               animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: 40, scale: 0.7 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0, rotate: 70, scale: 0.6 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 20 }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {isDark ? (
@@ -144,16 +168,17 @@ export default function Navbar() {
           <AnimatePresence>
             {showLangMenu && (
               <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                initial={{ opacity: 0, y: 4, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
                   right: 0,
                   zIndex: 100,
                   minWidth: '140px',
+                  transformOrigin: 'top right',
                   backgroundColor: 'var(--bg-surface)',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-hairline)',

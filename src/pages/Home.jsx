@@ -5,7 +5,7 @@ import { artData } from '../data/artData';
 import { AppContext } from '../context/AppContext';
 import MouseSpotlight from '../components/MouseSpotlight';
 import { ArtworkImage } from '../components/ArtworkImage';
-import { ArrowRight, Search, BookOpen, Layers, Users, X, Landmark, Palette, Sparkles } from 'lucide-react';
+import { ArrowRight, Search, BookOpen, Layers, Users, X, Landmark, Palette, Globe } from 'lucide-react';
 
 const EASE_SPRING = [0.16, 1, 0.3, 1];
 
@@ -105,6 +105,110 @@ export default function Home() {
             </div>
           </motion.div>
 
+          {/* ── Prominent 3D Global Explorer Spotlight Card (Emil Kowalski Design) ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.42, delay: 0.12, ease: EASE_SPRING }}
+            style={{
+              margin: '0 auto 2.2rem auto',
+              padding: '1.25rem 1.4rem',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1.25rem',
+              flexWrap: 'wrap',
+              position: 'relative',
+              overflow: 'hidden',
+              textAlign: 'left'
+            }}
+          >
+            {/* Subtle background ambient radial glow */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '-35%',
+                right: '-8%',
+                width: '260px',
+                height: '260px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, transparent 70%)',
+                pointerEvents: 'none'
+              }}
+            />
+
+            <div style={{ flex: '1 1 320px', zIndex: 1 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '0.5rem' }}>
+                <span className="chip chip-blue" style={{ fontSize: '0.7rem', padding: '2px 8px', letterSpacing: '0.02em' }}>
+                  <Globe size={11} />
+                  {t('home.explorerBadge', '3D 交互 · 隔空手势')}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                  WebGL · AI Vision
+                </span>
+              </div>
+
+              <h3 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: '1.18rem',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                margin: '0 0 0.4rem 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                {t('home.explorerTitle', '全球艺术与建筑探索')}
+              </h3>
+
+              <p style={{
+                fontSize: '0.84rem',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.55',
+                margin: '0 0 0.75rem 0',
+                maxWidth: '560px'
+              }}>
+                {t('home.explorerSubtitle', '基于三维地理空间整合 135+ 件代表作与建筑地标。支持启用摄像头隔空手势旋转地球仪、缩放视野及选看作品。')}
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                <span style={{ backgroundColor: 'var(--bg-subtle)', padding: '2px 7px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-hairline)' }}>
+                  👋 挥手平移旋转
+                </span>
+                <span style={{ backgroundColor: 'var(--bg-subtle)', padding: '2px 7px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-hairline)' }}>
+                  🤏 捏合/张开缩放
+                </span>
+                <span style={{ backgroundColor: 'var(--bg-subtle)', padding: '2px 7px', borderRadius: 'var(--radius-pill)', border: '1px solid var(--border-hairline)' }}>
+                  ✊ 握拳锁定与浏览
+                </span>
+              </div>
+            </div>
+
+            <div style={{ zIndex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Link
+                to="/explorer"
+                className="btn btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '9px 18px',
+                  fontSize: '0.86rem',
+                  borderRadius: 'var(--radius-pill)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Globe size={15} />
+                <span>{t('home.explorerCta', '开启 3D 全球探索')}</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </motion.div>
+
           {/* Search Bar */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -163,7 +267,7 @@ export default function Home() {
                       layoutId="category-tab-indicator"
                       className="tab-indicator"
                       style={{ borderRadius: 'var(--radius-pill)' }}
-                      transition={{ type: 'spring', bounce: 0.16, duration: 0.42 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.5 }}
                     />
                   )}
                   <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -221,13 +325,13 @@ export default function Home() {
                     layout
                     {...fadeUp}
                     transition={{
-                      duration: 0.35,
-                      delay: Math.min(idx * 0.03, 0.3),
-                      ease: EASE_SPRING,
-                      layout: { type: 'spring', bounce: 0.16, duration: 0.45 }
+                      duration: 0.4,
+                      delay: Math.min(idx * 0.035, 0.28),
+                      ease: [0.16, 1, 0.3, 1],
+                      layout: { type: 'spring', stiffness: 320, damping: 28 }
                     }}
-                    whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 380, damping: 22 } }}
-                    whileTap={{ scale: 0.985 }}
+                    whileHover={{ y: -6, scale: 1.012, transition: { type: 'spring', stiffness: 320, damping: 22, mass: 0.6 } }}
+                    whileTap={{ scale: 0.985, transition: { type: 'spring', stiffness: 500, damping: 25 } }}
                   >
                     <Link to={`/movement/${movement.id}`}>
                       <div
