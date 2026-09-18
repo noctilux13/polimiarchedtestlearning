@@ -59,7 +59,7 @@ function loadExternalScript(src) {
 }
 
 // Render holographic wireframe skeleton on transparent virtual canvas
-function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, rollAngle, pinchRatio) {
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, dxThumbNorm, pinchRatio) {
   ctx.clearRect(0, 0, width, height);
 
   // 1. Cyber coordinate grid lines
@@ -100,7 +100,7 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, rollAngle, pinch
   const iy = lm[8].y * height;
 
   ctx.setLineDash([3, 3]);
-  ctx.strokeStyle = pinchRatio < 0.42 ? '#fbbf24' : pinchRatio > 0.95 ? '#4ade80' : 'rgba(250, 204, 21, 0.6)';
+  ctx.strokeStyle = pinchRatio < 0.40 ? '#fbbf24' : pinchRatio > 1.0 ? '#4ade80' : 'rgba(250, 204, 21, 0.6)';
   ctx.lineWidth = 1.6;
   ctx.beginPath();
   ctx.moveTo(tx, ty);
@@ -123,14 +123,43 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, rollAngle, pinch
     ctx.fill();
   }
 
-  // 5. Hand Roll Angle Indicator text
-  const rollDeg = Math.round((rollAngle * 180) / Math.PI);
-  if (Math.abs(rollDeg) >= 5) {
-    ctx.fillStyle = Math.abs(rollDeg) >= 16 ? '#4ade80' : 'rgba(226, 232, 240, 0.75)';
-    ctx.font = '10px monospace';
-    ctx.shadowBlur = 0;
-    const arrow = rollDeg > 0 ? '↻ +' : '↺ ';
-    ctx.fillText(`${arrow}${rollDeg}°`, width / 2 - 14, 18);
+  // 5. Thumb Direction and Pinch / Zoom Action Indicator on Canvas
+  const isLeft = dxThumbNorm < -0.28;
+  const isRight = dxThumbNorm > 0.28;
+  const isPinch = pinchRatio < 0.40;
+  const isSpread = pinchRatio > 1.02;
+
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.shadowBlur = 0;
+
+  if (isPinch) {
+    ctx.fillStyle = '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.fillText('👌 捏合缩小', (tx + ix) / 2, Math.min(ty, iy) - 10);
+  } else if (isSpread) {
+    ctx.fillStyle = '#4ade80';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔍 张开放大', (tx + ix) / 2, Math.min(ty, iy) - 10);
+  } else if (isLeft) {
+    ctx.fillStyle = '#38bdf8';
+    ctx.textAlign = 'right';
+    ctx.fillText('◂ 拇指向左', tx - 8, ty + 4);
+    ctx.beginPath();
+    ctx.moveTo(tx - 4, ty);
+    ctx.lineTo(tx - 12, ty);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else if (isRight) {
+    ctx.fillStyle = '#38bdf8';
+    ctx.textAlign = 'left';
+    ctx.fillText('拇指向右 ▸', tx + 8, ty + 4);
+    ctx.beginPath();
+    ctx.moveTo(tx + 4, ty);
+    ctx.lineTo(tx + 12, ty);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   ctx.restore();
@@ -190,7 +219,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     gesture: 'NONE',
     state: GESTURE_STATES.NO_HAND,
     stability: 0,
-    rollDeg: 0,
+    thumbOffset: 0,
     pinchRatio: 0,
     distanceRatio: 0
   });
@@ -249,13 +278,12 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       const speed = rawParam?.speed || 1.2;
       setCurrentGesture({
         type: candidate,
-        label: dir === 'left' ? '🔄 向左倾斜：向左旋转地球' : '🔄 向右倾斜：向右旋转地球',
-        icon: dir === 'left' ? '↺' : '↻'
+        label: dir === 'left' ? '👈 大拇指向左：向左旋转地球' : '👉 大拇指向右：向右旋转地球',
+        icon: dir === 'left' ? '◂' : '▸'
       });
       onGestureActionRef.current?.({
         type: 'rotate',
         direction: dir,
-        rollAngle: rawParam?.rollAngle || 0,
         speed
       });
       sm.cooldownUntil = now + 65; // Highly responsive continuous control
@@ -375,10 +403,14 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     const pinchDist = dist(lm[4], lm[8]);
     const pinchRatio = pinchDist / palmBase;
 
-    // 4. Hand Roll / Rotation Angle (Mirrored coordinates: vector from wrist 0 to middle MCP 9)
-    const dx = -(lm[9].x - lm[0].x);
-    const dy = -(lm[9].y - lm[0].y);
-    const rollAngle = Math.atan2(dx, dy); // 0 = straight upright, >0 = tilted right, <0 = tilted left
+    // 4. Thumb Horizontal Displacement (Mirrored screen coordinates)
+    // In mirrored display: Screen X = 1 - lm.x.
+    // Vector from Thumb MCP (2) to Thumb TIP (4):
+    // dxThumb = (1 - lm[4].x) - (1 - lm[2].x) = lm[2].x - lm[4].x
+    // dxThumb < 0 -> Thumb points towards screen-left (User's left on mirrored display)
+    // dxThumb > 0 -> Thumb points towards screen-right (User's right on mirrored display)
+    const dxThumb = lm[2].x - lm[4].x;
+    const dxThumbNorm = dxThumb / palmBase;
 
     // 5. Draw Virtual Wireframe Skeleton onto transparent Canvas
     if (wireframeCanvas) {
@@ -390,13 +422,17 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
           wireframeCanvas.width,
           wireframeCanvas.height,
           currentDistStatus === 'optimal',
-          rollAngle,
+          dxThumbNorm,
           pinchRatio
         );
       }
     }
 
     // 6. Gesture Classification Hierarchy
+    // Priority 1: Fist Gesture (>=4 fingers curled)
+    // Priority 2: Two-Finger Pinch (Zoom Out) & Spread (Zoom In)
+    // Priority 3: Thumb Left / Right Rotation (Strictly decoupled from Pinch)
+    // Priority 4: Open Palm Detection
     let rawCandidate = null;
     let rawParam = null;
 
@@ -404,21 +440,23 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     if (curledCount >= 4) {
       rawCandidate = 'fist';
     }
-    // Priority 2: Two-Finger Pinch (Zoom Out) & Spread (Zoom In)
-    else if (pinchRatio < 0.40 || (pinchDist < 0.072 && !middleCurled)) {
+    // Priority 2: Strict Pinch Priority: Thumb tip and index tip close together (Zoom Out)
+    else if (pinchDist < 0.058 || pinchRatio < 0.38) {
       rawCandidate = 'zoom_out';
       rawParam = 0.18;
-    } else if (pinchRatio > 0.95 && !indexCurled) {
+    }
+    // Strict Two-Finger Spread: Index extended, fingers spread with vertical gap (Zoom In)
+    else if (pinchRatio > 1.05 && pinchDist > 0.14 && !indexCurled && Math.abs(lm[4].y - lm[8].y) > 0.06) {
       rawCandidate = 'zoom_in';
       rawParam = -0.18;
     }
-    // Priority 3: Hand Roll / Tilt Direction for Left / Right Rotation
-    else if (rollAngle > 0.26) {
-      rawCandidate = 'rotate_right';
-      rawParam = { rollAngle, speed: Math.min(Math.abs(rollAngle) * 2.2, 3.2) };
-    } else if (rollAngle < -0.26) {
+    // Priority 3: Thumb Left / Right Horizontal Rotation (Only when NOT pinching and NOT spreading)
+    else if (dxThumbNorm < -0.28 || dxThumb < -0.045) {
       rawCandidate = 'rotate_left';
-      rawParam = { rollAngle, speed: Math.min(Math.abs(rollAngle) * 2.2, 3.2) };
+      rawParam = { direction: 'left', speed: Math.min(Math.max(1.0, Math.abs(dxThumbNorm) * 2.8), 3.2), dxThumb };
+    } else if (dxThumbNorm > 0.28 || dxThumb > 0.045) {
+      rawCandidate = 'rotate_right';
+      rawParam = { direction: 'right', speed: Math.min(Math.max(1.0, Math.abs(dxThumbNorm) * 2.8), 3.2), dxThumb };
     }
     // Priority 4: Open Palm Detection
     else if (curledCount <= 1) {
@@ -462,7 +500,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         gesture: sm.candidate ? sm.candidate.toUpperCase() : 'NONE',
         state: sm.state,
         stability: sm.stability,
-        rollDeg: Math.round((rollAngle * 180) / Math.PI),
+        thumbOffset: parseFloat(dxThumbNorm.toFixed(2)),
         pinchRatio: parseFloat(pinchRatio.toFixed(2)),
         distanceRatio: parseFloat(handHeight.toFixed(2))
       });
@@ -944,16 +982,16 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#94a3b8' }}>Roll Angle:</span>
-                      <span style={{ fontWeight: 650, color: Math.abs(debugState.rollDeg) >= 16 ? '#4ade80' : '#cbd5e1' }}>
-                        {debugState.rollDeg}° {debugState.rollDeg > 16 ? '(右旋)' : debugState.rollDeg < -16 ? '(左旋)' : '(居中)'}
+                      <span style={{ color: '#94a3b8' }}>Thumb Offset:</span>
+                      <span style={{ fontWeight: 650, color: Math.abs(debugState.thumbOffset) >= 0.28 ? '#4ade80' : '#cbd5e1' }}>
+                        {debugState.thumbOffset} {debugState.thumbOffset > 0.28 ? '(向右)' : debugState.thumbOffset < -0.28 ? '(向左)' : '(居中)'}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#94a3b8' }}>Pinch Ratio:</span>
-                      <span style={{ fontWeight: 650, color: debugState.pinchRatio < 0.42 ? '#fbbf24' : debugState.pinchRatio > 0.95 ? '#4ade80' : '#cbd5e1' }}>
-                        {debugState.pinchRatio} {debugState.pinchRatio < 0.42 ? '(捏合缩小)' : debugState.pinchRatio > 0.95 ? '(张开放大)' : ''}
+                      <span style={{ fontWeight: 650, color: debugState.pinchRatio < 0.40 ? '#fbbf24' : debugState.pinchRatio > 1.0 ? '#4ade80' : '#cbd5e1' }}>
+                        {debugState.pinchRatio} {debugState.pinchRatio < 0.40 ? '(捏合缩小)' : debugState.pinchRatio > 1.0 ? '(张开放大)' : ''}
                       </span>
                     </div>
 
@@ -987,8 +1025,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
                 {/* Gestures Legend / Tutorial Pills */}
                 <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
+                  <div>• <strong>👈👉 大拇指向左 / 右移动</strong>：向左 / 右旋转地球</div>
                   <div>• <strong>👌 双指张开 / 捏合</strong>：放大 / 缩小视角</div>
-                  <div>• <strong>🔄 手掌向左 / 右倾斜</strong>：向左 / 右旋转地球</div>
                   <div>• <strong>✋ / ✊ 打开 / 握拳</strong>：漫游探测 / 选中高亮地区</div>
                   <div>• <strong>✊ 再次握拳</strong>：打开该地区考点地标档案</div>
                 </div>

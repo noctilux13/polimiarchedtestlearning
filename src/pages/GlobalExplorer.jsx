@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import * as THREE from 'three';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AppContext } from '../context/AppContext';
 import { geoRegions } from '../data/geoArtData';
 import GestureCameraHUD from '../components/GestureCameraHUD';
@@ -12,8 +11,6 @@ import {
   ArrowLeft,
   Landmark,
   Palette,
-  X,
-  ChevronRight,
   MapPin,
   ExternalLink,
   Layers
@@ -107,7 +104,6 @@ export default function GlobalExplorer() {
 
   const [selectedRegion, setSelectedRegion] = useState(geoRegions[0]);
   const [hoveredRegion, setHoveredRegion] = useState(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [visibleCityLabels, setVisibleCityLabels] = useState([]);
 
   // Keep references to state so Three.js render loop and callbacks don't trigger unmounts
@@ -141,18 +137,26 @@ export default function GlobalExplorer() {
     lastInteractionTime: Date.now()
   });
 
-  // Smoothly Focus Camera onto a Region
+  // Smoothly Focus Camera onto a Region with 100% Exact Mathematical Centering
   const focusRegion = useCallback((region) => {
     if (!region) return;
     setSelectedRegion(region);
 
-    const targetTheta = -(region.lng + 90) * (Math.PI / 180);
-    const targetPhi = (90 - region.lat) * (Math.PI / 180);
+    // Exact spherical vector from origin to region pin
+    const P = latLngToVector3(region.lat, region.lng, 1.0);
+    const targetPhi = Math.acos(Math.max(-0.999, Math.min(0.999, P.y)));
+    const targetTheta = Math.atan2(P.x, P.z);
 
     const c = controlsRef.current;
-    c.targetTheta = targetTheta;
-    c.targetPhi = Math.max(0.2, Math.min(Math.PI - 0.2, targetPhi));
-    c.targetDist = 4.3; // Close-up view
+    // Shortest angular travel path around the globe
+    const currentMod = c.currentTheta % (Math.PI * 2);
+    let diff = (targetTheta - currentMod) % (Math.PI * 2);
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+
+    c.targetTheta = c.currentTheta + diff;
+    c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, targetPhi));
+    c.targetDist = 4.4; // Optimal close-up view distance
     c.velocityX = 0;
     c.velocityY = 0;
     c.autoRotate = false;
@@ -177,14 +181,14 @@ export default function GlobalExplorer() {
 
     if (action.type === 'rotate') {
       const dir = action.direction === 'left' ? -1 : 1;
-      const speed = (action.speed || 1.2) * 0.018;
+      const speed = (action.speed || 1.2) * 0.016;
       c.targetTheta += dir * speed;
-      c.velocityX = dir * speed * 0.4;
+      c.velocityX = dir * speed * 0.35;
     } else if (action.type === 'swipe') {
       const impulse = (action.direction === 'left' ? -0.45 : 0.45) * Math.min(action.velocity / 7, 1.8);
       c.targetTheta += impulse;
     } else if (action.type === 'zoom') {
-      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + action.delta * 2.2));
+      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + action.delta * 2.0));
     } else if (action.type === 'open_palm') {
       let closest = null;
       let minAngle = Infinity;
@@ -215,7 +219,10 @@ export default function GlobalExplorer() {
         focusRegionRef.current?.(currentSel);
       }
     } else if (action.type === 'fist_again') {
-      setIsDrawerOpen(true);
+      const sidebarBody = document.querySelector('.explorer-sidebar-body');
+      if (sidebarBody) {
+        sidebarBody.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   }, []);
 
@@ -650,9 +657,9 @@ export default function GlobalExplorer() {
   }, [isDark]); // DEPENDS ONLY ON THEME, NEVER DESTROYS CANVAS ON HOVER/SELECTION
 
   return (
-    <div style={{ position: 'relative', width: '100%', minHeight: 'calc(100vh - 80px)', padding: '0.8rem 1.2rem 3rem 1.2rem' }}>
+    <div className="global-explorer-page">
       {/* Top Header & Navigation Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.9rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+      <div className="global-explorer-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Link
             to="/"
@@ -662,21 +669,21 @@ export default function GlobalExplorer() {
             <ArrowLeft size={14} />
             <span>返回全景总览</span>
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
               <GlobeIcon size={12} />
               <span>3D 全球探索</span>
             </span>
-            <span style={{ fontSize: '0.84rem', color: 'var(--text-tertiary)' }}>·</span>
-            <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>·</span>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
               21 个世界艺术与建筑重镇 · 135+ 件代表地标
             </span>
           </div>
         </div>
 
         {/* Region Fast Jump Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', maxWidth: '600px', padding: '2px 0' }}>
-          {geoRegions.slice(0, 6).map(reg => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', maxWidth: '640px', padding: '2px 0' }}>
+          {geoRegions.slice(0, 7).map(reg => (
             <button
               key={reg.id}
               type="button"
@@ -698,199 +705,138 @@ export default function GlobalExplorer() {
         </div>
       </div>
 
-      {/* Main 3D Globe Viewport Container */}
-      <div className="globe-viewport-container">
-        {/* Mount Three.js WebGL Canvas */}
-        <div ref={mountRef} style={{ width: '100%', height: '100%', outline: 'none' }} />
+      {/* Split-Screen: Left = 3D Globe Studio, Right = Dedicated Region Inspector */}
+      <div className="global-explorer-split">
+        {/* Left Column: 3D Globe Viewport */}
+        <div className="explorer-globe-col">
+          {/* Mount Three.js WebGL Canvas */}
+          <div ref={mountRef} style={{ width: '100%', height: '100%', outline: 'none' }} />
 
-        {/* Floating City Badges (Zoom LOD & Front-Facing Culling) */}
-        {visibleCityLabels.map((lbl) => (
-          <div
-            key={lbl.id}
-            className="globe-city-badge"
-            style={{
-              left: `${lbl.x + 10}px`,
-              top: `${lbl.y - 12}px`,
-              opacity: lbl.opacity,
-              pointerEvents: lbl.opacity > 0.4 ? 'auto' : 'none'
-            }}
-            onClick={() => focusRegion(lbl.region)}
-            onMouseEnter={() => setHoveredRegion(lbl.region)}
-            onMouseLeave={() => setHoveredRegion(null)}
-          >
-            <div className="globe-city-badge-inner">
-              <span className="globe-city-dot" />
-              <span className="globe-city-title">{lbl.nameZh}</span>
-              <span className="globe-city-sub">{lbl.nameEn}</span>
+          {/* Floating City Badges (Zoom LOD & Front-Facing Culling) */}
+          {visibleCityLabels.map((lbl) => (
+            <div
+              key={lbl.id}
+              className="globe-city-badge"
+              style={{
+                left: `${lbl.x + 10}px`,
+                top: `${lbl.y - 12}px`,
+                opacity: lbl.opacity,
+                pointerEvents: lbl.opacity > 0.4 ? 'auto' : 'none'
+              }}
+              onClick={() => focusRegion(lbl.region)}
+              onMouseEnter={() => setHoveredRegion(lbl.region)}
+              onMouseLeave={() => setHoveredRegion(null)}
+            >
+              <div className="globe-city-badge-inner">
+                <span className="globe-city-dot" />
+                <span className="globe-city-title">{lbl.nameZh}</span>
+                <span className="globe-city-sub">{lbl.nameEn}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {/* HUD Overlay: Current Focused Region Pill & Gesture Status */}
-        <div className="globe-hud-top">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Subtle Top HUD Overlay */}
+          <div className="globe-hud-top">
             <div className="globe-pill">
-              <MapPin size={15} style={{ color: 'var(--accent-blue)' }} />
+              <MapPin size={14} style={{ color: 'var(--accent-blue)' }} />
               <span>当前选定：<strong>{selectedRegion.nameZh}</strong> ({selectedRegion.countryZh})</span>
               <span style={{ color: 'var(--text-tertiary)' }}>·</span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--accent-sage)', fontWeight: 650 }}>{selectedRegion.artworksCount} 件核心展品</span>
+              <span style={{ fontSize: '0.76rem', color: 'var(--accent-sage)', fontWeight: 650 }}>{selectedRegion.artworksCount} 件核心展品</span>
             </div>
 
-            {/* View Works Button */}
-            <motion.button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setIsDrawerOpen(true)}
-              whileHover={{ scale: 1.04, y: -1 }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                display: 'inline-flex',
-                borderRadius: 'var(--radius-pill)',
-                padding: '7px 18px',
-                fontSize: '0.82rem',
-                boxShadow: 'var(--shadow-card)',
-                width: 'fit-content'
-              }}
-            >
-              <Layers size={13} />
-              <span>展开此地区作品档案 (或再次握拳)</span>
-              <ChevronRight size={13} />
-            </motion.button>
+            <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+              <span>🖱️ 鼠标拖拽 / 滚轮缩放 · 📷 隔空手势 (👈👉大拇指旋转 · 👌捏合缩放 · ✊握拳)</span>
+            </div>
           </div>
 
-          {/* Interaction Instruction Badge */}
-          <div className="globe-pill" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-            <span>🖱️ 惯性甩动 / 滚轮缩放 · 📷 隔空手势 (👌双指缩放 · 🔄手掌倾斜旋转 · ✊握拳选中)</span>
-          </div>
+          {/* Floating AI Camera Hand Gesture Recognizer HUD */}
+          <GestureCameraHUD
+            onGestureAction={handleGestureAction}
+            isRegionSelected={Boolean(selectedRegion)}
+            selectedRegion={selectedRegion}
+          />
         </div>
 
-        {/* Floating AI Camera Hand Gesture Recognizer HUD */}
-        <GestureCameraHUD
-          onGestureAction={handleGestureAction}
-          isRegionSelected={Boolean(selectedRegion)}
-          selectedRegion={selectedRegion}
-        />
-      </div>
+        {/* Right Column: Dedicated Region Inspector Sidebar (No popup covering globe!) */}
+        <div className="explorer-sidebar-col">
+          <div className="explorer-sidebar-header">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
+                <MapPin size={11} /> {selectedRegion.countryZh} · {selectedRegion.nameZh}
+              </span>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                {selectedRegion.nameEn}
+              </span>
+            </div>
 
-      {/* Vaul-Style Bottom Sheet / Drawer for Selected Region Masterworks */}
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              className="globe-drawer-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              onClick={() => setIsDrawerOpen(false)}
-            />
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', margin: '0.15rem 0 0.15rem 0', color: 'var(--text-primary)', fontWeight: 650 }}>
+              {selectedRegion.nameZh} 代表艺术与建筑
+            </h2>
 
-            {/* Bottom Drawer Sheet */}
-            <motion.div
-              className="globe-drawer-sheet"
-              initial={{ y: '100%' }}
-              animate={{ y: '0%' }}
-              exit={{ y: '100%' }}
-              transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
-            >
-              <div className="globe-drawer-handle" />
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: '1.55', margin: 0 }}>
+              {selectedRegion.summaryZh}
+            </p>
 
-              {/* Drawer Header */}
-              <div style={{
-                padding: '1.2rem 1.8rem 1rem 1.8rem',
-                borderBottom: '1px solid var(--border-hairline)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem'
-              }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.2rem' }}>
+              <span className="chip chip-outline" style={{ fontSize: '0.7rem' }}>
+                <Layers size={10} />
+                <span>{selectedRegion.artworksCount} 件代表地标</span>
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                点击卡片研读高清图像与考点解析
+              </span>
+            </div>
+          </div>
+
+          {/* Scrollable Masterworks List */}
+          <div className="explorer-sidebar-body">
+            {selectedRegion.artworks.map((item) => (
+              <div key={item.id} className="inspector-artwork-card">
+                {/* Artwork Image Frame */}
+                <div className="image-box" style={{ height: '145px', borderRadius: '8px', overflow: 'hidden' }}>
+                  <ArtworkImage artworkId={item.id} alt={item.title} fit="cover" />
+                </div>
+
+                {/* Info Header */}
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.35rem' }}>
-                    <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
-                      <MapPin size={11} /> {selectedRegion.countryZh} · {selectedRegion.nameZh}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <span className={item.category === 'architecture' ? 'chip chip-green' : 'chip chip-blue'} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
+                      {item.category === 'architecture' ? <Landmark size={10} /> : <Palette size={10} />}
+                      {item.movementName}
                     </span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{selectedRegion.nameEn}</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                      {item.date}
+                    </span>
                   </div>
-                  <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', margin: '0 0 0.4rem 0', color: 'var(--text-primary)' }}>
-                    {selectedRegion.nameZh} 代表艺术与建筑地标
-                  </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', maxWidth: '720px', lineHeight: '1.6' }}>
-                    {selectedRegion.summaryZh}
-                  </p>
+
+                  <h3 style={{ fontSize: '0.98rem', fontFamily: 'var(--font-serif)', fontWeight: 600, margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>
+                    {item.titleZh || item.title}
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
+                    {item.artistEnglishName || item.artistName}
+                  </div>
+
+                  {item.knowledgePoints?.[0] && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', padding: '5px 8px', borderRadius: '6px', lineHeight: '1.45', marginBottom: '0.65rem' }}>
+                      💡 {item.knowledgePoints[0]}
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  type="button"
+                {/* Direct Link CTA */}
+                <Link
+                  to={`/artwork/${item.movementId}/${item.artistId}/${item.id}`}
                   className="btn btn-outline"
-                  onClick={() => setIsDrawerOpen(false)}
-                  style={{ borderRadius: '50%', width: '36px', height: '36px', padding: 0 }}
-                  title="关闭"
+                  style={{ width: '100%', fontSize: '0.76rem', padding: '6px 10px', borderRadius: 'var(--radius-pill)', justifyContent: 'center' }}
                 >
-                  <X size={16} />
-                </button>
+                  <span>研读考点详情</span>
+                  <ExternalLink size={12} />
+                </Link>
               </div>
-
-              {/* Artworks & Architecture Bento Grid */}
-              <div style={{ padding: '1.4rem 1.8rem 2.5rem 1.8rem', overflowY: 'auto', flex: 1 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                  {selectedRegion.artworks.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      whileHover={{ y: -4, scale: 1.012, transition: { type: 'spring', stiffness: 380, damping: 24 } }}
-                      whileTap={{ scale: 0.985 }}
-                      className="card card-highlight-blue"
-                      style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                    >
-                      <div>
-                        {/* Image Frame */}
-                        <div className="image-box" style={{ height: '160px', marginBottom: '0.85rem' }}>
-                          <ArtworkImage artworkId={item.id} alt={item.title} fit="cover" />
-                        </div>
-
-                        {/* Badges */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <span className={item.category === 'architecture' ? 'chip chip-green' : 'chip chip-blue'} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
-                            {item.category === 'architecture' ? <Landmark size={10} /> : <Palette size={10} />}
-                            {item.movementName}
-                          </span>
-                          <span style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{item.date}</span>
-                        </div>
-
-                        {/* Title */}
-                        <h3 style={{ fontSize: '1.02rem', fontFamily: 'var(--font-serif)', fontWeight: 600, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
-                          {item.titleZh || item.title}
-                        </h3>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '0.6rem' }}>
-                          {item.artistEnglishName || item.artistName}
-                        </div>
-
-                        {/* Knowledge Point Pill */}
-                        {item.knowledgePoints?.[0] && (
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', padding: '5px 8px', borderRadius: 'var(--radius-xs)', lineHeight: '1.45', marginBottom: '0.8rem' }}>
-                            💡 {item.knowledgePoints[0]}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Detail Link CTA */}
-                      <Link
-                        to={`/artwork/${item.movementId}/${item.artistId}/${item.id}`}
-                        className="btn btn-outline"
-                        style={{ width: '100%', fontSize: '0.78rem', padding: '6px 10px', borderRadius: 'var(--radius-pill)', justifyContent: 'center' }}
-                      >
-                        <span>进入考点详情研读</span>
-                        <ExternalLink size={12} />
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
