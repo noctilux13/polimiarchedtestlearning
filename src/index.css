@@ -1177,3 +1177,70 @@ button.btn:active,
 .pin-pulse-ring {
   animation: pinPulse 2s cubic-bezier(0.23, 1, 0.32, 1) infinite;
 }
+
+/* Dynamic Floating City Badges (Zoom LOD) */
+.globe-city-badge {
+  position: absolute;
+  user-select: none;
+  cursor: pointer;
+  z-index: 12;
+  transform-origin: left center;
+}
+
+.globe-city-badge-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  transition: all 160ms var(--ease-out);
+}
+
+.globe-city-badge:hover .globe-city-badge-inner {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: #38bdf8;
+  transform: scale(1.06);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+}
+
+.globe-city-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  flex-shrink: 0;
+}
+
+.globe-city-title {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: #f8fafc;
+  letter-spacing: 0.02em;
+}
+
+.globe-city-sub {
+  font-size: 0.64rem;
+  color: #94a3b8;
+  font-family: var(--font-mono, monospace);
+}
+
+[data-theme="light"] .globe-city-badge-inner {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(2, 132, 199, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .globe-city-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .globe-city-sub {
+  color: #64748b;
+}

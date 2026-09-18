@@ -32,20 +32,30 @@ function latLngToVector3(lat, lng, radius) {
   return new THREE.Vector3(x, y, z);
 }
 
-// Procedural Canvas Texture for High-Performance Earth Globe
+// Procedural Canvas Texture for High-Performance & High-Luminance Earth Globe
 function createEarthTexture(isDark) {
   const canvas = document.createElement('canvas');
   canvas.width = 2048;
   canvas.height = 1024;
   const ctx = canvas.getContext('2d');
 
-  // Background ocean
-  ctx.fillStyle = isDark ? '#0c1320' : '#e2e8f0';
+  // Background ocean with subtle radial depth gradient
+  const oceanGrad = ctx.createRadialGradient(1024, 512, 100, 1024, 512, 1200);
+  if (isDark) {
+    oceanGrad.addColorStop(0, '#152238');
+    oceanGrad.addColorStop(0.6, '#0f1828');
+    oceanGrad.addColorStop(1, '#090e18');
+  } else {
+    oceanGrad.addColorStop(0, '#f1f5f9');
+    oceanGrad.addColorStop(0.6, '#e2e8f0');
+    oceanGrad.addColorStop(1, '#cbd5e1');
+  }
+  ctx.fillStyle = oceanGrad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Lat / Long Grid lines
-  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(71, 85, 105, 0.14)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(71, 85, 105, 0.15)';
+  ctx.lineWidth = 1.2;
 
   // Parallels
   for (let lat = -80; lat <= 80; lat += 20) {
@@ -65,30 +75,31 @@ function createEarthTexture(isDark) {
     ctx.stroke();
   }
 
-  // Continents approximate silhouette styling
-  ctx.fillStyle = isDark ? 'rgba(30, 48, 75, 0.85)' : 'rgba(255, 255, 255, 0.85)';
-  ctx.strokeStyle = isDark ? 'rgba(96, 165, 250, 0.45)' : 'rgba(100, 116, 139, 0.4)';
-  ctx.lineWidth = 2;
+  // Major continental landmass clusters with bright cybernetic styling
+  ctx.fillStyle = isDark ? 'rgba(40, 70, 110, 0.92)' : 'rgba(255, 255, 255, 0.95)';
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.65)' : 'rgba(59, 130, 246, 0.5)';
+  ctx.lineWidth = 2.5;
 
-  // Major continental landmass clusters
   const landmasses = [
-    // Europe & Mediterranean
-    { x: 1050, y: 250, w: 220, h: 180 },
+    // Europe & Mediterranean (High fidelity)
+    { x: 1040, y: 220, w: 230, h: 180 },
     // Eurasia / Central Asia
-    { x: 1200, y: 240, w: 400, h: 220 },
+    { x: 1210, y: 210, w: 420, h: 240 },
     // Africa
-    { x: 1030, y: 440, w: 260, h: 320 },
+    { x: 1020, y: 410, w: 270, h: 330 },
     // North America
-    { x: 300, y: 240, w: 380, h: 260 },
+    { x: 290, y: 210, w: 400, h: 280 },
     // South America
-    { x: 550, y: 550, w: 200, h: 330 },
+    { x: 540, y: 530, w: 220, h: 350 },
     // Australia
-    { x: 1650, y: 640, w: 200, h: 180 }
+    { x: 1640, y: 620, w: 220, h: 190 },
+    // East Asia & Japan
+    { x: 1470, y: 280, w: 180, h: 160 }
   ];
 
   landmasses.forEach(land => {
     ctx.beginPath();
-    ctx.roundRect(land.x, land.y, land.w, land.h, 40);
+    ctx.roundRect(land.x, land.y, land.w, land.h, 35);
     ctx.fill();
     ctx.stroke();
   });
@@ -111,12 +122,18 @@ export default function GlobalExplorer() {
   const [selectedRegion, setSelectedRegion] = useState(geoRegions[0]);
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [visibleCityLabels, setVisibleCityLabels] = useState([]);
 
-  // Orbital Controls State
+  // Orbital Controls State with Momentum & Inertia
   const controlsRef = useRef({
     isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
     prevMouseX: 0,
     prevMouseY: 0,
+    velocityX: 0,
+    velocityY: 0,
+    lastMoveTime: 0,
     targetTheta: 1.2,
     targetPhi: 1.3,
     currentTheta: 1.2,
@@ -140,6 +157,8 @@ export default function GlobalExplorer() {
     c.targetTheta = targetTheta;
     c.targetPhi = Math.max(0.2, Math.min(Math.PI - 0.2, targetPhi));
     c.targetDist = 4.3; // Close-up view
+    c.velocityX = 0;
+    c.velocityY = 0;
     c.autoRotate = false;
     c.lastInteractionTime = Date.now();
   }, []);
@@ -147,7 +166,6 @@ export default function GlobalExplorer() {
   // Gesture Action Dispatcher
   const handleGestureAction = useCallback((action) => {
     if (action.type === 'no_hand') {
-      // Hand lost: immediately cancel gesture-driven hover/target impulses
       setHoveredRegion(null);
       return;
     }
@@ -162,13 +180,12 @@ export default function GlobalExplorer() {
     } else if (action.type === 'zoom') {
       c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + action.delta * 2.8));
     } else if (action.type === 'open_palm') {
-      // Find region closest to central line of sight
       let closest = null;
       let minAngle = Infinity;
       const camera = cameraRef.current;
       if (camera && pinsGroupRef.current) {
         const camDir = new THREE.Vector3();
-        camera.getWorldDirection(camDir).negate(); // Vector from globe center towards camera
+        camera.getWorldDirection(camDir).negate();
 
         geoRegions.forEach(reg => {
           const pinPos = latLngToVector3(reg.lat, reg.lng, 2.4).normalize();
@@ -184,14 +201,12 @@ export default function GlobalExplorer() {
         }
       }
     } else if (action.type === 'fist') {
-      // Lock and select current region
       if (hoveredRegion) {
         focusRegion(hoveredRegion);
       } else if (selectedRegion) {
         focusRegion(selectedRegion);
       }
     } else if (action.type === 'fist_again') {
-      // Second fist: Open showcase drawer!
       setIsDrawerOpen(true);
     }
   }, [focusRegion, hoveredRegion, selectedRegion]);
@@ -218,60 +233,93 @@ export default function GlobalExplorer() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = isDark ? 1.25 : 1.1;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Lights
-    const ambientLight = new THREE.AmbientLight(isDark ? 0xbedbfe : 0xffffff, isDark ? 0.9 : 1.2);
+    // 4. High-Luminance Multi-Source Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.6 : 1.8);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 1.6 : 1.4);
-    dirLight1.position.set(5, 8, 5);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.6 : 2.2);
+    dirLight1.position.set(6, 8, 7);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(isDark ? 0x38bdf8 : 0x94a3b8, 0.6);
-    dirLight2.position.set(-6, -4, -4);
+    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 1.4);
+    dirLight2.position.set(-7, -2, -5);
     scene.add(dirLight2);
 
-    // 5. Globe Sphere & Texture Loading
+    const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e293b, 1.1);
+    scene.add(hemiLight);
+
+    // 5. High-Resolution Globe Sphere (Smooth 96x96 Mesh)
     const globeRadius = 2.4;
-    const globeGeo = new THREE.SphereGeometry(globeRadius, 64, 64);
-    
+    const globeGeo = new THREE.SphereGeometry(globeRadius, 96, 96);
+
     // Start with procedural canvas texture for zero-latency initial rendering
     const proceduralTexture = createEarthTexture(isDark);
     const globeMat = new THREE.MeshStandardMaterial({
       map: proceduralTexture,
-      roughness: 0.72,
-      metalness: 0.15
+      roughness: 0.42,
+      metalness: 0.12,
+      emissive: new THREE.Color(isDark ? 0x18324f : 0x0a192f),
+      emissiveIntensity: isDark ? 0.35 : 0.08
     });
     const globeMesh = new THREE.Mesh(globeGeo, globeMat);
     scene.add(globeMesh);
     globeRef.current = globeMesh;
 
-    // Asynchronously load real high-resolution NASA dark earth texture
+    // Asynchronously load real high-resolution NASA Blue Marble, Specular map, and Night Lights
     const textureLoader = new THREE.TextureLoader();
-    const earthTexturePath = getAssetUrl('textures/earth-dark.jpg');
+
+    // 1. Base Map: NASA Blue Marble (True color continents & ocean depth)
     textureLoader.load(
-      earthTexturePath,
-      (loadedTexture) => {
-        loadedTexture.wrapS = THREE.RepeatWrapping;
-        loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
-        globeMat.map = loadedTexture;
+      getAssetUrl('textures/earth_atmos_2048.jpg'),
+      (baseTex) => {
+        baseTex.wrapS = THREE.RepeatWrapping;
+        baseTex.wrapT = THREE.ClampToEdgeWrapping;
+        globeMat.map = baseTex;
         globeMat.needsUpdate = true;
       },
       undefined,
-      (err) => {
-        console.warn('Real Earth Texture fallback to procedural canvas:', err);
-        // globeMat safely retains procedural canvas texture
+      () => {
+        // Fallback to earth-dark if needed
+        textureLoader.load(getAssetUrl('textures/earth-dark.jpg'), (fallbackTex) => {
+          globeMat.map = fallbackTex;
+          globeMat.needsUpdate = true;
+        });
+      }
+    );
+
+    // 2. Specular Water Reflections Map
+    textureLoader.load(
+      getAssetUrl('textures/earth_specular_2048.jpg'),
+      (specTex) => {
+        specTex.wrapS = THREE.RepeatWrapping;
+        specTex.wrapT = THREE.ClampToEdgeWrapping;
+        globeMat.roughnessMap = specTex;
+        globeMat.needsUpdate = true;
+      }
+    );
+
+    // 3. Emissive Night Lights Map (Glowing city clusters)
+    textureLoader.load(
+      getAssetUrl('textures/earth-night.jpg'),
+      (nightTex) => {
+        nightTex.wrapS = THREE.RepeatWrapping;
+        nightTex.wrapT = THREE.ClampToEdgeWrapping;
+        globeMat.emissiveMap = nightTex;
+        globeMat.emissive = new THREE.Color(isDark ? 0x38bdf8 : 0x0284c7);
+        globeMat.emissiveIntensity = isDark ? 0.48 : 0.18;
+        globeMat.needsUpdate = true;
       }
     );
 
     // 5b. Point Matrix Layer (Cybernetic Glowing Points on Globe Surface)
     const pointsGeo = new THREE.BufferGeometry();
     const matrixCoords = [];
-    const matrixRadius = globeRadius * 1.008; // slightly above sphere surface to prevent z-fighting
+    const matrixRadius = globeRadius * 1.008;
 
-    // Sample latitude / longitude coordinates
     for (let lat = -80; lat <= 80; lat += 4) {
       const phi = (90 - lat) * (Math.PI / 180);
       const circumf = Math.cos(lat * (Math.PI / 180));
@@ -295,14 +343,14 @@ export default function GlobalExplorer() {
       depthWrite: false
     });
     const pointMatrixMesh = new THREE.Points(pointsGeo, pointsMat);
-    globeMesh.add(pointMatrixMesh); // Synchronized directly with globeMesh
+    globeMesh.add(pointMatrixMesh);
 
     // 5c. Atmosphere Rim Mesh (Fresnel rim glow)
-    const atmoGeo = new THREE.SphereGeometry(globeRadius * 1.028, 48, 48);
+    const atmoGeo = new THREE.SphereGeometry(globeRadius * 1.026, 64, 64);
     const atmoMat = new THREE.MeshBasicMaterial({
       color: isDark ? 0x38bdf8 : 0x93c5fd,
       transparent: true,
-      opacity: isDark ? 0.16 : 0.10,
+      opacity: isDark ? 0.22 : 0.12,
       side: THREE.BackSide
     });
     const atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
@@ -331,75 +379,86 @@ export default function GlobalExplorer() {
     const starsMesh = new THREE.Points(starsGeo, starsMat);
     scene.add(starsMesh);
 
-    // 6. Geographic Region Pins
+    // 6. Flat Planar Geographic Region Pins (Clean Modern Tangential Reticles)
     const pinsGroup = new THREE.Group();
     scene.add(pinsGroup);
     pinsGroupRef.current = pinsGroup;
     pinMeshesRef.current = [];
 
+    const flatCircleGeo = new THREE.CircleGeometry(0.038, 24);
+    const flatRingGeo = new THREE.RingGeometry(0.048, 0.076, 32);
+
     geoRegions.forEach((region) => {
       const pos = latLngToVector3(region.lat, region.lng, globeRadius);
 
       const pinRoot = new THREE.Group();
-      pinRoot.position.copy(pos);
-      pinRoot.lookAt(new THREE.Vector3(0, 0, 0)); // Orient perpendicular to sphere
+      pinRoot.position.copy(pos.clone().multiplyScalar(1.002));
+      pinRoot.lookAt(pos.clone().multiplyScalar(2)); // Tangent to sphere surface
 
-      // Pin core sphere
-      const dotGeo = new THREE.SphereGeometry(0.042, 16, 16);
-      const dotMat = new THREE.MeshStandardMaterial({
+      // Planar solid disc
+      const coreMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
-        emissive: 0x0284c7,
-        emissiveIntensity: 0.6,
-        roughness: 0.2
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide
       });
-      const dotMesh = new THREE.Mesh(dotGeo, dotMat);
-      dotMesh.userData = { region };
-      pinRoot.add(dotMesh);
+      const coreMesh = new THREE.Mesh(flatCircleGeo, coreMat);
+      coreMesh.userData = { region };
+      pinRoot.add(coreMesh);
 
-      // Pin vertical laser beam
-      const beamGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.22, 8);
-      const beamMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 });
-      const beamMesh = new THREE.Mesh(beamGeo, beamMat);
-      beamMesh.position.z = -0.11;
-      beamMesh.rotation.x = Math.PI / 2;
-      pinRoot.add(beamMesh);
-
-      // Pulse Wave Ring
-      const ringGeo = new THREE.RingGeometry(0.045, 0.085, 32);
+      // Planar pulse ring
       const ringMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.8,
         side: THREE.DoubleSide
       });
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      const ringMesh = new THREE.Mesh(flatRingGeo, ringMat);
       pinRoot.add(ringMesh);
 
       pinsGroup.add(pinRoot);
-      pinMeshesRef.current.push({ root: pinRoot, dot: dotMesh, ring: ringMesh, region });
+      pinMeshesRef.current.push({ root: pinRoot, dot: coreMesh, ring: ringMesh, region, pos });
     });
 
-    // 7. Raycasting for Pin Click Selection
+    // 7. Raycasting & Optimized Drag Interaction with Inertia & Pointer Capture
     const raycaster = new THREE.Raycaster();
     const mousePos = new THREE.Vector2();
 
     const handlePointerDown = (e) => {
-      controlsRef.current.isDragging = true;
-      controlsRef.current.prevMouseX = e.clientX;
-      controlsRef.current.prevMouseY = e.clientY;
-      controlsRef.current.autoRotate = false;
-      controlsRef.current.lastInteractionTime = Date.now();
+      try { container.setPointerCapture?.(e.pointerId); } catch (_) {}
+      const c = controlsRef.current;
+      c.isDragging = true;
+      c.dragStartX = e.clientX;
+      c.dragStartY = e.clientY;
+      c.prevMouseX = e.clientX;
+      c.prevMouseY = e.clientY;
+      c.velocityX = 0;
+      c.velocityY = 0;
+      c.lastMoveTime = performance.now();
+      c.autoRotate = false;
+      c.lastInteractionTime = Date.now();
     };
 
     const handlePointerMove = (e) => {
       const c = controlsRef.current;
       if (c.isDragging) {
+        const now = performance.now();
+        const dt = Math.max(1, now - c.lastMoveTime);
         const deltaX = e.clientX - c.prevMouseX;
         const deltaY = e.clientY - c.prevMouseY;
-        c.targetTheta += deltaX * 0.0055;
-        c.targetPhi = Math.max(0.15, Math.min(Math.PI - 0.15, c.targetPhi - deltaY * 0.0055));
+
+        // Adaptive sensitivity scaled by camera distance for fine close-up control
+        const sensitivity = 0.0042 * (c.currentDist / 5.4);
+        c.targetTheta += deltaX * sensitivity;
+        c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi - deltaY * sensitivity));
+
+        // Velocity tracking for inertia throw
+        c.velocityX = (deltaX * sensitivity) / (dt / 16);
+        c.velocityY = (-deltaY * sensitivity) / (dt / 16);
+
         c.prevMouseX = e.clientX;
         c.prevMouseY = e.clientY;
+        c.lastMoveTime = now;
       }
 
       // Check pin hover
@@ -422,26 +481,32 @@ export default function GlobalExplorer() {
 
     const handlePointerUp = (e) => {
       const c = controlsRef.current;
-      c.isDragging = false;
+      if (c.isDragging) {
+        c.isDragging = false;
+        try { container.releasePointerCapture?.(e.pointerId); } catch (_) {}
 
-      // Detect click without drag
-      const rect = container.getBoundingClientRect();
-      mousePos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mousePos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mousePos, camera);
+        // Distinguish drag from click: small travel distance = click
+        const distMoved = Math.hypot(e.clientX - c.dragStartX, e.clientY - c.dragStartY);
+        if (distMoved < 6) {
+          const rect = container.getBoundingClientRect();
+          mousePos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mousePos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(mousePos, camera);
 
-      const dots = pinMeshesRef.current.map(p => p.dot);
-      const intersects = raycaster.intersectObjects(dots);
-      if (intersects.length > 0) {
-        const hitRegion = intersects[0].object.userData.region;
-        focusRegion(hitRegion);
+          const dots = pinMeshesRef.current.map(p => p.dot);
+          const intersects = raycaster.intersectObjects(dots);
+          if (intersects.length > 0) {
+            const hitRegion = intersects[0].object.userData.region;
+            focusRegion(hitRegion);
+          }
+        }
       }
     };
 
     const handleWheel = (e) => {
       e.preventDefault();
       const c = controlsRef.current;
-      c.targetDist = Math.max(3.2, Math.min(8.2, c.targetDist + e.deltaY * 0.0035));
+      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + e.deltaY * 0.0035));
       c.autoRotate = false;
       c.lastInteractionTime = Date.now();
     };
@@ -465,15 +530,27 @@ export default function GlobalExplorer() {
     // 9. Animation Loop
     let animId;
     let clock = new THREE.Clock();
+    let lastLabelSync = 0;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
       const c = controlsRef.current;
+      const now = performance.now();
 
       // Resume auto-rotation after 6s of inactivity
       if (!c.isDragging && Date.now() - c.lastInteractionTime > 6000) {
         c.targetTheta -= 0.001;
+      }
+
+      // Smooth inertia throw decay on release
+      if (!c.isDragging) {
+        c.targetTheta += c.velocityX;
+        c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + c.velocityY));
+        c.velocityX *= 0.92;
+        c.velocityY *= 0.92;
+        if (Math.abs(c.velocityX) < 0.0001) c.velocityX = 0;
+        if (Math.abs(c.velocityY) < 0.0001) c.velocityY = 0;
       }
 
       // Spherical Damping Interpolation
@@ -488,15 +565,60 @@ export default function GlobalExplorer() {
       camera.position.set(cx, cy, cz);
       camera.lookAt(0, 0, 0);
 
-      // Pulse wave ring animation on pins
+      // Pulse wave ring animation on planar pins
       pinMeshesRef.current.forEach(({ ring, region }) => {
         const isSel = selectedRegion?.id === region.id;
         const isHov = hoveredRegion?.id === region.id;
         const baseScale = isSel ? 1.6 : isHov ? 1.3 : 1.0;
         const wave = 1 + 0.35 * Math.sin(elapsed * 4 + region.lat);
         ring.scale.set(baseScale * wave, baseScale * wave, 1);
-        ring.material.opacity = isSel ? 0.9 : 0.45;
+        ring.material.opacity = isSel ? 0.95 : isHov ? 0.85 : 0.55;
       });
+
+      // City Names Zoom LOD & Backside Culling Calculation (throttled ~30fps)
+      if (now - lastLabelSync > 32) {
+        lastLabelSync = now;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        const dist = c.currentDist;
+
+        // Labels appear when zoomed in (dist <= 5.4), dissolve when zoomed out
+        const zoomOpacity = Math.max(0, Math.min(1, (5.5 - dist) / 1.3));
+
+        if (zoomOpacity <= 0.02) {
+          setVisibleCityLabels([]);
+        } else {
+          const camPos = camera.position.clone();
+          const nextLabels = [];
+
+          pinMeshesRef.current.forEach(({ region, pos }) => {
+            const normal = pos.clone().normalize();
+            const camDir = camPos.clone().normalize();
+            const dot = normal.dot(camDir);
+
+            // Front-facing hemisphere test
+            if (dot > 0.12) {
+              const screenPos = pos.clone().project(camera);
+              const sx = ((screenPos.x + 1) / 2) * w;
+              const sy = ((-screenPos.y + 1) / 2) * h;
+              const edgeFade = Math.min(1, Math.max(0, (dot - 0.12) / 0.25));
+              const finalOpacity = zoomOpacity * edgeFade;
+
+              nextLabels.push({
+                id: region.id,
+                nameZh: region.nameZh,
+                nameEn: region.nameEn,
+                x: Math.round(sx),
+                y: Math.round(sy),
+                opacity: Number(finalOpacity.toFixed(2)),
+                region
+              });
+            }
+          });
+
+          setVisibleCityLabels(nextLabels);
+        }
+      }
 
       renderer.render(scene, camera);
     };
@@ -523,6 +645,8 @@ export default function GlobalExplorer() {
       atmoMat.dispose();
       starsGeo.dispose();
       starsMat.dispose();
+      flatCircleGeo.dispose();
+      flatRingGeo.dispose();
       renderer.dispose();
     };
   }, [focusRegion, hoveredRegion, isDark, selectedRegion]);
@@ -581,6 +705,29 @@ export default function GlobalExplorer() {
         {/* Mount Three.js WebGL Canvas */}
         <div ref={mountRef} style={{ width: '100%', height: '100%', outline: 'none' }} />
 
+        {/* Floating City Badges (Zoom LOD & Front-Facing Culling) */}
+        {visibleCityLabels.map((lbl) => (
+          <div
+            key={lbl.id}
+            className="globe-city-badge"
+            style={{
+              left: `${lbl.x + 10}px`,
+              top: `${lbl.y - 12}px`,
+              opacity: lbl.opacity,
+              pointerEvents: lbl.opacity > 0.4 ? 'auto' : 'none'
+            }}
+            onClick={() => focusRegion(lbl.region)}
+            onMouseEnter={() => setHoveredRegion(lbl.region)}
+            onMouseLeave={() => setHoveredRegion(null)}
+          >
+            <div className="globe-city-badge-inner">
+              <span className="globe-city-dot" />
+              <span className="globe-city-title">{lbl.nameZh}</span>
+              <span className="globe-city-sub">{lbl.nameEn}</span>
+            </div>
+          </div>
+        ))}
+
         {/* HUD Overlay: Current Focused Region Pill & Gesture Status */}
         <div className="globe-hud-top">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -615,7 +762,7 @@ export default function GlobalExplorer() {
 
           {/* Interaction Instruction Badge */}
           <div className="globe-pill" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-            <span>🖱️ 拖拽旋转 / 滚轮缩放 · 📷 右下角开启手势感应</span>
+            <span>🖱️ 惯性甩动 / 滚轮缩放显现地名 · 📷 右下角开启手势</span>
           </div>
         </div>
 
