@@ -58,8 +58,8 @@ function loadExternalScript(src) {
   });
 }
 
-// Render holographic wireframe skeleton on transparent virtual canvas
-function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, dxThumbNorm, pinchRatio) {
+// Render holographic wireframe skeleton on transparent virtual canvas with single-action visual indicator
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch) {
   ctx.clearRect(0, 0, width, height);
 
   // 1. Cyber coordinate grid lines
@@ -98,68 +98,87 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, dxThumbNorm, pin
   const ty = lm[4].y * height;
   const ix = (1 - lm[8].x) * width;
   const iy = lm[8].y * height;
+  const mx = (1 - lm[12].x) * width;
+  const my = lm[12].y * height;
 
-  ctx.setLineDash([3, 3]);
-  ctx.strokeStyle = pinchRatio < 0.40 ? '#fbbf24' : pinchRatio > 1.0 ? '#4ade80' : 'rgba(250, 204, 21, 0.6)';
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.moveTo(tx, ty);
-  ctx.lineTo(ix, iy);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  if (isPinch || activeAction === 'zoom_out') {
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(ix, iy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // 4. Draw Joints with glowing rings
   for (let i = 0; i < 21; i++) {
     const cx = (1 - lm[i].x) * width;
     const cy = lm[i].y * height;
-    const isTip = (i === 4 || i === 8 || i === 12 || i === 16 || i === 20);
-    const isTwoFinger = (i === 4 || i === 8);
+    const isIndexTip = i === 8;
+    const isMiddleTip = i === 12;
+    const isRingTip = i === 16;
+
+    let fillColor = '#e2e8f0';
+    let ringSize = 2.2;
+
+    if (activeAction === 'rotate_left' && isIndexTip) {
+      fillColor = '#38bdf8';
+      ringSize = 5.8;
+    } else if (activeAction === 'rotate_right' && (isIndexTip || isMiddleTip)) {
+      fillColor = '#38bdf8';
+      ringSize = 5.8;
+    } else if (activeAction === 'zoom_in' && (isIndexTip || isMiddleTip || isRingTip)) {
+      fillColor = '#4ade80';
+      ringSize = 5.5;
+    } else if (activeAction === 'zoom_out' && (i === 4 || i === 8)) {
+      fillColor = '#fbbf24';
+      ringSize = 5.5;
+    } else if (activeAction === 'fist') {
+      fillColor = '#f43f5e';
+      ringSize = 3.6;
+    } else if (i === 4 || i === 8 || i === 12 || i === 16 || i === 20) {
+      fillColor = '#4ade80';
+      ringSize = 3.2;
+    }
 
     ctx.beginPath();
-    ctx.arc(cx, cy, isTwoFinger ? 4.2 : isTip ? 3.4 : 2.2, 0, Math.PI * 2);
-    ctx.fillStyle = isTwoFinger ? '#facc15' : isTip ? '#4ade80' : '#e2e8f0';
-    ctx.shadowColor = isTwoFinger ? '#facc15' : '#4ade80';
-    ctx.shadowBlur = 6;
+    ctx.arc(cx, cy, ringSize, 0, Math.PI * 2);
+    ctx.fillStyle = fillColor;
+    ctx.shadowColor = fillColor;
+    ctx.shadowBlur = 7;
     ctx.fill();
   }
 
-  // 5. Thumb Direction and Pinch / Zoom Action Indicator on Canvas
-  const isLeft = dxThumbNorm < -0.28;
-  const isRight = dxThumbNorm > 0.28;
-  const isPinch = pinchRatio < 0.40;
-  const isSpread = pinchRatio > 1.02;
-
-  ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  // 5. Real-time Exclusive Action Badge on Canvas
+  ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.shadowBlur = 0;
 
-  if (isPinch) {
-    ctx.fillStyle = '#fbbf24';
+  if (activeAction === 'rotate_left') {
+    ctx.fillStyle = '#38bdf8';
     ctx.textAlign = 'center';
-    ctx.fillText('👌 捏合缩小', (tx + ix) / 2, Math.min(ty, iy) - 10);
-  } else if (isSpread) {
+    ctx.fillText('☝️ ◂ 向左旋转中', ix, iy - 12);
+  } else if (activeAction === 'rotate_right') {
+    ctx.fillStyle = '#38bdf8';
+    ctx.textAlign = 'center';
+    ctx.fillText('✌️ 向右旋转中 ▸', (ix + mx) / 2, Math.min(iy, my) - 12);
+  } else if (activeAction === 'zoom_in') {
     ctx.fillStyle = '#4ade80';
     ctx.textAlign = 'center';
-    ctx.fillText('🔍 张开放大', (tx + ix) / 2, Math.min(ty, iy) - 10);
-  } else if (isLeft) {
-    ctx.fillStyle = '#38bdf8';
-    ctx.textAlign = 'right';
-    ctx.fillText('◂ 拇指向左', tx - 8, ty + 4);
-    ctx.beginPath();
-    ctx.moveTo(tx - 4, ty);
-    ctx.lineTo(tx - 12, ty);
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  } else if (isRight) {
-    ctx.fillStyle = '#38bdf8';
-    ctx.textAlign = 'left';
-    ctx.fillText('拇指向右 ▸', tx + 8, ty + 4);
-    ctx.beginPath();
-    ctx.moveTo(tx + 4, ty);
-    ctx.lineTo(tx + 12, ty);
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.fillText('🤟 推进放大中 🔍', (ix + mx) / 2, Math.min(iy, my) - 12);
+  } else if (activeAction === 'zoom_out') {
+    ctx.fillStyle = '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.fillText('🤏 捏合缩小中 🔎', (tx + ix) / 2, Math.min(ty, iy) - 12);
+  } else if (activeAction === 'fist') {
+    ctx.fillStyle = '#f43f5e';
+    ctx.textAlign = 'center';
+    ctx.fillText('✊ 握拳选中中', width / 2, height / 2);
+  } else {
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+    ctx.textAlign = 'center';
+    ctx.fillText('✋ 待机巡航中 (零误触)', width / 2, height - 12);
   }
 
   ctx.restore();
@@ -216,10 +235,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     engine: 'MediaPipe Hands',
     handDetected: false,
     confidence: 0,
-    gesture: 'NONE',
-    state: GESTURE_STATES.NO_HAND,
-    stability: 0,
-    thumbOffset: 0,
+    gesture: 'IDLE',
+    activeAction: 'NONE',
+    lockStatus: 'UNLOCKED',
+    fingersCount: 0,
     pinchRatio: 0,
     distanceRatio: 0
   });
@@ -245,8 +264,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
   // State Machine and Tracking State
   const smRef = useRef({
     state: GESTURE_STATES.NO_HAND,
+    activeAction: null, // Currently locked exclusive action mode
     candidate: null,
     stability: 0,
+    idleStreak: 0,
     confidence: 0,
     cooldownUntil: 0,
     lastFistTime: 0,
@@ -262,44 +283,63 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
     if (candidate === 'fist') {
       if (isRegionSelectedRef.current && now - sm.lastFistTime < 2400) {
-        setCurrentGesture({ type: 'fist_again', label: '再次握拳：打开作品展示！', icon: '✊' });
+        setCurrentGesture({ type: 'fist_again', label: '再次握拳：置顶考点档案！', icon: '✊' });
         onGestureActionRef.current?.({ type: 'fist_again' });
         sm.lastFistTime = 0;
       } else {
-        setCurrentGesture({ type: 'fist', label: '握拳：选中高亮地区', icon: '✊' });
+        setCurrentGesture({ type: 'fist', label: '握拳：选中聚焦地区！', icon: '✊' });
         onGestureActionRef.current?.({ type: 'fist' });
         sm.lastFistTime = now;
       }
       sm.cooldownUntil = now + 900;
       sm.state = GESTURE_STATES.COOLDOWN;
       sm.stability = 0;
-    } else if (candidate === 'rotate_left' || candidate === 'rotate_right') {
-      const dir = candidate === 'rotate_left' ? 'left' : 'right';
-      const speed = rawParam?.speed || 1.2;
+    } else if (candidate === 'rotate_left') {
       setCurrentGesture({
-        type: candidate,
-        label: dir === 'left' ? '👈 大拇指向左：向左旋转地球' : '👉 大拇指向右：向右旋转地球',
-        icon: dir === 'left' ? '◂' : '▸'
+        type: 'rotate_left',
+        label: '☝️ 单指伸出：向左旋转地球',
+        icon: '◂'
       });
       onGestureActionRef.current?.({
         type: 'rotate',
-        direction: dir,
-        speed
+        direction: 'left',
+        speed: 1.25
       });
-      sm.cooldownUntil = now + 65; // Highly responsive continuous control
+      sm.cooldownUntil = now + 50; // Smooth continuous control
       sm.state = GESTURE_STATES.COOLDOWN;
-    } else if (candidate === 'zoom_in' || candidate === 'zoom_out') {
-      const delta = candidate === 'zoom_in' ? -0.18 : 0.18;
+    } else if (candidate === 'rotate_right') {
       setCurrentGesture({
-        type: candidate,
-        label: candidate === 'zoom_in' ? '👌 双指张开：推进放大视野' : '👌 双指捏合：拉远缩小全局',
-        icon: candidate === 'zoom_in' ? '🔍' : '🔎'
+        type: 'rotate_right',
+        label: '✌️ 双指伸出：向右旋转地球',
+        icon: '▸'
       });
-      onGestureActionRef.current?.({ type: 'zoom', delta });
-      sm.cooldownUntil = now + 220;
+      onGestureActionRef.current?.({
+        type: 'rotate',
+        direction: 'right',
+        speed: 1.25
+      });
+      sm.cooldownUntil = now + 50; // Smooth continuous control
       sm.state = GESTURE_STATES.COOLDOWN;
-    } else if (candidate === 'open_palm') {
-      setCurrentGesture({ type: 'open_palm', label: '打开手掌：自由漫游探测', icon: '✋' });
+    } else if (candidate === 'zoom_in') {
+      setCurrentGesture({
+        type: 'zoom_in',
+        label: '🤟 三指展开：推进放大视野',
+        icon: '🔍'
+      });
+      onGestureActionRef.current?.({ type: 'zoom', delta: -0.16 });
+      sm.cooldownUntil = now + 160;
+      sm.state = GESTURE_STATES.COOLDOWN;
+    } else if (candidate === 'zoom_out') {
+      setCurrentGesture({
+        type: 'zoom_out',
+        label: '🤏 双指捏合：拉远缩小全局',
+        icon: '🔎'
+      });
+      onGestureActionRef.current?.({ type: 'zoom', delta: 0.16 });
+      sm.cooldownUntil = now + 160;
+      sm.state = GESTURE_STATES.COOLDOWN;
+    } else if (candidate === 'idle') {
+      setCurrentGesture({ type: 'idle', label: '✋ 待机中立：手掌平展安全巡航', icon: '✋' });
       onGestureActionRef.current?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
     }
   }, []);
@@ -385,34 +425,118 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       }
     }
 
-    // 2. Finger Curled States
-    const isCurled = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) < dist(lm[pipIdx], lm[0]);
-    const indexCurled = isCurled(8, 6);
-    const middleCurled = isCurled(12, 10);
-    const ringCurled = isCurled(16, 14);
-    const pinkyCurled = isCurled(20, 18);
-    const thumbCurled = dist(lm[4], lm[9]) < dist(lm[2], lm[9]);
+    // 2. Anatomical Finger Extension & Pose Analysis
+    const isExt = (tipIdx, pipIdx, mcpIdx) => {
+      return dist(lm[tipIdx], lm[0]) > dist(lm[pipIdx], lm[0]) * 1.08 &&
+             dist(lm[tipIdx], lm[mcpIdx]) > dist(lm[pipIdx], lm[mcpIdx]) * 1.15;
+    };
 
-    const curledCount = (indexCurled ? 1 : 0) + (middleCurled ? 1 : 0) + (ringCurled ? 1 : 0) + (pinkyCurled ? 1 : 0) + (thumbCurled ? 1 : 0);
+    const indexExtended = isExt(8, 6, 5);
+    const middleExtended = isExt(12, 10, 9);
+    const ringExtended = isExt(16, 14, 13);
+    const pinkyExtended = isExt(20, 18, 17);
+
+    const fourFingerCount = (indexExtended ? 1 : 0) + (middleExtended ? 1 : 0) + (ringExtended ? 1 : 0) + (pinkyExtended ? 1 : 0);
 
     const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
     const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
 
-    // 3. Two-Finger Pinch / Spread Measurement (Normalized by palm base length)
+    // 3. Pinch & Thumb Geometry
     const palmBase = Math.max(0.01, dist(lm[0], lm[9]));
     const pinchDist = dist(lm[4], lm[8]);
     const pinchRatio = pinchDist / palmBase;
+    const isPinch = pinchDist < 0.056 || pinchRatio < 0.38;
+    const thumbExtended = dist(lm[4], lm[17]) > palmBase * 0.88;
 
-    // 4. Thumb Horizontal Displacement (Mirrored screen coordinates)
-    // In mirrored display: Screen X = 1 - lm.x.
-    // Vector from Thumb MCP (2) to Thumb TIP (4):
-    // dxThumb = (1 - lm[4].x) - (1 - lm[2].x) = lm[2].x - lm[4].x
-    // dxThumb < 0 -> Thumb points towards screen-left (User's left on mirrored display)
-    // dxThumb > 0 -> Thumb points towards screen-right (User's right on mirrored display)
-    const dxThumb = lm[2].x - lm[4].x;
-    const dxThumbNorm = dxThumb / palmBase;
+    // 4. Discrete Mutually Exclusive Candidate Classification
+    let rawCandidate = 'idle';
+    let rawParam = null;
 
-    // 5. Draw Virtual Wireframe Skeleton onto transparent Canvas
+    // GESTURE 1: ✊ FIST (0 fingers extended -> Select)
+    if (fourFingerCount === 0) {
+      rawCandidate = 'fist';
+    }
+    // GESTURE 2: 🤏 PINCH (Index & Thumb tips touching -> Zoom Out)
+    else if (isPinch) {
+      rawCandidate = 'zoom_out';
+      rawParam = 0.18;
+    }
+    // GESTURE 3: ☝️ ONE FINGER (Only Index extended -> Rotate Left)
+    else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+      rawCandidate = 'rotate_left';
+      rawParam = { direction: 'left', speed: 1.25 };
+    }
+    // GESTURE 4: ✌️ TWO FINGERS (Index & Middle extended -> Rotate Right)
+    else if (indexExtended && middleExtended && !ringExtended && !pinkyExtended) {
+      rawCandidate = 'rotate_right';
+      rawParam = { direction: 'right', speed: 1.25 };
+    }
+    // GESTURE 5: 🤟 THREE FINGERS or WIDE L-SPREAD (Zoom In)
+    else if ((fourFingerCount === 3 && indexExtended && middleExtended && ringExtended) ||
+             (indexExtended && thumbExtended && pinchRatio > 1.05 && !middleExtended && !ringExtended)) {
+      rawCandidate = 'zoom_in';
+      rawParam = -0.18;
+    }
+    // GESTURE 6: ✋ OPEN PALM (4 or 5 fingers extended -> Neutral Standby Cruise)
+    else {
+      rawCandidate = 'idle';
+      rawParam = { x: 1 - palmX, y: palmY };
+    }
+
+    // 5. Single-Action Exclusive State Machine (一次只识别一种动作，动作模式互斥锁定)
+    if (rawCandidate === 'idle') {
+      sm.idleStreak = (sm.idleStreak || 0) + 1;
+      sm.stability = 0;
+      sm.candidate = 'idle';
+
+      // Releasing to idle after 2 calm frames
+      if (sm.idleStreak >= 2) {
+        if (sm.activeAction !== null) {
+          sm.activeAction = null;
+        }
+        sm.state = GESTURE_STATES.NO_HAND;
+        setCurrentGesture({ type: 'idle', label: '✋ 待机中立：手掌平展安全巡航', icon: '✋' });
+        onGestureActionRef.current?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
+      }
+    } else {
+      sm.idleStreak = 0;
+
+      if (rawCandidate === sm.candidate) {
+        sm.stability = Math.min(REQUIRED_STABLE_FRAMES, sm.stability + 1);
+      } else {
+        sm.candidate = rawCandidate;
+        sm.stability = 1;
+      }
+
+      const isContinuous = rawCandidate === 'rotate_left' || rawCandidate === 'rotate_right' || rawCandidate === 'zoom_in' || rawCandidate === 'zoom_out';
+      const requiredFrames = isContinuous ? 2 : REQUIRED_STABLE_FRAMES;
+
+      if (sm.activeAction === null) {
+        // Locked into new exclusive action
+        if (sm.stability >= requiredFrames && now >= sm.cooldownUntil) {
+          sm.activeAction = rawCandidate;
+          sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
+          dispatchConfirmedGesture(rawCandidate, rawParam);
+        } else {
+          sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
+        }
+      } else {
+        // Action is currently locked: only execute if candidate matches or deliberate switch
+        if (rawCandidate === sm.activeAction) {
+          if (now >= sm.cooldownUntil) {
+            sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
+            dispatchConfirmedGesture(sm.activeAction, rawParam);
+          }
+        } else if (sm.stability >= 4 && now >= sm.cooldownUntil) {
+          // Switch action cleanly if held stably for 4 frames
+          sm.activeAction = rawCandidate;
+          sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
+          dispatchConfirmedGesture(rawCandidate, rawParam);
+        }
+      }
+    }
+
+    // 6. Draw Virtual Skeleton Wireframe
     if (wireframeCanvas) {
       const ctx = wireframeCanvas.getContext('2d');
       if (ctx) {
@@ -422,74 +546,14 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
           wireframeCanvas.width,
           wireframeCanvas.height,
           currentDistStatus === 'optimal',
-          dxThumbNorm,
-          pinchRatio
+          sm.activeAction || rawCandidate,
+          fourFingerCount,
+          isPinch
         );
       }
     }
 
-    // 6. Gesture Classification Hierarchy
-    // Priority 1: Fist Gesture (>=4 fingers curled)
-    // Priority 2: Two-Finger Pinch (Zoom Out) & Spread (Zoom In)
-    // Priority 3: Thumb Left / Right Rotation (Strictly decoupled from Pinch)
-    // Priority 4: Open Palm Detection
-    let rawCandidate = null;
-    let rawParam = null;
-
-    // Priority 1: Fist Gesture
-    if (curledCount >= 4) {
-      rawCandidate = 'fist';
-    }
-    // Priority 2: Strict Pinch Priority: Thumb tip and index tip close together (Zoom Out)
-    else if (pinchDist < 0.058 || pinchRatio < 0.38) {
-      rawCandidate = 'zoom_out';
-      rawParam = 0.18;
-    }
-    // Strict Two-Finger Spread: Index extended, fingers spread with vertical gap (Zoom In)
-    else if (pinchRatio > 1.05 && pinchDist > 0.14 && !indexCurled && Math.abs(lm[4].y - lm[8].y) > 0.06) {
-      rawCandidate = 'zoom_in';
-      rawParam = -0.18;
-    }
-    // Priority 3: Thumb Left / Right Horizontal Rotation (Only when NOT pinching and NOT spreading)
-    else if (dxThumbNorm < -0.28 || dxThumb < -0.045) {
-      rawCandidate = 'rotate_left';
-      rawParam = { direction: 'left', speed: Math.min(Math.max(1.0, Math.abs(dxThumbNorm) * 2.8), 3.2), dxThumb };
-    } else if (dxThumbNorm > 0.28 || dxThumb > 0.045) {
-      rawCandidate = 'rotate_right';
-      rawParam = { direction: 'right', speed: Math.min(Math.max(1.0, Math.abs(dxThumbNorm) * 2.8), 3.2), dxThumb };
-    }
-    // Priority 4: Open Palm Detection
-    else if (curledCount <= 1) {
-      rawCandidate = 'open_palm';
-      rawParam = { x: 1 - palmX, y: palmY };
-    } else {
-      rawCandidate = sm.candidate || 'open_palm';
-    }
-
-    // Stability Temporal Verification
-    if (rawCandidate === sm.candidate) {
-      sm.stability = Math.min(REQUIRED_STABLE_FRAMES, sm.stability + 1);
-    } else {
-      sm.candidate = rawCandidate;
-      sm.stability = 1;
-    }
-
     const confidence = 0.96;
-
-    // Cooldown and Confirmation State Machine
-    if (now < sm.cooldownUntil) {
-      sm.state = GESTURE_STATES.COOLDOWN;
-    } else {
-      const isContinuous = sm.candidate === 'rotate_left' || sm.candidate === 'rotate_right' || sm.candidate === 'zoom_in' || sm.candidate === 'zoom_out';
-      const requiredFrames = isContinuous ? 2 : REQUIRED_STABLE_FRAMES;
-
-      if (sm.stability >= requiredFrames) {
-        sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
-        dispatchConfirmedGesture(sm.candidate, rawParam);
-      } else {
-        sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
-      }
-    }
 
     if (now - sm.lastDebugSync > 66) {
       sm.lastDebugSync = now;
@@ -497,10 +561,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         engine: 'MediaPipe Hands (开源AI)',
         handDetected: true,
         confidence,
-        gesture: sm.candidate ? sm.candidate.toUpperCase() : 'NONE',
-        state: sm.state,
-        stability: sm.stability,
-        thumbOffset: parseFloat(dxThumbNorm.toFixed(2)),
+        gesture: sm.candidate ? sm.candidate.toUpperCase() : 'IDLE',
+        activeAction: sm.activeAction ? sm.activeAction.toUpperCase() : 'NONE (IDLE)',
+        lockStatus: sm.activeAction ? 'LOCKED (单动作锁定)' : 'IDLE (巡航)',
+        fingersCount: fourFingerCount,
         pinchRatio: parseFloat(pinchRatio.toFixed(2)),
         distanceRatio: parseFloat(handHeight.toFixed(2))
       });
@@ -982,22 +1046,31 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#94a3b8' }}>Thumb Offset:</span>
-                      <span style={{ fontWeight: 650, color: Math.abs(debugState.thumbOffset) >= 0.28 ? '#4ade80' : '#cbd5e1' }}>
-                        {debugState.thumbOffset} {debugState.thumbOffset > 0.28 ? '(向右)' : debugState.thumbOffset < -0.28 ? '(向左)' : '(居中)'}
+                      <span style={{ color: '#94a3b8' }}>Action Mode:</span>
+                      <span style={{ fontWeight: 650, color: debugState.activeAction.includes('NONE') ? '#cbd5e1' : '#38bdf8' }}>
+                        {debugState.activeAction}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Lock Status:</span>
+                      <span style={{ fontWeight: 650, color: debugState.lockStatus.includes('LOCKED') ? '#4ade80' : '#94a3b8' }}>
+                        {debugState.lockStatus}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Extended Fingers:</span>
+                      <span style={{ fontWeight: 650, color: '#facc15' }}>
+                        {debugState.fingersCount} 指伸出
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#94a3b8' }}>Pinch Ratio:</span>
-                      <span style={{ fontWeight: 650, color: debugState.pinchRatio < 0.40 ? '#fbbf24' : debugState.pinchRatio > 1.0 ? '#4ade80' : '#cbd5e1' }}>
-                        {debugState.pinchRatio} {debugState.pinchRatio < 0.40 ? '(捏合缩小)' : debugState.pinchRatio > 1.0 ? '(张开放大)' : ''}
+                      <span style={{ fontWeight: 650, color: debugState.pinchRatio < 0.38 ? '#fbbf24' : '#cbd5e1' }}>
+                        {debugState.pinchRatio} {debugState.pinchRatio < 0.38 ? '(捏合)' : ''}
                       </span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#94a3b8' }}>Gesture:</span>
-                      <span style={{ fontWeight: 650, color: '#facc15' }}>{debugState.gesture}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
@@ -1025,10 +1098,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
                 {/* Gestures Legend / Tutorial Pills */}
                 <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
-                  <div>• <strong>👈👉 大拇指向左 / 右移动</strong>：向左 / 右旋转地球</div>
-                  <div>• <strong>👌 双指张开 / 捏合</strong>：放大 / 缩小视角</div>
-                  <div>• <strong>✋ / ✊ 打开 / 握拳</strong>：漫游探测 / 选中高亮地区</div>
-                  <div>• <strong>✊ 再次握拳</strong>：打开该地区考点地标档案</div>
+                  <div>• <strong>☝️ 单指 / ✌️ 双指</strong>：向左 / 右平滑旋转地球</div>
+                  <div>• <strong>🤟 三指 / 🤏 捏合</strong>：推进放大 / 拉远缩小全局</div>
+                  <div>• <strong>✊ 握拳</strong>：选中高亮地区 (再次握拳研读考点)</div>
+                  <div>• <strong>✋ 平展手掌</strong>：待机巡航，绝对零误触</div>
                 </div>
 
                 {/* Toggle Switch Button */}

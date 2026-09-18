@@ -745,7 +745,7 @@ export default function GlobalExplorer() {
             </div>
 
             <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-              <span>🖱️ 鼠标拖拽 / 滚轮缩放 · 📷 隔空手势 (👈👉大拇指旋转 · 👌捏合缩放 · ✊握拳)</span>
+              <span>🖱️ 鼠标拖拽/滚轮 · 📷 隔空单动作 (☝️单指向左 · ✌️双指向右 · 🤟放大 · 🤏缩小 · ✊握拳)</span>
             </div>
           </div>
 
