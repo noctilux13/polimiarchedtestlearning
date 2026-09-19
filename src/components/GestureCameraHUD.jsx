@@ -56,8 +56,7 @@ function loadExternalScript(src) {
   });
 }
 
-// Render holographic wireframe skeleton on transparent virtual canvas with single-action visual indicator
-function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true) {
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true, isEuropeCountrySelect = false) {
   ctx.clearRect(0, 0, width, height);
 
   // 1. Blueprint / Cyber coordinate grid lines
@@ -92,31 +91,39 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   });
   ctx.stroke();
 
-  // 3. Two-Finger (Thumb & Index) dynamic link indicator
-  const tx = (1 - lm[4].x) * width;
-  const ty = lm[4].y * height;
-  const ix = (1 - lm[8].x) * width;
-  const iy = lm[8].y * height;
+  // 2. Zoom In Guide: Green beam between Thumb tip (4) and Index tip (8)
+  if (activeAction === 'zoom_in') {
+    const tX = (1 - lm[4].x) * width;
+    const tY = lm[4].y * height;
+    const iX = (1 - lm[8].x) * width;
+    const iY = lm[8].y * height;
 
-  if (isPinch || activeAction === 'zoom_out') {
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = '#d97706';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(ix, iy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  } else if (activeAction === 'zoom_in') {
     ctx.strokeStyle = isDark ? '#4ade80' : '#16a34a';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.4;
     ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(ix, iy);
+    ctx.moveTo(tX, tY);
+    ctx.lineTo(iX, iY);
     ctx.stroke();
   }
 
-  // 4. Draw Joints with glowing rings
+  // 3. Zoom Out Guide: Amber dashed ring between Thumb tip (4) and Index tip (8)
+  if (isPinch || activeAction === 'zoom_out') {
+    const tX = (1 - lm[4].x) * width;
+    const tY = lm[4].y * height;
+    const iX = (1 - lm[8].x) * width;
+    const iY = lm[8].y * height;
+
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2.0;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(tX, tY);
+    ctx.lineTo(iX, iY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 4. Joint Nodes
   for (let i = 0; i < 21; i++) {
     const cx = (1 - lm[i].x) * width;
     const cy = lm[i].y * height;
@@ -164,11 +171,11 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else if (activeAction === 'pan_up') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ ▴ 向上翻转地球', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ ▴ 向上翻：上一国家' : '✋ ▴ 向上翻转地球', width / 2, height - 12);
   } else if (activeAction === 'pan_down') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ ▾ 向下翻转地球', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ ▾ 向下翻：下一国家' : '✋ ▾ 向下翻转地球', width / 2, height - 12);
   } else if (activeAction === 'zoom_in') {
     ctx.fillStyle = isDark ? '#4ade80' : '#16a34a';
     ctx.textAlign = 'center';
@@ -180,11 +187,11 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else if (activeAction === 'fist') {
     ctx.fillStyle = '#f43f5e';
     ctx.textAlign = 'center';
-    ctx.fillText('✊ 握拳选中聚焦', width / 2, height / 2);
+    ctx.fillText(isEuropeCountrySelect ? '✊ 握拳确认进入该国' : '✊ 握拳选中聚焦', width / 2, height / 2);
   } else {
     ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.85)' : 'rgba(71, 85, 105, 0.9)';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ 手掌平移控制地球 · 悬停静止', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 上下翻选国家 · 握拳确认' : '✋ 手掌平移控制地球 · 悬停静止', width / 2, height - 12);
   }
 
   ctx.restore();
@@ -221,7 +228,7 @@ function drawEmptyViewfinder(ctx, width, height, isDark = true) {
   ctx.restore();
 }
 
-export default function GestureCameraHUD({ onGestureAction, isRegionSelected, isDark = true }) {
+export default function GestureCameraHUD({ onGestureAction, isRegionSelected, isEuropeCountrySelect = false, isDark = true }) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -266,6 +273,11 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     isRegionSelectedRef.current = isRegionSelected;
   }, [isRegionSelected]);
 
+  const isEuropeCountrySelectRef = useRef(isEuropeCountrySelect);
+  useEffect(() => {
+    isEuropeCountrySelectRef.current = isEuropeCountrySelect;
+  }, [isEuropeCountrySelect]);
+
   // State Machine and Tracking State
   const smRef = useRef({
     state: GESTURE_STATES.NO_HAND,
@@ -289,7 +301,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     const now = Date.now();
 
     if (candidate === 'fist') {
-      if (isRegionSelectedRef.current && now - sm.lastFistTime < 2400) {
+      if (isEuropeCountrySelectRef.current) {
+        setCurrentGesture({ type: 'fist', label: '✊ 握拳确认：进入该国代表作！', icon: '✊' });
+        onGestureActionRef.current?.({ type: 'fist' });
+      } else if (isRegionSelectedRef.current && now - sm.lastFistTime < 2400) {
         setCurrentGesture({ type: 'fist_again', label: '再次握拳：置顶考点档案！', icon: '✊' });
         onGestureActionRef.current?.({ type: 'fist_again' });
         sm.lastFistTime = 0;
@@ -302,11 +317,12 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
       sm.state = GESTURE_STATES.COOLDOWN;
       sm.stability = 0;
     } else if (candidate === 'pan_left' || candidate === 'pan_right' || candidate === 'pan_up' || candidate === 'pan_down') {
+      const isEuro = isEuropeCountrySelectRef.current;
       const dirLabels = {
         pan_left: '✋ ◂ 向左拨转地球 (物理惯性)',
         pan_right: '✋ 向右拨转地球 ▸ (物理惯性)',
-        pan_up: '✋ ▴ 向上翻转地球 (物理惯性)',
-        pan_down: '✋ ▾ 向下翻转地球 (物理惯性)'
+        pan_up: isEuro ? '✋ ▴ 向上翻：上一国家' : '✋ ▴ 向上翻转地球 (物理惯性)',
+        pan_down: isEuro ? '✋ ▾ 向下翻：下一国家' : '✋ ▾ 向下翻转地球 (物理惯性)'
       };
       setCurrentGesture({
         type: candidate,
@@ -426,7 +442,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     const pinchRatio = pinchDist / palmBase;
 
     // Responsive pinch: Thumb tip (4) and Index tip (8) close together
-    const isPinch = pinchDist < 0.082 || pinchRatio < 0.52;
+    const isPinch = pinchDist < 0.088 || pinchRatio < 0.55;
 
     const fourFingerCount = (indexExtended ? 1 : 0) + (middleExtended ? 1 : 0) + (ringExtended ? 1 : 0) + (pinkyExtended ? 1 : 0);
     const indexMiddleDist = dist(lm[8], lm[12]);
@@ -463,8 +479,9 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     if (fourFingerCount === 0 || (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended)) {
       rawCandidate = 'fist';
     }
-    // GESTURE 2: 👌 PINCH (Index & Thumb tips touching) -> Zoom Out
-    else if (isPinch && (fourFingerCount <= 2 || !middleExtended)) {
+    // GESTURE 2: 👌 PINCH (Thumb & Index tips touching together) -> Zoom Out
+    // Pure thumb/index pinch regardless of what other fingers are doing (OK sign or curled)
+    else if (isPinch) {
       rawCandidate = 'zoom_out';
       rawParam = 0.18;
     }
@@ -556,7 +573,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
           sm.activeAction || rawCandidate,
           fourFingerCount,
           isPinch,
-          isDark
+          isDark,
+          isEuropeCountrySelectRef.current
         );
       }
     }

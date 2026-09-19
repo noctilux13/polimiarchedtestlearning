@@ -14,7 +14,8 @@ import {
   MapPin,
   ExternalLink,
   Layers,
-  Compass
+  Compass,
+  ChevronRight
 } from 'lucide-react';
 
 // Math helper: Lat/Lng to 3D Cartesian coordinates on sphere
@@ -72,6 +73,103 @@ const REGION_CLUSTERS = [
   }
 ];
 
+// European 2nd-Level Country/Cultural Zone Organization (Solves high density clustering)
+const EUROPE_COUNTRIES = [
+  {
+    id: 'italy',
+    nameZh: '意大利',
+    nameEn: 'Italy',
+    flag: '🇮🇹',
+    regionIds: ['milan-lombardy', 'turin-piedmont', 'florence-tuscany', 'rome-vatican', 'venice-veneto'],
+    summaryZh: '文艺复兴发源地、巴洛克风暴与古典神殿',
+    lat: 42.5,
+    lng: 12.5
+  },
+  {
+    id: 'france',
+    nameZh: '法国',
+    nameEn: 'France',
+    flag: '🇫🇷',
+    regionIds: ['paris-france', 'marseille-france'],
+    summaryZh: '哥特大教堂、洛可可宫廷与现代柯布西耶探索',
+    lat: 46.5,
+    lng: 2.5
+  },
+  {
+    id: 'spain',
+    nameZh: '西班牙',
+    nameEn: 'Spain',
+    flag: '🇪🇸',
+    regionIds: ['barcelona-spain', 'madrid-bilbao-spain'],
+    summaryZh: '高迪加泰罗尼亚新艺术、伊斯兰摩尔遗风与解构先锋',
+    lat: 40.2,
+    lng: -3.7
+  },
+  {
+    id: 'germany',
+    nameZh: '德国',
+    nameEn: 'Germany',
+    flag: '🇩🇪',
+    regionIds: ['berlin-germany'],
+    summaryZh: '包豪斯现代主义摇篮、表现主义与普鲁士古典重器',
+    lat: 52.52,
+    lng: 13.40
+  },
+  {
+    id: 'austria',
+    nameZh: '奥地利',
+    nameEn: 'Austria',
+    flag: '🇦🇹',
+    regionIds: ['vienna-austria'],
+    summaryZh: '维也纳分离派、哈布斯堡巴洛克皇城与瓦格纳现代探索',
+    lat: 48.20,
+    lng: 16.37
+  },
+  {
+    id: 'uk',
+    nameZh: '英国',
+    nameEn: 'United Kingdom',
+    flag: '🇬🇧',
+    regionIds: ['london-uk'],
+    summaryZh: '垂直哥特式、工艺美术运动与高技派（High-Tech）建筑',
+    lat: 51.50,
+    lng: -0.12
+  },
+  {
+    id: 'lowcountries',
+    nameZh: '低地国家 (比利时/荷兰)',
+    nameEn: 'Low Countries',
+    flag: '🇧🇪',
+    regionIds: ['brussels-lowcountries'],
+    summaryZh: '霍塔新艺术运动有机植物形态与风格派新造型主义',
+    lat: 50.85,
+    lng: 4.35
+  },
+  {
+    id: 'switzerland',
+    nameZh: '瑞士',
+    nameEn: 'Switzerland',
+    flag: '🇨🇭',
+    regionIds: ['zurich-switzerland'],
+    summaryZh: '达达主义发源地与勒·柯布西耶晚期展馆',
+    lat: 47.37,
+    lng: 8.54
+  },
+  {
+    id: 'czech',
+    nameZh: '捷克',
+    nameEn: 'Czech Republic',
+    flag: '🇨🇿',
+    regionIds: ['prague-czech'],
+    summaryZh: '中欧百塔之城、波希米亚哥特、巴洛克与立体主义建筑实验',
+    lat: 50.07,
+    lng: 14.43
+  }
+];
+
+const EUROPE_REGION_IDS = new Set(EUROPE_COUNTRIES.flatMap(c => c.regionIds));
+const isEuropeRegion = (region) => Boolean(region && EUROPE_REGION_IDS.has(region.id));
+
 // Offline Vector Continent Footprints ([lat, lng] polygons on equirectangular projection)
 const CONTINENT_POLYGONS = [
   // Western & Central Europe
@@ -119,6 +217,8 @@ export default function GlobalExplorer() {
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [visibleCityLabels, setVisibleCityLabels] = useState([]);
   const [activeClusterFilter, setActiveClusterFilter] = useState('all');
+  const [europeNavMode, setEuropeNavMode] = useState('country_select'); // 'country_select' | 'artwork_view'
+  const [activeCountryIndex, setActiveCountryIndex] = useState(0);
 
   // Keep references to state so Three.js render loop and callbacks don't trigger unmounts
   const selectedRegionRef = useRef(selectedRegion);
@@ -130,6 +230,16 @@ export default function GlobalExplorer() {
   useEffect(() => {
     hoveredRegionRef.current = hoveredRegion;
   }, [hoveredRegion]);
+
+  const europeNavModeRef = useRef(europeNavMode);
+  useEffect(() => {
+    europeNavModeRef.current = europeNavMode;
+  }, [europeNavMode]);
+
+  const activeCountryIndexRef = useRef(activeCountryIndex);
+  useEffect(() => {
+    activeCountryIndexRef.current = activeCountryIndex;
+  }, [activeCountryIndex]);
 
   // Orbital Controls State with Momentum & Hand Pan Inertia
   const controlsRef = useRef({
@@ -151,10 +261,65 @@ export default function GlobalExplorer() {
     lastInteractionTime: Date.now()
   });
 
+  // Focus and select European Country by index (with smooth spherical camera guidance)
+  const focusCountryByIndex = useCallback((index) => {
+    const safeIdx = (index + EUROPE_COUNTRIES.length) % EUROPE_COUNTRIES.length;
+    setActiveCountryIndex(safeIdx);
+    const country = EUROPE_COUNTRIES[safeIdx];
+    if (!country) return;
+
+    // Point to the primary representative region
+    const primaryReg = geoRegions.find(r => r.id === country.regionIds[0]);
+    if (primaryReg) {
+      setSelectedRegion(primaryReg);
+    }
+
+    const P = latLngToVector3(country.lat, country.lng, 1.0);
+    const targetPhi = Math.acos(Math.max(-0.999, Math.min(0.999, P.y)));
+    const targetTheta = Math.atan2(P.x, P.z);
+
+    const c = controlsRef.current;
+    const currentMod = c.currentTheta % (Math.PI * 2);
+    let diff = (targetTheta - currentMod) % (Math.PI * 2);
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+
+    c.targetTheta = c.currentTheta + diff;
+    c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, targetPhi));
+    c.targetDist = 3.5;
+    c.velocityX = 0;
+    c.velocityY = 0;
+    c.autoRotate = false;
+    c.lastInteractionTime = Date.now();
+
+    const cardElem = document.getElementById(`europe-country-${country.id}`);
+    if (cardElem) {
+      cardElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, []);
+
+  const focusCountryByIndexRef = useRef(focusCountryByIndex);
+  useEffect(() => {
+    focusCountryByIndexRef.current = focusCountryByIndex;
+  }, [focusCountryByIndex]);
+
   // Smoothly Focus Camera onto a Region with 100% Exact Mathematical Centering & Adaptive European Zoom
-  const focusRegion = useCallback((region) => {
+  const focusRegion = useCallback((region, enterArtworkView = true) => {
     if (!region) return;
     setSelectedRegion(region);
+
+    const isEurope = isEuropeRegion(region);
+    if (isEurope) {
+      const cIdx = EUROPE_COUNTRIES.findIndex(c => c.regionIds.includes(region.id));
+      if (cIdx !== -1) {
+        setActiveCountryIndex(cIdx);
+      }
+      if (enterArtworkView) {
+        setEuropeNavMode('artwork_view');
+      }
+    } else {
+      setEuropeNavMode('artwork_view');
+    }
 
     // Exact spherical vector from origin to region pin
     const P = latLngToVector3(region.lat, region.lng, 1.0);
@@ -172,7 +337,6 @@ export default function GlobalExplorer() {
     c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, targetPhi));
 
     // Adaptive Zoom Distance: Close-up 3.4 for dense European clusters to spread out pins; 4.5 for others
-    const isEurope = region.lat > 35 && region.lat < 62 && region.lng > -12 && region.lng < 30;
     c.targetDist = isEurope ? 3.4 : 4.5;
 
     c.velocityX = 0;
@@ -200,7 +364,20 @@ export default function GlobalExplorer() {
     c.autoRotate = false;
     c.lastInteractionTime = Date.now();
 
+    const inEurope = isEuropeRegion(selectedRegionRef.current);
+    const inCountrySelect = inEurope && europeNavModeRef.current === 'country_select';
+
     if (action.type === 'hand_pan') {
+      // European Country Navigation via vertical hand pan
+      if (inCountrySelect && (action.direction === 'pan_up' || action.direction === 'pan_down')) {
+        if (action.direction === 'pan_up') {
+          focusCountryByIndexRef.current?.(activeCountryIndexRef.current - 1);
+        } else {
+          focusCountryByIndexRef.current?.(activeCountryIndexRef.current + 1);
+        }
+        return;
+      }
+
       // Hand Translation: smooth natural rotation with small-to-medium physical momentum
       // Reverse sign so the visible front face of the globe rotates in the direction the hand moves
       const panSensX = 2.4;
@@ -215,17 +392,58 @@ export default function GlobalExplorer() {
     } else if (action.type === 'zoom') {
       c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * 1.8));
     } else if (action.type === 'fist') {
-      const currentHov = hoveredRegionRef.current;
-      const currentSel = selectedRegionRef.current;
-      if (currentHov) {
-        focusRegionRef.current?.(currentHov);
-      } else if (currentSel) {
-        focusRegionRef.current?.(currentSel);
+      // 1. If currently in European country select mode:
+      // Fist confirms the country selection and enters artwork detail view
+      if (inCountrySelect) {
+        setEuropeNavMode('artwork_view');
+        const country = EUROPE_COUNTRIES[activeCountryIndexRef.current];
+        if (country) {
+          const primaryReg = geoRegions.find(r => r.id === country.regionIds[0]);
+          if (primaryReg) {
+            focusRegionRef.current?.(primaryReg, true);
+          }
+        }
+        return;
+      }
+
+      // 2. Center-of-Screen Selection (Fixed: Locks onto region closest to central line of sight)
+      const cam = cameraRef.current;
+      if (cam) {
+        const camDir = cam.position.clone().normalize();
+        let centerRegion = null;
+        let maxDot = -Infinity;
+
+        geoRegions.forEach((reg) => {
+          const pinVec = latLngToVector3(reg.lat, reg.lng, 1.0).normalize();
+          const dot = pinVec.dot(camDir);
+          if (dot > maxDot) {
+            maxDot = dot;
+            centerRegion = reg;
+          }
+        });
+
+        if (centerRegion && maxDot > 0.12) {
+          if (isEuropeRegion(centerRegion)) {
+            const cIdx = EUROPE_COUNTRIES.findIndex(c => c.regionIds.includes(centerRegion.id));
+            if (cIdx !== -1) {
+              setActiveCountryIndex(cIdx);
+            }
+            setEuropeNavMode('country_select');
+            focusRegionRef.current?.(centerRegion, false);
+          } else {
+            focusRegionRef.current?.(centerRegion, true);
+          }
+        }
       }
     } else if (action.type === 'fist_again') {
-      const sidebarBody = document.querySelector('.explorer-sidebar-body');
-      if (sidebarBody) {
-        sidebarBody.scrollTo({ top: 0, behavior: 'smooth' });
+      if (inEurope && europeNavModeRef.current === 'artwork_view') {
+        // Return to European country select list
+        setEuropeNavMode('country_select');
+      } else {
+        const sidebarBody = document.querySelector('.explorer-sidebar-body');
+        if (sidebarBody) {
+          sidebarBody.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }
     }
   }, []);
@@ -345,26 +563,26 @@ export default function GlobalExplorer() {
 
           if (brightness < 0.15) {
             // Core continent interior node: luminous azure / deep cobalt
-            particleColors[pIdx * 3] = isDark ? 0.38 : 0.15;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.88 : 0.62;
-            particleColors[pIdx * 3 + 2] = isDark ? 1.00 : 0.98;
+            particleColors[pIdx * 3] = isDark ? 0.45 : 0.12;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.92 : 0.58;
+            particleColors[pIdx * 3 + 2] = isDark ? 1.00 : 0.96;
           } else {
             // Coastline boundary highlight: pure brilliant white-cyan glow
-            particleColors[pIdx * 3] = isDark ? 0.95 : 0.35;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.98 : 0.78;
+            particleColors[pIdx * 3] = isDark ? 1.00 : 0.28;
+            particleColors[pIdx * 3 + 1] = isDark ? 1.00 : 0.72;
             particleColors[pIdx * 3 + 2] = 1.00;
           }
         } else {
-          // Subtle oceanic matrix grid dots
-          const keepOcean = (i % 11 === 0) || Math.abs(lat) < 1.0 || Math.abs(lat - 23.5) < 1.0 || Math.abs(lat + 23.5) < 1.0;
+          // Subtle oceanic matrix grid dots (Dimmed down heavily to make continents pop)
+          const keepOcean = (i % 16 === 0) || Math.abs(lat) < 0.6;
           if (keepOcean) {
             const opt = latLngToVector3(lat, lng, globeRadius * 1.002);
             particlePositions[pIdx * 3] = opt.x;
             particlePositions[pIdx * 3 + 1] = opt.y;
             particlePositions[pIdx * 3 + 2] = opt.z;
-            particleColors[pIdx * 3] = isDark ? 0.04 : 0.55;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.18 : 0.70;
-            particleColors[pIdx * 3 + 2] = isDark ? 0.32 : 0.82;
+            particleColors[pIdx * 3] = isDark ? 0.012 : 0.86;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.05 : 0.90;
+            particleColors[pIdx * 3 + 2] = isDark ? 0.12 : 0.94;
           } else {
             particlePositions[pIdx * 3] = 0;
             particlePositions[pIdx * 3 + 1] = 0;
@@ -386,7 +604,7 @@ export default function GlobalExplorer() {
     particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const particleMat = new THREE.PointsMaterial({
-      size: isDark ? 0.062 : 0.056,
+      size: isDark ? 0.064 : 0.056,
       map: glowTex,
       vertexColors: true,
       transparent: true,
@@ -410,7 +628,7 @@ export default function GlobalExplorer() {
       particleGeo.attributes.color.needsUpdate = true;
     };
 
-    // 5d. Atmospheric Floating Halo Particles
+    // 5d. Atmospheric Floating Halo Particles (Dimmed to subtle whisper)
     const haloGeo = new THREE.BufferGeometry();
     const haloCoords = [];
     for (let i = 0; i < 480; i++) {
@@ -428,11 +646,11 @@ export default function GlobalExplorer() {
     }
     haloGeo.setAttribute('position', new THREE.Float32BufferAttribute(haloCoords, 3));
     const haloMat = new THREE.PointsMaterial({
-      size: 0.034,
+      size: 0.020,
       map: glowTex,
       color: isDark ? 0x38bdf8 : 0x0284c7,
       transparent: true,
-      opacity: isDark ? 0.38 : 0.24,
+      opacity: isDark ? 0.12 : 0.07,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -477,7 +695,7 @@ export default function GlobalExplorer() {
       const curveMat = new THREE.LineBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
-        opacity: isDark ? 0.35 : 0.25,
+        opacity: isDark ? 0.20 : 0.14,
         blending: THREE.AdditiveBlending
       });
       const arcLine = new THREE.Line(curveGeo, curveMat);
@@ -489,7 +707,7 @@ export default function GlobalExplorer() {
       arcPulseMeshes.push({ mesh: pulse, curve, offset: idx * 0.1 });
     });
 
-    // 5f. Deep Space Starfield
+    // 5f. Deep Space Starfield (Dimmed to subtle ambience)
     const starsGeo = new THREE.BufferGeometry();
     const starCoords = [];
     for (let i = 0; i < 800; i++) {
@@ -504,10 +722,10 @@ export default function GlobalExplorer() {
     }
     starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
     const starsMat = new THREE.PointsMaterial({
-      size: 0.04,
+      size: 0.022,
       color: isDark ? 0x94a3b8 : 0xcbd5e1,
       transparent: true,
-      opacity: isDark ? 0.5 : 0.3
+      opacity: isDark ? 0.15 : 0.08
     });
     const starsMesh = new THREE.Points(starsGeo, starsMat);
     scene.add(starsMesh);
@@ -860,6 +1078,25 @@ export default function GlobalExplorer() {
     };
   }, [isDark]);
 
+  // Precompute stats (regions and total artworks) for each European country
+  const europeCountriesWithStats = useMemo(() => {
+    return EUROPE_COUNTRIES.map(c => {
+      const regs = c.regionIds.map(id => geoRegions.find(r => r.id === id)).filter(Boolean);
+      const count = regs.reduce((sum, r) => sum + (r.artworksCount || r.artworks?.length || 0), 0);
+      return {
+        ...c,
+        regions: regs,
+        totalArtworksCount: count
+      };
+    });
+  }, []);
+
+  const isEurope = isEuropeRegion(selectedRegion);
+  const currentCountry = useMemo(() => {
+    if (!isEurope) return null;
+    return europeCountriesWithStats[activeCountryIndex] || europeCountriesWithStats[0];
+  }, [isEurope, europeCountriesWithStats, activeCountryIndex]);
+
   // Culture Cluster Shuttle list for current selected region
   const activeCluster = useMemo(() => {
     return REGION_CLUSTERS.find(c => c.ids.includes(selectedRegion.id)) || REGION_CLUSTERS[0];
@@ -934,7 +1171,7 @@ export default function GlobalExplorer() {
                 key={reg.id}
                 type="button"
                 className="btn btn-outline"
-                onClick={() => focusRegion(reg)}
+                onClick={() => focusRegion(reg, true)}
                 style={{
                   borderRadius: 'var(--radius-pill)',
                   padding: '3px 9px',
@@ -970,7 +1207,7 @@ export default function GlobalExplorer() {
                 opacity: lbl.opacity,
                 pointerEvents: lbl.opacity > 0.4 ? 'auto' : 'none'
               }}
-              onClick={() => focusRegion(lbl.region)}
+              onClick={() => focusRegion(lbl.region, true)}
               onMouseEnter={() => setHoveredRegion(lbl.region)}
               onMouseLeave={() => setHoveredRegion(null)}
             >
@@ -986,13 +1223,25 @@ export default function GlobalExplorer() {
           <div className="globe-hud-top">
             <div className="globe-pill">
               <MapPin size={14} style={{ color: 'var(--accent-blue)' }} />
-              <span>当前选定：<strong>{selectedRegion.nameZh}</strong> ({selectedRegion.countryZh})</span>
+              {isEurope && europeNavMode === 'country_select' ? (
+                <span>欧洲大区 · <strong>{currentCountry?.flag} {currentCountry?.nameZh}</strong> ({activeCountryIndex + 1}/{EUROPE_COUNTRIES.length})</span>
+              ) : (
+                <span>当前选定：<strong>{selectedRegion.nameZh}</strong> ({selectedRegion.countryZh})</span>
+              )}
               <span style={{ color: 'var(--text-tertiary)' }}>·</span>
-              <span style={{ fontSize: '0.76rem', color: 'var(--accent-sage)', fontWeight: 650 }}>{selectedRegion.artworksCount} 件核心展品</span>
+              <span style={{ fontSize: '0.76rem', color: 'var(--accent-sage)', fontWeight: 650 }}>
+                {isEurope && europeNavMode === 'country_select'
+                  ? `${currentCountry?.totalArtworksCount || 0} 件艺术与建筑`
+                  : `${selectedRegion.artworksCount} 件核心展品`}
+              </span>
             </div>
 
             <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-              <span>🖱️ 鼠标拖拽/滚轮/28px磁吸 · 📷 手势控制 (✋平移拨动旋转 · 🤏拇食张开放大 · 👌捏合缩小 · ✊握拳选中)</span>
+              <span>
+                {isEurope && europeNavMode === 'country_select'
+                  ? '✋ 手掌上翻/下翻 (或鼠标点击) 选国 · ✊ 再次握拳确认进入'
+                  : '🖱️ 鼠标拖拽/滚轮/磁吸 · 📷 手势 (✋拨转 · 🤏张开放大 · 👌捏合缩小 · ✊握拳选中)'}
+              </span>
             </div>
           </div>
 
@@ -1000,113 +1249,246 @@ export default function GlobalExplorer() {
           <GestureCameraHUD
             onGestureAction={handleGestureAction}
             isRegionSelected={Boolean(selectedRegion)}
+            isEuropeCountrySelect={isEurope && europeNavMode === 'country_select'}
             selectedRegion={selectedRegion}
             isDark={isDark}
           />
         </div>
 
         {/* Right Column: Dedicated Region Inspector Sidebar */}
-        <div className="explorer-sidebar-col">
-          <div className="explorer-sidebar-header">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
-                <MapPin size={11} /> {selectedRegion.countryZh} · {selectedRegion.nameZh}
-              </span>
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                {selectedRegion.nameEn}
-              </span>
-            </div>
-
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', margin: '0.15rem 0 0.15rem 0', color: 'var(--text-primary)', fontWeight: 650 }}>
-              {selectedRegion.nameZh} 代表艺术与建筑
-            </h2>
-
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: '1.55', margin: 0 }}>
-              {selectedRegion.summaryZh}
-            </p>
-
-            {/* Cultural Cluster Shuttle Strip (Solves European High-Density Selection UX) */}
-            {neighborRegions.length > 1 && (
-              <div className="neighbor-cities-strip" style={{ marginTop: '0.65rem' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
-                  <Compass size={12} style={{ color: 'var(--accent-blue)' }} />
-                  <span>{activeCluster.name} · 快速穿梭</span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                  {neighborRegions.map(reg => (
-                    <button
-                      key={reg.id}
-                      type="button"
-                      className={`neighbor-city-pill ${selectedRegion.id === reg.id ? 'active' : ''}`}
-                      onClick={() => focusRegion(reg)}
-                    >
-                      <span>{reg.nameZh}</span>
-                      <span style={{ opacity: 0.65, fontSize: '0.66rem' }}>({reg.artworksCount})</span>
-                    </button>
-                  ))}
-                </div>
+        {isEurope && europeNavMode === 'country_select' ? (
+          /* European Country Selection Mode (Level 1 Hierarchy) */
+          <div className="explorer-sidebar-col">
+            <div className="explorer-sidebar-header">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
+                  🇪🇺 欧洲艺术与建筑文化区
+                </span>
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                  Europe Cultural Spheres
+                </span>
               </div>
-            )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.45rem' }}>
-              <span className="chip chip-outline" style={{ fontSize: '0.7rem' }}>
-                <Layers size={10} />
-                <span>{selectedRegion.artworksCount} 件代表地标</span>
-              </span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
-                点击卡片研读高清图像与考点解析
-              </span>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', margin: '0.15rem 0 0.15rem 0', color: 'var(--text-primary)', fontWeight: 650 }}>
+                欧洲艺术与建筑文化区
+              </h2>
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: '1.55', margin: '0 0 0.45rem 0' }}>
+                欧洲重镇与代表作高度密集。请通过手掌上下翻动或鼠标直接选择国家与地区，深入研读：
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--accent-blue)', fontWeight: 650 }}>💡 手势导航：</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  手掌向上翻（上一国）/ 向下翻（下一国）· 再次握拳确认进入
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Scrollable Masterworks List */}
-          <div className="explorer-sidebar-body">
-            {selectedRegion.artworks.map((item) => (
-              <div key={item.id} className="inspector-artwork-card">
-                {/* Artwork Image Frame */}
-                <div className="image-box" style={{ height: '145px', borderRadius: '8px', overflow: 'hidden' }}>
-                  <ArtworkImage artworkId={item.id} alt={item.title} fit="cover" />
-                </div>
-
-                {/* Info Header */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                    <span className={item.category === 'architecture' ? 'chip chip-green' : 'chip chip-blue'} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
-                      {item.category === 'architecture' ? <Landmark size={10} /> : <Palette size={10} />}
-                      {item.movementName}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                      {item.date}
-                    </span>
-                  </div>
-
-                  <h3 style={{ fontSize: '0.98rem', fontFamily: 'var(--font-serif)', fontWeight: 600, margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>
-                    {item.titleZh || item.title}
-                  </h3>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                    {item.artistEnglishName || item.artistName}
-                  </div>
-
-                  {item.knowledgePoints?.[0] && (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', padding: '5px 8px', borderRadius: '6px', lineHeight: '1.45', marginBottom: '0.65rem' }}>
-                      💡 {item.knowledgePoints[0]}
+            {/* Scrollable European Country Cards List */}
+            <div className="explorer-sidebar-body">
+              {europeCountriesWithStats.map((country, idx) => {
+                const isActive = idx === activeCountryIndex;
+                return (
+                  <div
+                    key={country.id}
+                    id={`europe-country-${country.id}`}
+                    className={`europe-country-card ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      focusCountryByIndex(idx);
+                      setEuropeNavMode('artwork_view');
+                    }}
+                    onMouseEnter={() => {
+                      setActiveCountryIndex(idx);
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <span style={{ fontSize: '1.25rem' }}>{country.flag}</span>
+                        <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)', fontWeight: 650 }}>
+                          {country.nameZh}
+                        </strong>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                          {country.nameEn}
+                        </span>
+                      </div>
+                      <span className="chip chip-outline" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                        {country.regions.length} 重镇 · {country.totalArtworksCount} 杰作
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Direct Link CTA */}
-                <Link
-                  to={`/artwork/${item.movementId}/${item.artistId}/${item.id}`}
-                  className="btn btn-outline"
-                  style={{ width: '100%', fontSize: '0.76rem', padding: '6px 10px', borderRadius: 'var(--radius-pill)', justifyContent: 'center' }}
-                >
-                  <span>研读考点详情</span>
-                  <ExternalLink size={12} />
-                </Link>
-              </div>
-            ))}
+                    <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: '1.45' }}>
+                      {country.summaryZh}
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {country.regions.map(r => (
+                          <span key={r.id} style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', background: 'var(--bg-subtle)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-hairline)' }}>
+                            {r.nameZh}
+                          </span>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        className={`btn ${isActive ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ fontSize: '0.72rem', padding: '3px 10px', borderRadius: 'var(--radius-pill)', gap: '4px' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          focusCountryByIndex(idx);
+                          setEuropeNavMode('artwork_view');
+                        }}
+                      >
+                        <span>进入研读</span>
+                        <ChevronRight size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Artwork Masterworks View (Level 2 Hierarchy for Europe, Direct View for others) */
+          <div className="explorer-sidebar-col">
+            <div className="explorer-sidebar-header">
+              {/* If in Europe: Back Button to European Country List */}
+              {isEurope && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setEuropeNavMode('country_select')}
+                  style={{ borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', marginBottom: '8px', gap: '4px', alignSelf: 'flex-start' }}
+                >
+                  <ArrowLeft size={12} />
+                  <span>◂ 返回欧洲国家列表 (或手势再次握拳)</span>
+                </button>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
+                  <MapPin size={11} /> {selectedRegion.countryZh} · {selectedRegion.nameZh}
+                </span>
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                  {selectedRegion.nameEn}
+                </span>
+              </div>
+
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', margin: '0.15rem 0 0.15rem 0', color: 'var(--text-primary)', fontWeight: 650 }}>
+                {selectedRegion.nameZh} 代表艺术与建筑
+              </h2>
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: '1.55', margin: 0 }}>
+                {selectedRegion.summaryZh}
+              </p>
+
+              {/* If in Europe: Sub-regions/Cities in this Country */}
+              {isEurope && currentCountry && currentCountry.regions.length > 1 && (
+                <div className="neighbor-cities-strip" style={{ marginTop: '0.65rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+                    <Compass size={12} style={{ color: 'var(--accent-blue)' }} />
+                    <span>{currentCountry.flag} {currentCountry.nameZh} · 重镇穿梭</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {currentCountry.regions.map(reg => (
+                      <button
+                        key={reg.id}
+                        type="button"
+                        className={`neighbor-city-pill ${selectedRegion.id === reg.id ? 'active' : ''}`}
+                        onClick={() => focusRegion(reg, true)}
+                      >
+                        <span>{reg.nameZh}</span>
+                        <span style={{ opacity: 0.65, fontSize: '0.66rem' }}>({reg.artworksCount})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* If not in Europe: Neighbor Regions in the Global Cluster */}
+              {!isEurope && neighborRegions.length > 1 && (
+                <div className="neighbor-cities-strip" style={{ marginTop: '0.65rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+                    <Compass size={12} style={{ color: 'var(--accent-blue)' }} />
+                    <span>{activeCluster.name} · 快速穿梭</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {neighborRegions.map(reg => (
+                      <button
+                        key={reg.id}
+                        type="button"
+                        className={`neighbor-city-pill ${selectedRegion.id === reg.id ? 'active' : ''}`}
+                        onClick={() => focusRegion(reg, true)}
+                      >
+                        <span>{reg.nameZh}</span>
+                        <span style={{ opacity: 0.65, fontSize: '0.66rem' }}>({reg.artworksCount})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.45rem' }}>
+                <span className="chip chip-outline" style={{ fontSize: '0.7rem' }}>
+                  <Layers size={10} />
+                  <span>{selectedRegion.artworksCount} 件代表地标</span>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                  点击卡片研读高清图像与考点解析
+                </span>
+              </div>
+            </div>
+
+            {/* Scrollable Masterworks List */}
+            <div className="explorer-sidebar-body">
+              {selectedRegion.artworks.map((item) => (
+                <div key={item.id} className="inspector-artwork-card">
+                  {/* Artwork Image Frame */}
+                  <div className="image-box" style={{ height: '145px', borderRadius: '8px', overflow: 'hidden' }}>
+                    <ArtworkImage artworkId={item.id} alt={item.title} fit="cover" />
+                  </div>
+
+                  {/* Info Header */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <span className={item.category === 'architecture' ? 'chip chip-green' : 'chip chip-blue'} style={{ fontSize: '0.68rem', padding: '2px 7px' }}>
+                        {item.category === 'architecture' ? <Landmark size={10} /> : <Palette size={10} />}
+                        {item.movementName}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                        {item.date}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: '0.98rem', fontFamily: 'var(--font-serif)', fontWeight: 600, margin: '0 0 0.2rem 0', color: 'var(--text-primary)' }}>
+                      {item.titleZh || item.title}
+                    </h3>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
+                      {item.artistEnglishName || item.artistName}
+                    </div>
+
+                    {item.knowledgePoints?.[0] && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', padding: '5px 8px', borderRadius: '6px', lineHeight: '1.45', marginBottom: '0.65rem' }}>
+                        💡 {item.knowledgePoints[0]}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Direct Link CTA */}
+                  <Link
+                    to={`/artwork/${item.movementId}/${item.artistId}/${item.id}`}
+                    className="btn btn-outline"
+                    style={{ width: '100%', fontSize: '0.76rem', padding: '6px 10px', borderRadius: 'var(--radius-pill)', justifyContent: 'center' }}
+                  >
+                    <span>研读考点详情</span>
+                    <ExternalLink size={12} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

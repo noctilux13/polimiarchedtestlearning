@@ -1586,3 +1586,58 @@ button.btn:active,
   gap: 8px;
 }
 
+/* European Sub-Region & Country Selection Cards */
+.europe-country-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.europe-country-card:hover {
+  border-color: var(--accent-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.12);
+}
+
+.europe-country-card.active {
+  border-color: var(--accent-blue);
+  background: var(--accent-blue-subtle);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25), 0 4px 16px rgba(56, 189, 248, 0.15);
+}
+
+.neighbor-cities-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.neighbor-city-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.neighbor-city-pill:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.neighbor-city-pill.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border-color: var(--accent-blue);
+}
+
