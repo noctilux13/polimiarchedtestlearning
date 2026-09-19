@@ -463,22 +463,6 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     // Responsive pinch: Thumb tip (4) and Index tip (8) close together
     const isPinch = pinchDist < 0.088 || pinchRatio < 0.55;
 
-    const fourFingerCount = (indexExtended ? 1 : 0) + (middleExtended ? 1 : 0) + (ringExtended ? 1 : 0) + (pinkyExtended ? 1 : 0);
-    const indexMiddleDist = dist(lm[8], lm[12]);
-    const thumbExtended = dist(lm[4], lm[0]) > dist(lm[2], lm[0]) * 1.15;
-
-    // Number 4 Gesture: Index, Middle, Ring, and Pinky are extended, Thumb is folded across palm
-    const thumbFolded = !thumbExtended || dist(lm[4], lm[9]) < palmBase * 0.95 || dist(lm[4], lm[13]) < palmBase * 0.95;
-    const isNumberFour = fourFingerCount === 4 && thumbFolded;
-
-    // Guarded Thumb & Index Spread for Zoom In:
-    // Requires large thumb-index span (pinchRatio > 1.10 && pinchDist > 0.18).
-    // To prevent normal open hand from triggering zoom: requires either other fingers curled (count <= 3)
-    // or thumb stretched significantly wider than adjacent fingers (pinchDist > indexMiddleDist * 1.6).
-    const isThumbIndexSpread = thumbExtended && indexExtended && !isPinch && !isNumberFour &&
-      pinchRatio > 1.10 && pinchDist > 0.18 &&
-      (fourFingerCount <= 3 || pinchDist > indexMiddleDist * 1.6);
-
     // Mirror X for natural, 1:1 physical gesture mapping (moving hand right on screen = right)
     const currCentroidX = 1 - (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
     const currCentroidY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
@@ -494,12 +478,30 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
 
     const moveDist = Math.hypot(deltaX, deltaY);
 
+    const fourFingerCount = (indexExtended ? 1 : 0) + (middleExtended ? 1 : 0) + (ringExtended ? 1 : 0) + (pinkyExtended ? 1 : 0);
+    const indexMiddleDist = dist(lm[8], lm[12]);
+    const thumbExtended = dist(lm[4], lm[0]) > dist(lm[2], lm[0]) * 1.15;
+
+    // Number 4 Gesture:
+    // CRITICAL FIX: ONLY active in European Country Select mode to exit!
+    // Requires: in European country select mode, 4 fingers extended, thumb tucked across palm towards pinky knuckle, and hand relatively still
+    const isEuroSelect = Boolean(isEuropeCountrySelectRef.current);
+    const thumbTucked = dist(lm[4], lm[17]) < palmBase * 0.50 && dist(lm[4], lm[5]) < palmBase * 0.50;
+    const isNumberFour = isEuroSelect && fourFingerCount === 4 && thumbTucked && moveDist < 0.010;
+
+    // Guarded Thumb & Index Spread for Zoom In:
+    // Requires large thumb-index span (pinchRatio > 1.10 && pinchDist > 0.18).
+    // To prevent normal open hand from triggering zoom: requires either other fingers curled (count <= 3)
+    // or thumb stretched significantly wider than adjacent fingers (pinchDist > indexMiddleDist * 1.6).
+    const isThumbIndexSpread = thumbExtended && indexExtended && !isPinch && !isNumberFour &&
+      pinchRatio > 1.10 && pinchDist > 0.18 &&
+      (fourFingerCount <= 3 || pinchDist > indexMiddleDist * 1.6);
+
     // 3. Discrete Mutually Exclusive Candidate Classification
     let rawCandidate = 'idle';
     let rawParam = null;
 
-    // GESTURE 0: 4️⃣ NUMBER FOUR (Index, Middle, Ring, Pinky extended, Thumb folded across palm)
-    // Exits European country select mode and returns to globe gesture control
+    // GESTURE 0: 4️⃣ NUMBER FOUR (Only active in European country select mode to exit)
     if (isNumberFour) {
       rawCandidate = 'gesture_four';
     }
@@ -508,7 +510,6 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
       rawCandidate = 'fist';
     }
     // GESTURE 2: 👌 PINCH (Thumb & Index tips touching together) -> Zoom Out
-    // Pure thumb/index pinch regardless of what other fingers are doing (OK sign or curled)
     else if (isPinch) {
       rawCandidate = 'zoom_out';
       rawParam = 0.18;
@@ -519,8 +520,9 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
       rawParam = -0.18;
     }
     // GESTURE 4: ✋ PHYSICAL HAND PAN WITH MOMENTUM (手掌整体位移旋转)
-    else if (moveDist > 0.010) {
-      const isHorizontal = Math.abs(deltaX) >= Math.abs(deltaY) * 0.75;
+    // Responsive threshold (> 0.005) captures both gentle and swift hand flicks
+    else if (moveDist > 0.005) {
+      const isHorizontal = Math.abs(deltaX) >= Math.abs(deltaY) * 0.70;
       if (isHorizontal) {
         rawCandidate = deltaX > 0 ? 'pan_right' : 'pan_left';
       } else {
@@ -540,8 +542,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
       sm.stability = 0;
       sm.candidate = 'idle';
 
-      // Releasing to idle after 2 calm frames
-      if (sm.idleStreak >= 2) {
+      // Releasing to idle after 4 calm frames (~130ms)
+      if (sm.idleStreak >= 4) {
         if (sm.activeAction !== null) {
           sm.activeAction = null;
         }

@@ -353,11 +353,16 @@ export default function GlobalExplorer() {
   // Stable Gesture Action Dispatcher (Handles hand pan translation with physical inertia damping)
   // Stable Gesture Action Dispatcher (Handles hand pan translation with physical inertia damping)
   const handleGestureAction = useCallback((action) => {
-    if (action.type === 'no_hand' || action.type === 'hand_hover') {
-      // Hover/still hand: dampen any remaining rotation to stop immediately
+    if (action.type === 'no_hand') {
+      // Hand out of frame: let physical inertia glide naturally
+      return;
+    }
+
+    if (action.type === 'hand_hover') {
+      // Gentle deceleration if user holds hand still
       const c = controlsRef.current;
-      c.velocityX *= 0.5;
-      c.velocityY *= 0.5;
+      c.velocityX *= 0.94;
+      c.velocityY *= 0.94;
       return;
     }
 
@@ -417,17 +422,17 @@ export default function GlobalExplorer() {
     c.lastInteractionTime = Date.now();
 
     if (action.type === 'hand_pan') {
-      // Hand Translation: smooth natural rotation with small-to-medium physical momentum
+      // Hand Translation: smooth natural rotation with satisfying physical momentum
       // Reverse sign so the visible front face of the globe rotates in the direction the hand moves
-      const panSensX = 2.4;
-      const panSensY = 2.0;
+      const panSensX = 3.6;
+      const panSensY = 2.8;
 
       c.targetTheta -= action.deltaX * panSensX;
       c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + action.deltaY * panSensY));
 
-      // Natural impulse velocity (decayed by 0.88 in animation loop for ~25°~40° travel then full stop)
-      c.velocityX = -action.deltaX * panSensX * 0.42;
-      c.velocityY = action.deltaY * panSensY * 0.42;
+      // Natural impulse velocity (gives a rich 35°~60° inertia throw glide)
+      c.velocityX = -action.deltaX * panSensX * 0.85;
+      c.velocityY = action.deltaY * panSensY * 0.85;
     } else if (action.type === 'zoom') {
       c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * 1.8));
     } else if (action.type === 'fist') {
@@ -980,12 +985,12 @@ export default function GlobalExplorer() {
         c.targetTheta -= 0.0008;
       }
 
-      // Smooth inertia throw decay (0.88 damping: turns 25°~40° naturally and comes to a full stop)
+      // Smooth inertia throw decay (0.91 damping: turns naturally and comes to a full stop)
       if (!c.isDragging) {
         c.targetTheta += c.velocityX;
         c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + c.velocityY));
-        c.velocityX *= 0.88;
-        c.velocityY *= 0.88;
+        c.velocityX *= 0.91;
+        c.velocityY *= 0.91;
         if (Math.abs(c.velocityX) < 0.0001) c.velocityX = 0;
         if (Math.abs(c.velocityY) < 0.0001) c.velocityY = 0;
       }
