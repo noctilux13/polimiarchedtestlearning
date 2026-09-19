@@ -26,68 +26,19 @@ function latLngToVector3(lat, lng, radius) {
   return new THREE.Vector3(x, y, z);
 }
 
-// Procedural Canvas Texture for Minimalist Sci-Fi Earth Globe (Restrained, Elegant, Non-Flashy)
-function createEarthTexture(isDark) {
+// High-grade circular soft-radial glow sprite texture for WebGL particles
+function createGlowPointTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 2048;
-  canvas.height = 1024;
+  canvas.width = 64;
+  canvas.height = 64;
   const ctx = canvas.getContext('2d');
-
-  // Deep dark slate obsidian ocean
-  ctx.fillStyle = isDark ? '#0a0f18' : '#1e293b';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Subtle longitude & latitude hairline grid
-  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(148, 163, 184, 0.15)';
-  ctx.lineWidth = 1;
-
-  // Parallels
-  for (let lat = -80; lat <= 80; lat += 20) {
-    const y = ((90 - lat) / 180) * canvas.height;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.stroke();
-  }
-
-  // Meridians
-  for (let lng = -180; lng <= 180; lng += 30) {
-    const x = ((lng + 180) / 360) * canvas.width;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-  }
-
-  // Refined dark titanium slate continents
-  ctx.fillStyle = isDark ? 'rgba(28, 42, 62, 0.95)' : 'rgba(51, 65, 85, 0.95)';
-  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148, 163, 184, 0.4)';
-  ctx.lineWidth = 1.8;
-
-  const landmasses = [
-    // Europe & Mediterranean
-    { x: 1040, y: 220, w: 230, h: 180 },
-    // Eurasia / Central Asia
-    { x: 1210, y: 210, w: 420, h: 240 },
-    // Africa
-    { x: 1020, y: 410, w: 270, h: 330 },
-    // North America
-    { x: 290, y: 210, w: 400, h: 280 },
-    // South America
-    { x: 540, y: 530, w: 220, h: 350 },
-    // Australia
-    { x: 1640, y: 620, w: 220, h: 190 },
-    // East Asia & Japan
-    { x: 1470, y: 280, w: 180, h: 160 }
-  ];
-
-  landmasses.forEach(land => {
-    ctx.beginPath();
-    ctx.roundRect(land.x, land.y, land.w, land.h, 35);
-    ctx.fill();
-    ctx.stroke();
-  });
-
+  const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.22, 'rgba(56, 189, 248, 0.95)');
+  grad.addColorStop(0.55, 'rgba(14, 165, 233, 0.4)');
+  grad.addColorStop(1, 'rgba(14, 165, 233, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(canvas);
 }
 
@@ -267,96 +218,232 @@ export default function GlobalExplorer() {
     const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e293b, 1.0);
     scene.add(hemiLight);
 
-    // 5. High-Resolution Globe Sphere (Smooth 96x96 Mesh)
+    // 5. Aesthetic Cybernetic 3D Particle Globe (粒子效果 3D 地球仪)
     const globeRadius = 2.4;
-    const globeGeo = new THREE.SphereGeometry(globeRadius, 96, 96);
 
-    // Start with procedural canvas texture for zero-latency initial rendering
-    const proceduralTexture = createEarthTexture(isDark);
-    const globeMat = new THREE.MeshStandardMaterial({
-      map: proceduralTexture,
-      roughness: 0.45,
-      metalness: 0.15,
-      emissive: new THREE.Color(isDark ? 0x0f1e33 : 0x0a1525),
-      emissiveIntensity: isDark ? 0.3 : 0.1
+    // 5a. Inner Dark Void Core (Occludes backside particles for authentic 3D spherical depth)
+    const coreGeo = new THREE.SphereGeometry(globeRadius * 0.988, 48, 48);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: isDark ? 0x060913 : 0x0f172a
     });
-    const globeMesh = new THREE.Mesh(globeGeo, globeMat);
-    scene.add(globeMesh);
-    globeRef.current = globeMesh;
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(coreMesh);
 
-    // Asynchronously load the generated Minimalist Sci-Fi Earth Texture
-    const textureLoader = new THREE.TextureLoader();
+    // 5b. Particle Sprite Texture (Circular radial soft glow)
+    const glowTex = createGlowPointTexture();
 
-    // 1. Sci-Fi Texture (Clean dark slate/charcoal continents, obsidian oceans, subtle cyan grid)
-    textureLoader.load(
-      getAssetUrl('textures/earth-scifi.jpg'),
-      (scifiTex) => {
-        scifiTex.wrapS = THREE.RepeatWrapping;
-        scifiTex.wrapT = THREE.ClampToEdgeWrapping;
-        globeMat.map = scifiTex;
-        globeMat.needsUpdate = true;
-      },
-      undefined,
-      () => {
-        // Graceful fallback to earth-dark if needed
-        textureLoader.load(getAssetUrl('textures/earth-dark.jpg'), (fallbackTex) => {
-          globeMat.map = fallbackTex;
-          globeMat.needsUpdate = true;
-        });
-      }
-    );
+    // 5c. High-Density Continent-Mapped Particle Cloud
+    const particleCount = 26000;
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleColors = new Float32Array(particleCount * 3);
 
-    // 2. Specular Water Reflections Map
-    textureLoader.load(
-      getAssetUrl('textures/earth_specular_2048.jpg'),
-      (specTex) => {
-        specTex.wrapS = THREE.RepeatWrapping;
-        specTex.wrapT = THREE.ClampToEdgeWrapping;
-        globeMat.roughnessMap = specTex;
-        globeMat.needsUpdate = true;
-      }
-    );
+    // Golden ratio Fibonacci spiral sampling
+    const goldenPhi = Math.PI * (Math.sqrt(5) - 1);
 
-    // 5b. Point Matrix Layer (Cybernetic Glowing Points on Globe Surface)
-    const pointsGeo = new THREE.BufferGeometry();
-    const matrixCoords = [];
-    const matrixRadius = globeRadius * 1.008;
+    // Offscreen Canvas for Continent Bitmap Sampling
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = 1024;
+    sampleCanvas.height = 512;
+    const sCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
 
-    for (let lat = -80; lat <= 80; lat += 4) {
-      const phi = (90 - lat) * (Math.PI / 180);
-      const circumf = Math.cos(lat * (Math.PI / 180));
-      const stepLng = circumf > 0.1 ? Math.max(4, Math.floor(6 / circumf)) : 30;
-      for (let lng = -180; lng < 180; lng += stepLng) {
-        const theta = (lng + 180) * (Math.PI / 180);
-        const x = -(matrixRadius * Math.sin(phi) * Math.cos(theta));
-        const z = matrixRadius * Math.sin(phi) * Math.sin(theta);
-        const y = matrixRadius * Math.cos(phi);
-        matrixCoords.push(x, y, z);
+    // Initial procedural high-fidelity continent footprints
+    sCtx.fillStyle = '#000000';
+    sCtx.fillRect(0, 0, 1024, 512);
+    sCtx.fillStyle = '#ffffff';
+
+    const baseLands = [
+      { x: 480, y: 70, w: 120, h: 100 },   // Europe & Mediterranean
+      { x: 560, y: 65, w: 280, h: 150 },   // Eurasia & Central Asia
+      { x: 740, y: 120, w: 150, h: 120 },  // East Asia (China / Japan)
+      { x: 670, y: 170, w: 80, h: 80 },    // India
+      { x: 470, y: 170, w: 160, h: 200 },  // Africa
+      { x: 110, y: 65, w: 240, h: 150 },   // North America
+      { x: 200, y: 210, w: 70, h: 70 },    // Central America
+      { x: 260, y: 260, w: 130, h: 200 },  // South America
+      { x: 820, y: 310, w: 140, h: 110 },  // Australia
+      { x: 470, y: 40, w: 80, h: 70 },     // UK & Scandinavia
+      { x: 880, y: 130, w: 50, h: 70 }     // Japan
+    ];
+    baseLands.forEach(l => {
+      sCtx.beginPath();
+      sCtx.roundRect(l.x, l.y, l.w, l.h, 28);
+      sCtx.fill();
+    });
+
+    function computeParticles(data) {
+      let pIdx = 0;
+      for (let i = 0; i < particleCount; i++) {
+        const y = 1 - (i / (particleCount - 1)) * 2;
+        const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+        const theta = goldenPhi * i;
+        const x = Math.cos(theta) * radiusAtY;
+        const z = Math.sin(theta) * radiusAtY;
+
+        const lat = Math.asin(Math.max(-0.999, Math.min(0.999, y))) * (180 / Math.PI);
+        const lng = Math.atan2(z, -x) * (180 / Math.PI);
+
+        const u = Math.max(0, Math.min(1, (lng + 180) / 360));
+        const v = Math.max(0, Math.min(1, (90 - lat) / 180));
+
+        const px = Math.min(1023, Math.floor(u * 1024));
+        const py = Math.min(511, Math.floor(v * 512));
+        const dIdx = (py * 1024 + px) * 4;
+
+        const brightness = (data[dIdx] * 0.299 + data[dIdx + 1] * 0.587 + data[dIdx + 2] * 0.114) / 255;
+        const isLand = brightness > 0.18;
+
+        if (isLand) {
+          const r = globeRadius * 1.008;
+          particlePositions[pIdx * 3] = x * r;
+          particlePositions[pIdx * 3 + 1] = y * r;
+          particlePositions[pIdx * 3 + 2] = z * r;
+
+          if (brightness > 0.48) {
+            // Bright highlight node
+            particleColors[pIdx * 3] = 0.75;
+            particleColors[pIdx * 3 + 1] = 0.95;
+            particleColors[pIdx * 3 + 2] = 1.0;
+          } else {
+            // Glowing cyan continent node
+            particleColors[pIdx * 3] = 0.22;
+            particleColors[pIdx * 3 + 1] = 0.74;
+            particleColors[pIdx * 3 + 2] = 0.97;
+          }
+        } else {
+          // Sparse oceanic matrix dots
+          const keepOcean = (i % 7 === 0) || Math.abs(lat) < 1.4 || Math.abs(lat - 23.5) < 1.4 || Math.abs(lat + 23.5) < 1.4;
+          if (keepOcean) {
+            const r = globeRadius * 1.002;
+            particlePositions[pIdx * 3] = x * r;
+            particlePositions[pIdx * 3 + 1] = y * r;
+            particlePositions[pIdx * 3 + 2] = z * r;
+            particleColors[pIdx * 3] = 0.04;
+            particleColors[pIdx * 3 + 1] = 0.25;
+            particleColors[pIdx * 3 + 2] = 0.45;
+          } else {
+            particlePositions[pIdx * 3] = 0;
+            particlePositions[pIdx * 3 + 1] = 0;
+            particlePositions[pIdx * 3 + 2] = 0;
+            particleColors[pIdx * 3] = 0;
+            particleColors[pIdx * 3 + 1] = 0;
+            particleColors[pIdx * 3 + 2] = 0;
+          }
+        }
+        pIdx++;
       }
     }
 
-    pointsGeo.setAttribute('position', new THREE.Float32BufferAttribute(matrixCoords, 3));
-    const pointsMat = new THREE.PointsMaterial({
-      size: 0.022,
-      color: isDark ? 0x38bdf8 : 0x0284c7,
+    computeParticles(sCtx.getImageData(0, 0, 1024, 512).data);
+
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+    const particleMat = new THREE.PointsMaterial({
+      size: 0.046,
+      map: glowTex,
+      vertexColors: true,
       transparent: true,
-      opacity: isDark ? 0.55 : 0.4,
+      opacity: isDark ? 0.95 : 0.88,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    const pointMatrixMesh = new THREE.Points(pointsGeo, pointsMat);
-    globeMesh.add(pointMatrixMesh);
+    const particleMesh = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleMesh);
+    globeRef.current = particleMesh;
 
-    // 5c. Atmosphere Rim Mesh (Fresnel rim glow)
-    const atmoGeo = new THREE.SphereGeometry(globeRadius * 1.026, 64, 64);
-    const atmoMat = new THREE.MeshBasicMaterial({
-      color: isDark ? 0x38bdf8 : 0x93c5fd,
+    // Asynchronously load real earth dark texture to refine coastlines and islands
+    const earthImg = new Image();
+    earthImg.crossOrigin = 'anonymous';
+    earthImg.src = getAssetUrl('textures/earth-dark.jpg');
+    earthImg.onload = () => {
+      sCtx.drawImage(earthImg, 0, 0, 1024, 512);
+      const detailedData = sCtx.getImageData(0, 0, 1024, 512).data;
+      computeParticles(detailedData);
+      particleGeo.attributes.position.needsUpdate = true;
+      particleGeo.attributes.color.needsUpdate = true;
+    };
+
+    // 5d. Atmospheric Floating Halo Particles
+    const haloGeo = new THREE.BufferGeometry();
+    const haloCoords = [];
+    for (let i = 0; i < 480; i++) {
+      const hr = globeRadius * (1.035 + Math.random() * 0.05);
+      const u = Math.random();
+      const v = Math.random();
+      const theta = u * 2.0 * Math.PI;
+      const phi = Math.acos(2.0 * v - 1.0);
+      const sinPhi = Math.sin(phi);
+      haloCoords.push(
+        hr * sinPhi * Math.cos(theta),
+        hr * sinPhi * Math.sin(theta),
+        hr * Math.cos(phi)
+      );
+    }
+    haloGeo.setAttribute('position', new THREE.Float32BufferAttribute(haloCoords, 3));
+    const haloMat = new THREE.PointsMaterial({
+      size: 0.034,
+      map: glowTex,
+      color: isDark ? 0x38bdf8 : 0x0284c7,
       transparent: true,
-      opacity: isDark ? 0.18 : 0.10,
-      side: THREE.BackSide
+      opacity: isDark ? 0.38 : 0.24,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
-    const atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
-    scene.add(atmoMesh);
+    const haloMesh = new THREE.Points(haloGeo, haloMat);
+    scene.add(haloMesh);
+
+    // 5e. Great-Circle 3D Cultural Flight Arcs (飞线) with Animated Traveling Pulses
+    const arcGroup = new THREE.Group();
+    scene.add(arcGroup);
+
+    const ARC_ROUTES = [
+      { from: [41.9, 12.5], to: [48.8, 2.3] },    // Rome - Paris
+      { from: [48.8, 2.3], to: [51.5, -0.1] },    // Paris - London
+      { from: [51.5, -0.1], to: [40.7, -74.0] },  // London - New York
+      { from: [41.9, 12.5], to: [37.9, 23.7] },   // Rome - Athens
+      { from: [37.9, 23.7], to: [39.9, 116.4] },  // Athens - Beijing
+      { from: [39.9, 116.4], to: [35.6, 139.7] }, // Beijing - Tokyo
+      { from: [41.9, 12.5], to: [43.7, 11.2] },   // Rome - Florence
+      { from: [48.8, 2.3], to: [41.4, 2.2] },     // Paris - Barcelona
+      { from: [41.9, 12.5], to: [45.4, 12.3] },   // Rome - Venice
+      { from: [40.7, -74.0], to: [41.8, -87.6] }  // New York - Chicago
+    ];
+
+    const arcPulseMeshes = [];
+    const pulseGeo = new THREE.SphereGeometry(0.022, 10, 10);
+    const pulseMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.95
+    });
+
+    ARC_ROUTES.forEach((route, idx) => {
+      const p1 = latLngToVector3(route.from[0], route.from[1], globeRadius * 1.008);
+      const p2 = latLngToVector3(route.to[0], route.to[1], globeRadius * 1.008);
+
+      const chordDist = p1.distanceTo(p2);
+      const mid = p1.clone().add(p2).multiplyScalar(0.5);
+      const midAltitude = globeRadius * (1.06 + Math.min(0.22, chordDist * 0.07));
+      const controlPoint = mid.normalize().multiplyScalar(midAltitude);
+
+      const curve = new THREE.QuadraticBezierCurve3(p1, controlPoint, p2);
+      const curvePoints = curve.getPoints(44);
+      const curveGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
+      const curveMat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: isDark ? 0.35 : 0.25,
+        blending: THREE.AdditiveBlending
+      });
+      const arcLine = new THREE.Line(curveGeo, curveMat);
+      arcGroup.add(arcLine);
+
+      const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+      pulse.position.copy(p1);
+      arcGroup.add(pulse);
+      arcPulseMeshes.push({ mesh: pulse, curve, offset: idx * 0.1 });
+    });
 
     // 5d. Deep Space Starfield
     const starsGeo = new THREE.BufferGeometry();
@@ -567,6 +654,18 @@ export default function GlobalExplorer() {
       camera.position.set(cx, cy, cz);
       camera.lookAt(0, 0, 0);
 
+      // Animate flying pulses along cultural arcs
+      arcPulseMeshes.forEach(({ mesh, curve, offset }) => {
+        const t = (elapsed * 0.16 + offset) % 1.0;
+        const pt = curve.getPoint(t);
+        mesh.position.copy(pt);
+        const pScale = 1.0 + 0.4 * Math.sin(t * Math.PI);
+        mesh.scale.set(pScale, pScale, pScale);
+      });
+
+      // Atmospheric halo subtle drift
+      haloMesh.rotation.y = elapsed * 0.012;
+
       // Pulse wave ring animation on planar pins (Reads from refs for zero-overhead performance)
       const currentSelected = selectedRegionRef.current;
       const currentHovered = hoveredRegionRef.current;
@@ -642,12 +741,19 @@ export default function GlobalExplorer() {
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
-      globeGeo.dispose();
-      globeMat.dispose();
-      pointsGeo.dispose();
-      pointsMat.dispose();
-      atmoGeo.dispose();
-      atmoMat.dispose();
+      coreGeo.dispose();
+      coreMat.dispose();
+      particleGeo.dispose();
+      particleMat.dispose();
+      glowTex.dispose();
+      haloGeo.dispose();
+      haloMat.dispose();
+      pulseGeo.dispose();
+      pulseMat.dispose();
+      arcGroup.children.forEach(child => {
+        child.geometry?.dispose();
+        child.material?.dispose();
+      });
       starsGeo.dispose();
       starsMat.dispose();
       flatCircleGeo.dispose();

@@ -11,9 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Cpu,
-  ShieldCheck,
-  Minimize2,
-  Maximize2
+  ShieldCheck
 } from 'lucide-react';
 
 export const GESTURE_STATES = {
@@ -218,7 +216,6 @@ function drawEmptyViewfinder(ctx, width, height) {
 export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isCutOut, setIsCutOut] = useState(false); // Auto-cutout when locked and stable
   const [showDebug, setShowDebug] = useState(false);
   const [engineType, setEngineType] = useState('MediaPipe Hands');
   const [errorMsg, setErrorMsg] = useState(null);
@@ -303,9 +300,9 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       onGestureActionRef.current?.({
         type: 'rotate',
         direction: 'left',
-        speed: 1.25
+        speed: 1.4
       });
-      sm.cooldownUntil = now + 50; // Smooth continuous control
+      sm.cooldownUntil = now + 30; // Buttery smooth continuous control
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'rotate_right') {
       setCurrentGesture({
@@ -316,9 +313,9 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       onGestureActionRef.current?.({
         type: 'rotate',
         direction: 'right',
-        speed: 1.25
+        speed: 1.4
       });
-      sm.cooldownUntil = now + 50; // Smooth continuous control
+      sm.cooldownUntil = now + 30; // Buttery smooth continuous control
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'zoom_in') {
       setCurrentGesture({
@@ -326,8 +323,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         label: '🤟 三指展开：推进放大视野',
         icon: '🔍'
       });
-      onGestureActionRef.current?.({ type: 'zoom', delta: -0.16 });
-      sm.cooldownUntil = now + 160;
+      onGestureActionRef.current?.({ type: 'zoom', delta: -0.18 });
+      sm.cooldownUntil = now + 100;
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'zoom_out') {
       setCurrentGesture({
@@ -335,8 +332,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         label: '🤏 双指捏合：拉远缩小全局',
         icon: '🔎'
       });
-      onGestureActionRef.current?.({ type: 'zoom', delta: 0.16 });
-      sm.cooldownUntil = now + 160;
+      onGestureActionRef.current?.({ type: 'zoom', delta: 0.18 });
+      sm.cooldownUntil = now + 100;
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'idle') {
       setCurrentGesture({ type: 'idle', label: '✋ 待机中立：手掌平展安全巡航', icon: '✋' });
@@ -362,7 +359,6 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       sm.lostStreak = (sm.lostStreak || 0) + 1;
       if (sm.lostStreak > 35) {
         sm.optimalStreak = 0;
-        setIsCutOut(false); // Re-open viewfinder to guide user back
       }
 
       if (sm.state !== GESTURE_STATES.NO_HAND) {
@@ -399,91 +395,80 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     let currentDistStatus = 'optimal';
     let currentDistLabel = '🎯 最佳操作距离';
 
-    if (handHeight < 0.20) {
+    if (handHeight < 0.16) {
       currentDistStatus = 'too_far';
       currentDistLabel = '⚠️ 请靠近摄像头';
-    } else if (handHeight > 0.58) {
+    } else if (handHeight > 0.65) {
       currentDistStatus = 'too_close';
       currentDistLabel = '⚠️ 请稍微远离镜头';
     }
 
     setDistanceFeedback({ status: currentDistStatus, label: currentDistLabel });
 
-    // Auto-Cutout / Exit state machine:
-    // Once in optimal distance and recognized stably for >1.2s (approx 36 frames), auto-cutout to sleek mini-pill!
-    if (currentDistStatus === 'optimal') {
-      sm.optimalStreak = (sm.optimalStreak || 0) + 1;
-      sm.lostStreak = 0;
-      if (sm.optimalStreak >= 36) {
-        setIsCutOut(true);
-      }
-    } else {
-      sm.lostStreak = (sm.lostStreak || 0) + 1;
-      if (sm.lostStreak >= 30) {
-        sm.optimalStreak = 0;
-        setIsCutOut(false); // Re-open viewfinder to guide
-      }
-    }
+    // 2. Anatomical Finger Extension & Geometry
+    // A finger is extended if fingertip is noticeably further from wrist than its PIP joint:
+    const isExt = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) > dist(lm[pipIdx], lm[0]) * 1.04;
 
-    // 2. Anatomical Finger Extension & Pose Analysis
-    const isExt = (tipIdx, pipIdx, mcpIdx) => {
-      return dist(lm[tipIdx], lm[0]) > dist(lm[pipIdx], lm[0]) * 1.08 &&
-             dist(lm[tipIdx], lm[mcpIdx]) > dist(lm[pipIdx], lm[mcpIdx]) * 1.15;
-    };
+    const indexExtended = isExt(8, 6);
+    const middleExtended = isExt(12, 10);
+    const ringExtended = isExt(16, 14);
+    const pinkyExtended = isExt(20, 18);
 
-    const indexExtended = isExt(8, 6, 5);
-    const middleExtended = isExt(12, 10, 9);
-    const ringExtended = isExt(16, 14, 13);
-    const pinkyExtended = isExt(20, 18, 17);
+    const dIndex = dist(lm[8], lm[0]);
+    const dMiddle = dist(lm[12], lm[0]);
+    const dRing = dist(lm[16], lm[0]);
+    const dPinky = dist(lm[20], lm[0]);
+
+    const palmBase = Math.max(0.01, dist(lm[0], lm[9]));
+    const pinchDist = dist(lm[4], lm[8]);
+    const pinchRatio = pinchDist / palmBase;
+    const isPinch = pinchDist < 0.062 || pinchRatio < 0.42;
 
     const fourFingerCount = (indexExtended ? 1 : 0) + (middleExtended ? 1 : 0) + (ringExtended ? 1 : 0) + (pinkyExtended ? 1 : 0);
 
     const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
     const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
 
-    // 3. Pinch & Thumb Geometry
-    const palmBase = Math.max(0.01, dist(lm[0], lm[9]));
-    const pinchDist = dist(lm[4], lm[8]);
-    const pinchRatio = pinchDist / palmBase;
-    const isPinch = pinchDist < 0.056 || pinchRatio < 0.38;
-    const thumbExtended = dist(lm[4], lm[17]) > palmBase * 0.88;
-
-    // 4. Discrete Mutually Exclusive Candidate Classification
+    // 3. Discrete Mutually Exclusive Candidate Classification
     let rawCandidate = 'idle';
     let rawParam = null;
 
-    // GESTURE 1: ✊ FIST (0 fingers extended -> Select)
-    if (fourFingerCount === 0) {
+    // GESTURE 1: ✊ FIST (0 fingers extended or all 4 curled -> Select)
+    if (fourFingerCount === 0 || (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended)) {
       rawCandidate = 'fist';
     }
     // GESTURE 2: 🤏 PINCH (Index & Thumb tips touching -> Zoom Out)
-    else if (isPinch) {
+    else if (isPinch && (fourFingerCount <= 2 || !middleExtended)) {
       rawCandidate = 'zoom_out';
       rawParam = 0.18;
     }
     // GESTURE 3: ☝️ ONE FINGER (Only Index extended -> Rotate Left)
-    else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+    // Relaxed: Index extended, while middle is curled OR index is noticeably longer than middle
+    else if (indexExtended && (!middleExtended || dIndex > dMiddle * 1.12) && (!ringExtended || dIndex > dRing * 1.15)) {
       rawCandidate = 'rotate_left';
-      rawParam = { direction: 'left', speed: 1.25 };
+      rawParam = { direction: 'left', speed: 1.4 };
     }
     // GESTURE 4: ✌️ TWO FINGERS (Index & Middle extended -> Rotate Right)
-    else if (indexExtended && middleExtended && !ringExtended && !pinkyExtended) {
+    // Relaxed: Index & Middle extended, while ring is curled OR middle is noticeably longer than ring
+    else if (indexExtended && middleExtended && (!ringExtended || dMiddle > dRing * 1.12) && (!pinkyExtended || dMiddle > dPinky * 1.15)) {
       rawCandidate = 'rotate_right';
-      rawParam = { direction: 'right', speed: 1.25 };
+      rawParam = { direction: 'right', speed: 1.4 };
     }
-    // GESTURE 5: 🤟 THREE FINGERS or WIDE L-SPREAD (Zoom In)
-    else if ((fourFingerCount === 3 && indexExtended && middleExtended && ringExtended) ||
-             (indexExtended && thumbExtended && pinchRatio > 1.05 && !middleExtended && !ringExtended)) {
+    // GESTURE 5: 🤟 THREE FINGERS (Index, Middle & Ring extended -> Zoom In)
+    else if (indexExtended && middleExtended && ringExtended && !pinkyExtended && !isPinch) {
       rawCandidate = 'zoom_in';
       rawParam = -0.18;
     }
     // GESTURE 6: ✋ OPEN PALM (4 or 5 fingers extended -> Neutral Standby Cruise)
-    else {
+    else if (fourFingerCount >= 4 || (indexExtended && middleExtended && ringExtended && pinkyExtended)) {
+      rawCandidate = 'idle';
+      rawParam = { x: 1 - palmX, y: palmY };
+    } else {
       rawCandidate = 'idle';
       rawParam = { x: 1 - palmX, y: palmY };
     }
 
-    // 5. Single-Action Exclusive State Machine (一次只识别一种动作，动作模式互斥锁定)
+    // 4. Single-Action Exclusive State Machine (一次只识别一种动作，动作模式互斥锁定)
     if (rawCandidate === 'idle') {
       sm.idleStreak = (sm.idleStreak || 0) + 1;
       sm.stability = 0;
@@ -509,7 +494,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       }
 
       const isContinuous = rawCandidate === 'rotate_left' || rawCandidate === 'rotate_right' || rawCandidate === 'zoom_in' || rawCandidate === 'zoom_out';
-      const requiredFrames = isContinuous ? 2 : REQUIRED_STABLE_FRAMES;
+      const requiredFrames = isContinuous ? 1 : 2;
 
       if (sm.activeAction === null) {
         // Locked into new exclusive action
@@ -527,8 +512,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
             sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
             dispatchConfirmedGesture(sm.activeAction, rawParam);
           }
-        } else if (sm.stability >= 4 && now >= sm.cooldownUntil) {
-          // Switch action cleanly if held stably for 4 frames
+        } else if (sm.stability >= 3 && now >= sm.cooldownUntil) {
+          // Switch action cleanly if held stably for 3 frames
           sm.activeAction = rawCandidate;
           sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
           dispatchConfirmedGesture(rawCandidate, rawParam);
@@ -614,7 +599,6 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       }
 
       setIsEnabled(true);
-      setIsCutOut(false);
     } catch (err) {
       console.warn('Camera access denied:', err);
       setErrorMsg('无法访问摄像头或权限被拒绝。您可随时通过平滑鼠标拖拽探索地球仪。');
@@ -638,7 +622,6 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     }
 
     setIsEnabled(false);
-    setIsCutOut(false);
     const sm = smRef.current;
     sm.state = GESTURE_STATES.NO_HAND;
     sm.candidate = null;
@@ -813,122 +796,51 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         style={{ display: 'none' }}
       />
 
-      {/* Auto-Cutout Mini-Pill State (When locked and stable at optimal distance) */}
-      <AnimatePresence>
-        {isEnabled && isCutOut && !isMinimized && (
-          <motion.div
-            className="hud-cutout-bar"
-            initial={{ opacity: 0, scale: 0.94, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 8 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      {/* Header Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 12px',
+        borderBottom: '1px solid var(--border-hairline)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Sparkles size={14} style={{ color: isEnabled ? '#4ade80' : 'var(--text-tertiary)' }} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 650 }}>AI 隔空手势感知</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {/* Debug UI Toggle Button */}
+          {isEnabled && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowDebug(!showDebug)}
+              style={{
+                padding: '3px 7px',
+                borderRadius: 'var(--radius-pill)',
+                fontSize: '0.68rem',
+                backgroundColor: showDebug ? 'var(--accent-blue-subtle)' : undefined,
+                borderColor: showDebug ? 'var(--accent-blue)' : undefined,
+                color: showDebug ? 'var(--accent-blue)' : undefined
+              }}
+              title="开闭手势调试面板"
+            >
+              <Bug size={12} />
+              <span>调试</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setIsMinimized(!isMinimized)}
+            style={{ padding: '3px', borderRadius: '4px', border: 'none' }}
+            title={isMinimized ? '展开监控视窗' : '收起视窗'}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.25rem' }}>{currentGesture.icon}</span>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 650, color: 'var(--text-primary)' }}>
-                  {currentGesture.label}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.64rem', color: '#4ade80' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4ade80', display: 'inline-block' }} />
-                  <span>最佳操作距离 · 手势已锁定</span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => setIsCutOut(false)}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: 'var(--radius-pill)',
-                  fontSize: '0.68rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                title="展开虚拟骨骼取景框"
-              >
-                <Maximize2 size={11} />
-                <span>取景框</span>
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={stopCamera}
-                style={{ padding: '3px 7px', borderRadius: 'var(--radius-pill)', color: 'var(--accent-terracotta)' }}
-                title="关闭手势"
-              >
-                <CameraOff size={11} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Full Viewfinder Container (Hidden when CutOut is active) */}
-      {(!isEnabled || !isCutOut || isMinimized) && (
-        <>
-          {/* Header Bar */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            borderBottom: '1px solid var(--border-hairline)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sparkles size={14} style={{ color: isEnabled ? '#4ade80' : 'var(--text-tertiary)' }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 650 }}>AI 隔空手势感知</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {/* Debug UI Toggle Button */}
-              {isEnabled && (
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setShowDebug(!showDebug)}
-                  style={{
-                    padding: '3px 7px',
-                    borderRadius: 'var(--radius-pill)',
-                    fontSize: '0.68rem',
-                    backgroundColor: showDebug ? 'var(--accent-blue-subtle)' : undefined,
-                    borderColor: showDebug ? 'var(--accent-blue)' : undefined,
-                    color: showDebug ? 'var(--accent-blue)' : undefined
-                  }}
-                  title="开闭手势调试面板"
-                >
-                  <Bug size={12} />
-                  <span>调试</span>
-                </button>
-              )}
-
-              {/* Manual Cutout Toggle */}
-              {isEnabled && !isMinimized && (
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setIsCutOut(true)}
-                  style={{ padding: '3px 6px', borderRadius: 'var(--radius-pill)', fontSize: '0.68rem' }}
-                  title="切出轻量胶囊模式"
-                >
-                  <Minimize2 size={11} />
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => setIsMinimized(!isMinimized)}
-                style={{ padding: '3px', borderRadius: '4px', border: 'none' }}
-                title={isMinimized ? '展开监控视窗' : '收起视窗'}
-              >
-                {isMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-            </div>
-          </div>
+            {isMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      </div>
 
           {/* Main View Body */}
           <AnimatePresence>
@@ -1150,8 +1062,6 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
               <span>{errorMsg}</span>
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }
