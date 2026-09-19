@@ -241,6 +241,28 @@ export default function GlobalExplorer() {
     activeCountryIndexRef.current = activeCountryIndex;
   }, [activeCountryIndex]);
 
+  // Gesture Recognition Sensitivity (persisted in localStorage)
+  const [gestureSensitivity, setGestureSensitivity] = useState(() => {
+    try {
+      const saved = localStorage.getItem('art_gesture_sensitivity');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!Number.isNaN(parsed) && parsed >= 0.4 && parsed <= 2.4) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return 1.0;
+  });
+
+  const gestureSensitivityRef = useRef(gestureSensitivity);
+  useEffect(() => {
+    gestureSensitivityRef.current = gestureSensitivity;
+    try {
+      localStorage.setItem('art_gesture_sensitivity', String(gestureSensitivity));
+    } catch {}
+  }, [gestureSensitivity]);
+
   // Orbital Controls State with Momentum & Hand Pan Inertia
   const controlsRef = useRef({
     isDragging: false,
@@ -424,17 +446,23 @@ export default function GlobalExplorer() {
     if (action.type === 'hand_pan') {
       // Hand Translation: smooth natural rotation with satisfying physical momentum
       // Reverse sign so the visible front face of the globe rotates in the direction the hand moves
-      const panSensX = 3.6;
-      const panSensY = 2.8;
+      // Scaled by gesture recognition sensitivity:
+      // High sensitivity = larger travel distance & stronger inertia; Low sensitivity = fine, delicate precision
+      const sens = gestureSensitivityRef.current || 1.0;
+      const panSensX = 3.6 * sens;
+      const panSensY = 2.8 * sens;
 
       c.targetTheta -= action.deltaX * panSensX;
       c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + action.deltaY * panSensY));
 
-      // Natural impulse velocity (gives a rich 35°~60° inertia throw glide)
-      c.velocityX = -action.deltaX * panSensX * 0.85;
-      c.velocityY = action.deltaY * panSensY * 0.85;
+      // Natural impulse velocity (scaled with sensitivity: 0.6x gives gentle micro glide, 2.0x gives wide leaps)
+      const impulseMultiplier = 0.85 * Math.pow(sens, 0.75);
+      c.velocityX = -action.deltaX * panSensX * impulseMultiplier;
+      c.velocityY = action.deltaY * panSensY * impulseMultiplier;
     } else if (action.type === 'zoom') {
-      c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * 1.8));
+      const sens = gestureSensitivityRef.current || 1.0;
+      const zoomStep = 1.8 * sens;
+      c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * zoomStep));
     } else if (action.type === 'fist') {
       // Center-of-Screen Selection (Fixed: Locks onto region closest to central line of sight)
       const cam = cameraRef.current;
@@ -1237,6 +1265,8 @@ export default function GlobalExplorer() {
             isEuropeCountrySelect={isEurope && europeNavMode === 'country_select'}
             selectedRegion={selectedRegion}
             isDark={isDark}
+            sensitivity={gestureSensitivity}
+            onSensitivityChange={setGestureSensitivity}
           />
         </div>
 

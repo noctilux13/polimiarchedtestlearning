@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   XCircle,
   Cpu,
-  ShieldCheck
+  ShieldCheck,
+  Sliders
 } from 'lucide-react';
 
 export const GESTURE_STATES = {
@@ -23,6 +24,20 @@ export const GESTURE_STATES = {
 };
 
 const REQUIRED_STABLE_FRAMES = 3;
+
+export const SENSITIVITY_PRESETS = [
+  { val: 0.6, label: '0.6x 微操' },
+  { val: 1.0, label: '1.0x 标准' },
+  { val: 1.5, label: '1.5x 灵敏' },
+  { val: 2.0, label: '2.0x 极速' }
+];
+
+export function getSensitivityLabel(s) {
+  if (s <= 0.7) return '微操细腻';
+  if (s <= 1.2) return '标准适中';
+  if (s <= 1.7) return '灵敏宽幅';
+  return '极速大跨度';
+}
 
 // MediaPipe 21 Hand Landmarks Connections
 export const HAND_CONNECTIONS = [
@@ -56,7 +71,7 @@ function loadExternalScript(src) {
   });
 }
 
-function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true, isEuropeCountrySelect = false) {
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true, isEuropeCountrySelect = false, sensitivity = 1.0) {
   ctx.clearRect(0, 0, width, height);
 
   // 1. Blueprint / Cyber coordinate grid lines
@@ -163,6 +178,8 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.shadowBlur = 0;
 
+  const sensBadge = sensitivity ? ` (${sensitivity.toFixed(1)}x)` : '';
+
   if (activeAction === 'gesture_four') {
     ctx.fillStyle = '#a855f7';
     ctx.textAlign = 'center';
@@ -170,27 +187,27 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else if (activeAction === 'pan_left') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : '✋ ◂ 向左拨转地球', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : `✋ ◂ 向左拨转地球${sensBadge}`, width / 2, height - 12);
   } else if (activeAction === 'pan_right') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : '✋ 向右拨转地球 ▸', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : `✋ 向右拨转地球 ▸${sensBadge}`, width / 2, height - 12);
   } else if (activeAction === 'pan_up') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ ▴ 向上翻：上一国家' : '✋ ▴ 向上翻转地球', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ ▴ 向上翻：上一国家' : `✋ ▴ 向上翻转地球${sensBadge}`, width / 2, height - 12);
   } else if (activeAction === 'pan_down') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ ▾ 向下翻：下一国家' : '✋ ▾ 向下翻转地球', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ ▾ 向下翻：下一国家' : `✋ ▾ 向下翻转地球${sensBadge}`, width / 2, height - 12);
   } else if (activeAction === 'zoom_in') {
     ctx.fillStyle = isDark ? '#4ade80' : '#16a34a';
     ctx.textAlign = 'center';
-    ctx.fillText('🤏 拇指食指张开：推进放大 🔍', width / 2, height - 12);
+    ctx.fillText(`🤏 拇指食指张开：推进放大${sensBadge} 🔍`, width / 2, height - 12);
   } else if (activeAction === 'zoom_out') {
     ctx.fillStyle = '#d97706';
     ctx.textAlign = 'center';
-    ctx.fillText('👌 双指捏合：拉远缩小 🔎', width / 2, height - 12);
+    ctx.fillText(`👌 双指捏合：拉远缩小${sensBadge} 🔎`, width / 2, height - 12);
   } else if (activeAction === 'fist') {
     ctx.fillStyle = '#f43f5e';
     ctx.textAlign = 'center';
@@ -198,7 +215,7 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else {
     ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.85)' : 'rgba(71, 85, 105, 0.9)';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 上下翻选国 · ✊ 确认 · 4️⃣ 退出' : '✋ 手掌平移控制地球 · 悬停静止', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 上下翻选国 · ✊ 确认 · 4️⃣ 退出' : `✋ 手掌平移 · 捏合缩放${sensBadge} · 悬停静止`, width / 2, height - 12);
   }
 
   ctx.restore();
@@ -235,7 +252,14 @@ function drawEmptyViewfinder(ctx, width, height, isDark = true) {
   ctx.restore();
 }
 
-export default function GestureCameraHUD({ onGestureAction, isRegionSelected, isEuropeCountrySelect = false, isDark = true }) {
+export default function GestureCameraHUD({
+  onGestureAction,
+  isRegionSelected,
+  isEuropeCountrySelect = false,
+  isDark = true,
+  sensitivity = 1.0,
+  onSensitivityChange
+}) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -284,6 +308,11 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
   useEffect(() => {
     isEuropeCountrySelectRef.current = isEuropeCountrySelect;
   }, [isEuropeCountrySelect]);
+
+  const sensitivityRef = useRef(sensitivity);
+  useEffect(() => {
+    sensitivityRef.current = sensitivity;
+  }, [sensitivity]);
 
   // State Machine and Tracking State
   const smRef = useRef({
@@ -449,6 +478,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     setDistanceFeedback({ status: currentDistStatus, label: currentDistLabel });
 
     // 2. Anatomical Finger Extension & Geometry
+    const sens = sensitivityRef.current || 1.0;
     const isExt = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) > dist(lm[pipIdx], lm[0]) * 1.04;
 
     const indexExtended = isExt(8, 6);
@@ -460,8 +490,11 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     const pinchDist = dist(lm[4], lm[8]);
     const pinchRatio = pinchDist / palmBase;
 
-    // Responsive pinch: Thumb tip (4) and Index tip (8) close together
-    const isPinch = pinchDist < 0.088 || pinchRatio < 0.55;
+    // Responsive pinch (dynamic threshold based on sensitivity):
+    // Higher sensitivity makes pinch easier to trigger; lower requires closer contact
+    const maxPinchDist = Math.min(0.12, 0.088 + (sens - 1.0) * 0.018);
+    const maxPinchRatio = Math.min(0.70, 0.55 + (sens - 1.0) * 0.06);
+    const isPinch = pinchDist < maxPinchDist || pinchRatio < maxPinchRatio;
 
     // Mirror X for natural, 1:1 physical gesture mapping (moving hand right on screen = right)
     const currCentroidX = 1 - (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
@@ -490,12 +523,16 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     const isNumberFour = isEuroSelect && fourFingerCount === 4 && thumbTucked && moveDist < 0.010;
 
     // Guarded Thumb & Index Spread for Zoom In:
-    // Requires large thumb-index span (pinchRatio > 1.10 && pinchDist > 0.18).
-    // To prevent normal open hand from triggering zoom: requires either other fingers curled (count <= 3)
-    // or thumb stretched significantly wider than adjacent fingers (pinchDist > indexMiddleDist * 1.6).
+    // Dynamic thresholds based on sensitivity:
+    const minSpreadDist = Math.max(0.13, 0.18 - (sens - 1.0) * 0.035);
+    const minSpreadRatio = Math.max(0.90, 1.10 - (sens - 1.0) * 0.08);
     const isThumbIndexSpread = thumbExtended && indexExtended && !isPinch && !isNumberFour &&
-      pinchRatio > 1.10 && pinchDist > 0.18 &&
-      (fourFingerCount <= 3 || pinchDist > indexMiddleDist * 1.6);
+      pinchRatio > minSpreadRatio && pinchDist > minSpreadDist &&
+      (fourFingerCount <= 3 || pinchDist > indexMiddleDist * (1.6 - (sens - 1.0) * 0.15));
+
+    // Dynamic movement threshold for hand pan:
+    // Higher sensitivity captures subtle hand flicks; lower sensitivity demands clear intentional movement
+    const panMoveThreshold = 0.005 / Math.sqrt(Math.max(0.4, sens));
 
     // 3. Discrete Mutually Exclusive Candidate Classification
     let rawCandidate = 'idle';
@@ -520,8 +557,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
       rawParam = -0.18;
     }
     // GESTURE 4: ✋ PHYSICAL HAND PAN WITH MOMENTUM (手掌整体位移旋转)
-    // Responsive threshold (> 0.005) captures both gentle and swift hand flicks
-    else if (moveDist > 0.005) {
+    else if (moveDist > panMoveThreshold) {
       const isHorizontal = Math.abs(deltaX) >= Math.abs(deltaY) * 0.70;
       if (isHorizontal) {
         rawCandidate = deltaX > 0 ? 'pan_right' : 'pan_left';
@@ -604,7 +640,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
           fourFingerCount,
           isPinch,
           isDark,
-          isEuropeCountrySelectRef.current
+          isEuropeCountrySelectRef.current,
+          sens
         );
       }
     }
@@ -622,7 +659,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
         lockStatus: sm.activeAction ? 'LOCKED (单动作锁定)' : 'IDLE (巡航)',
         fingersCount: fourFingerCount,
         pinchRatio: parseFloat(pinchRatio.toFixed(2)),
-        distanceRatio: parseFloat(handHeight.toFixed(2))
+        distanceRatio: parseFloat(handHeight.toFixed(2)),
+        sensitivity: `${sens.toFixed(1)}x (${getSensitivityLabel(sens)})`
       });
     }
   }, [dispatchConfirmedGesture, isDark]);
@@ -1088,6 +1126,13 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
                       </span>
                     </div>
 
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Sensitivity:</span>
+                      <span style={{ fontWeight: 650, color: '#38bdf8' }}>
+                        {debugState.sensitivity || `${sensitivity.toFixed(1)}x (${getSensitivityLabel(sensitivity)})`}
+                      </span>
+                    </div>
+
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
                       <span style={{ color: '#94a3b8' }}>Stability:</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'flex-end' }}>
@@ -1110,6 +1155,47 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
                     </div>
                   </div>
                 )}
+
+                {/* Real-time Sensitivity Adjustment Card */}
+                <div className="hud-sensitivity-card">
+                  <div className="hud-sensitivity-header">
+                    <div className="hud-sensitivity-label">
+                      <Sliders size={12} style={{ color: 'var(--accent-blue)' }} />
+                      <span>手势与运镜灵敏度</span>
+                    </div>
+                    <div className="hud-sensitivity-badge">
+                      {sensitivity.toFixed(1)}x · {getSensitivityLabel(sensitivity)}
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="0.4"
+                    max="2.4"
+                    step="0.1"
+                    className="hud-range-slider"
+                    value={sensitivity}
+                    onChange={(e) => onSensitivityChange?.(parseFloat(e.target.value))}
+                    title={`当前灵敏度: ${sensitivity.toFixed(1)}x`}
+                  />
+
+                  <div className="hud-preset-chips">
+                    {SENSITIVITY_PRESETS.map((p) => (
+                      <button
+                        key={p.val}
+                        type="button"
+                        className={`hud-preset-chip ${Math.abs(sensitivity - p.val) < 0.05 ? 'active' : ''}`}
+                        onClick={() => onSensitivityChange?.(p.val)}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="hud-sensitivity-tip">
+                    💡 调控手掌平移拨动旋转距离、视野缩放步长与手势触发门槛
+                  </div>
+                </div>
 
                 {/* Gestures Legend / Tutorial Pills */}
                 {isEuropeCountrySelect ? (
@@ -1155,13 +1241,18 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
 
           {/* Minimized Pill View */}
           {isMinimized && (
-            <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
-              <span>{currentGesture.icon} {currentGesture.label}</span>
+            <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>{currentGesture.icon} {currentGesture.label}</span>
+                <span className="hud-sensitivity-badge" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                  {sensitivity.toFixed(1)}x
+                </span>
+              </div>
               <button
                 type="button"
                 className="btn btn-outline"
                 onClick={isEnabled ? stopCamera : startCamera}
-                style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: 'var(--radius-pill)' }}
+                style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: 'var(--radius-pill)', flexShrink: 0 }}
               >
                 {isEnabled ? '关闭' : '开启'}
               </button>
