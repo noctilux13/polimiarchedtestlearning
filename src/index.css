@@ -1052,11 +1052,20 @@ button.btn:active,
    3D Global Explorer & Camera Gesture HUD Styles
    ========================================================================== */
 
+.container.container-explorer,
+.container:has(.global-explorer-page) {
+  max-width: 1600px;
+  padding-left: clamp(1rem, 2.5vw, 2.25rem);
+  padding-right: clamp(1rem, 2.5vw, 2.25rem);
+  padding-top: 0.85rem;
+  padding-bottom: 2rem;
+}
+
 .global-explorer-page {
   position: relative;
   width: 100%;
   min-height: calc(100vh - 76px);
-  padding: 0.75rem 1.25rem 1.5rem 1.25rem;
+  padding: 0.5rem 0.5rem 1.25rem 0.5rem;
   display: flex;
   flex-direction: column;
 }
@@ -1076,6 +1085,19 @@ button.btn:active,
   height: calc(100vh - 142px);
   min-height: 600px;
   width: 100%;
+}
+
+/* Left Column: Dedicated Hand Gesture AI HUD in the left blank space */
+.explorer-hud-col {
+  width: 255px;
+  min-width: 255px;
+  max-width: 260px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  z-index: 25;
 }
 
 .explorer-globe-col {
@@ -1172,10 +1194,18 @@ button.btn:active,
     height: auto;
   }
   .explorer-globe-col {
+    order: 1;
     height: 52vh;
     min-height: 400px;
   }
+  .explorer-hud-col {
+    order: 2;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
   .explorer-sidebar-col {
+    order: 3;
     width: 100%;
     height: auto;
     max-height: 600px;
@@ -1237,10 +1267,8 @@ button.btn:active,
 }
 
 .gesture-camera-dock {
-  position: absolute;
-  bottom: 1.25rem;
-  left: 1.25rem;
-  width: 250px;
+  position: relative;
+  width: 100%;
   background: var(--glass-bg);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);

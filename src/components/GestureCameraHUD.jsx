@@ -134,6 +134,9 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
     if (activeAction?.startsWith('pan') || activeAction === 'swipe') {
       fillColor = isDark ? '#38bdf8' : '#0284c7';
       ringSize = 3.8;
+    } else if (activeAction === 'gesture_four') {
+      fillColor = '#a855f7';
+      ringSize = (i === 8 || i === 12 || i === 16 || i === 20) ? 5.0 : 3.2;
     } else if (activeAction === 'zoom_in' && (i === 4 || i === 8)) {
       fillColor = isDark ? '#4ade80' : '#16a34a';
       ringSize = 5.2;
@@ -160,14 +163,18 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.shadowBlur = 0;
 
-  if (activeAction === 'pan_left') {
+  if (activeAction === 'gesture_four') {
+    ctx.fillStyle = '#a855f7';
+    ctx.textAlign = 'center';
+    ctx.fillText('4️⃣ 数字 4：退出欧洲，返回地球仪', width / 2, height - 12);
+  } else if (activeAction === 'pan_left') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ ◂ 向左拨转地球', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : '✋ ◂ 向左拨转地球', width / 2, height - 12);
   } else if (activeAction === 'pan_right') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ 向右拨转地球 ▸', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : '✋ 向右拨转地球 ▸', width / 2, height - 12);
   } else if (activeAction === 'pan_up') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
@@ -191,7 +198,7 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else {
     ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.85)' : 'rgba(71, 85, 105, 0.9)';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 上下翻选国家 · 握拳确认' : '✋ 手掌平移控制地球 · 悬停静止', width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 上下翻选国 · ✊ 确认 · 4️⃣ 退出' : '✋ 手掌平移控制地球 · 悬停静止', width / 2, height - 12);
   }
 
   ctx.restore();
@@ -300,7 +307,19 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     const sm = smRef.current;
     const now = Date.now();
 
-    if (candidate === 'fist') {
+    if (candidate === 'gesture_four') {
+      setCurrentGesture({
+        type: 'gesture_four',
+        label: isEuropeCountrySelectRef.current
+          ? '4️⃣ 数字 4：退出欧洲，返回地球仪'
+          : '4️⃣ 数字 4：返回地球仪判定',
+        icon: '4️⃣'
+      });
+      onGestureActionRef.current?.({ type: 'exit_europe' });
+      sm.cooldownUntil = now + 850;
+      sm.state = GESTURE_STATES.COOLDOWN;
+      sm.stability = 0;
+    } else if (candidate === 'fist') {
       if (isEuropeCountrySelectRef.current) {
         setCurrentGesture({ type: 'fist', label: '✊ 握拳确认：进入该国代表作！', icon: '✊' });
         onGestureActionRef.current?.({ type: 'fist' });
@@ -319,8 +338,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     } else if (candidate === 'pan_left' || candidate === 'pan_right' || candidate === 'pan_up' || candidate === 'pan_down') {
       const isEuro = isEuropeCountrySelectRef.current;
       const dirLabels = {
-        pan_left: '✋ ◂ 向左拨转地球 (物理惯性)',
-        pan_right: '✋ 向右拨转地球 ▸ (物理惯性)',
+        pan_left: isEuro ? '✋ 欧洲国家选择中 (已锁定地球仪)' : '✋ ◂ 向左拨转地球 (物理惯性)',
+        pan_right: isEuro ? '✋ 欧洲国家选择中 (已锁定地球仪)' : '✋ 向右拨转地球 ▸ (物理惯性)',
         pan_up: isEuro ? '✋ ▴ 向上翻：上一国家' : '✋ ▴ 向上翻转地球 (物理惯性)',
         pan_down: isEuro ? '✋ ▾ 向下翻：下一国家' : '✋ ▾ 向下翻转地球 (物理惯性)'
       };
@@ -448,11 +467,15 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     const indexMiddleDist = dist(lm[8], lm[12]);
     const thumbExtended = dist(lm[4], lm[0]) > dist(lm[2], lm[0]) * 1.15;
 
+    // Number 4 Gesture: Index, Middle, Ring, and Pinky are extended, Thumb is folded across palm
+    const thumbFolded = !thumbExtended || dist(lm[4], lm[9]) < palmBase * 0.95 || dist(lm[4], lm[13]) < palmBase * 0.95;
+    const isNumberFour = fourFingerCount === 4 && thumbFolded;
+
     // Guarded Thumb & Index Spread for Zoom In:
     // Requires large thumb-index span (pinchRatio > 1.10 && pinchDist > 0.18).
     // To prevent normal open hand from triggering zoom: requires either other fingers curled (count <= 3)
     // or thumb stretched significantly wider than adjacent fingers (pinchDist > indexMiddleDist * 1.6).
-    const isThumbIndexSpread = thumbExtended && indexExtended && !isPinch &&
+    const isThumbIndexSpread = thumbExtended && indexExtended && !isPinch && !isNumberFour &&
       pinchRatio > 1.10 && pinchDist > 0.18 &&
       (fourFingerCount <= 3 || pinchDist > indexMiddleDist * 1.6);
 
@@ -475,8 +498,13 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
     let rawCandidate = 'idle';
     let rawParam = null;
 
+    // GESTURE 0: 4️⃣ NUMBER FOUR (Index, Middle, Ring, Pinky extended, Thumb folded across palm)
+    // Exits European country select mode and returns to globe gesture control
+    if (isNumberFour) {
+      rawCandidate = 'gesture_four';
+    }
     // GESTURE 1: ✊ FIST (All 4 fingers curled) -> Select / Focus
-    if (fourFingerCount === 0 || (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended)) {
+    else if (fourFingerCount === 0 || (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended)) {
       rawCandidate = 'fist';
     }
     // GESTURE 2: 👌 PINCH (Thumb & Index tips touching together) -> Zoom Out
@@ -1082,12 +1110,21 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected, is
                 )}
 
                 {/* Gestures Legend / Tutorial Pills */}
-                <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
-                  <div>• <strong>✋ 手掌平移</strong>：左/右/上/下平移拨动地球，物理惯性旋转</div>
-                  <div>• <strong>🤏 拇食张开 / 👌 捏合</strong>：推进放大 / 拉远缩小全局</div>
-                  <div>• <strong>✊ 握拳</strong>：选中高亮地区 (再次握拳研读考点)</div>
-                  <div>• <strong>✋ 悬停静止</strong>：零误触安全巡航</div>
-                </div>
+                {isEuropeCountrySelect ? (
+                  <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
+                    <div>• <strong>✋ ▴ 向上翻 / ▾ 向下翻</strong>：切换上一 / 下一国家</div>
+                    <div>• <strong>✊ 握拳</strong>：确认进入该国代表建筑与艺术</div>
+                    <div>• <strong>4️⃣ 做数字 4</strong>：退出欧洲，恢复地球仪手势判定</div>
+                    <div>• <strong>✋ 悬停静止</strong>：保持当前国别聚焦</div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
+                    <div>• <strong>✋ 手掌平移</strong>：左/右/上/下平移拨动地球，物理惯性旋转</div>
+                    <div>• <strong>🤏 拇食张开 / 👌 捏合</strong>：推进放大 / 拉远缩小全局</div>
+                    <div>• <strong>✊ 握拳</strong>：选中正中央高亮地区 (转至欧洲握拳下一页)</div>
+                    <div>• <strong>✋ 悬停静止</strong>：零误触安全巡航</div>
+                  </div>
+                )}
 
                 {/* Toggle Switch Button */}
                 <div style={{ padding: '8px 12px' }}>

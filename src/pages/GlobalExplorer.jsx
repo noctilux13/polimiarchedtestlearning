@@ -351,6 +351,7 @@ export default function GlobalExplorer() {
   }, [focusRegion]);
 
   // Stable Gesture Action Dispatcher (Handles hand pan translation with physical inertia damping)
+  // Stable Gesture Action Dispatcher (Handles hand pan translation with physical inertia damping)
   const handleGestureAction = useCallback((action) => {
     if (action.type === 'no_hand' || action.type === 'hand_hover') {
       // Hover/still hand: dampen any remaining rotation to stop immediately
@@ -360,24 +361,62 @@ export default function GlobalExplorer() {
       return;
     }
 
-    const c = controlsRef.current;
-    c.autoRotate = false;
-    c.lastInteractionTime = Date.now();
-
     const inEurope = isEuropeRegion(selectedRegionRef.current);
     const inCountrySelect = inEurope && europeNavModeRef.current === 'country_select';
 
-    if (action.type === 'hand_pan') {
-      // European Country Navigation via vertical hand pan
-      if (inCountrySelect && (action.direction === 'pan_up' || action.direction === 'pan_down')) {
+    // =========================================================================
+    // 1. ISOLATED EUROPEAN COUNTRY SELECTION MODE:
+    // Earth/Globe hand gestures are COMPLETELY SUSPENDED to prevent conflict!
+    // =========================================================================
+    if (inCountrySelect) {
+      // User shows gesture "4" (or exit action):
+      // Exits European country selection mode, restoring standard globe gesture control!
+      if (action.type === 'exit_europe' || action.type === 'gesture_four') {
+        setEuropeNavMode('artwork_view');
+        return;
+      }
+
+      // Vertical hand pan: navigate between European countries
+      if (action.type === 'hand_pan') {
         if (action.direction === 'pan_up') {
           focusCountryByIndexRef.current?.(activeCountryIndexRef.current - 1);
-        } else {
+        } else if (action.direction === 'pan_down') {
           focusCountryByIndexRef.current?.(activeCountryIndexRef.current + 1);
+        }
+        // Deliberately discard pan_left and pan_right to prevent rotating globe!
+        return;
+      }
+
+      // Fist confirms the country selection and enters artwork detail view
+      if (action.type === 'fist') {
+        setEuropeNavMode('artwork_view');
+        const country = EUROPE_COUNTRIES[activeCountryIndexRef.current];
+        if (country) {
+          const primaryReg = geoRegions.find(r => r.id === country.regionIds[0]);
+          if (primaryReg) {
+            focusRegionRef.current?.(primaryReg, true);
+          }
         }
         return;
       }
 
+      // Discard zoom and any other gestures in country select mode
+      return;
+    }
+
+    // =========================================================================
+    // 2. NORMAL GLOBE EXPLORATION MODE:
+    // =========================================================================
+    if (action.type === 'exit_europe' || action.type === 'gesture_four') {
+      // If user makes gesture 4 while in artwork view, safely return
+      return;
+    }
+
+    const c = controlsRef.current;
+    c.autoRotate = false;
+    c.lastInteractionTime = Date.now();
+
+    if (action.type === 'hand_pan') {
       // Hand Translation: smooth natural rotation with small-to-medium physical momentum
       // Reverse sign so the visible front face of the globe rotates in the direction the hand moves
       const panSensX = 2.4;
@@ -392,21 +431,7 @@ export default function GlobalExplorer() {
     } else if (action.type === 'zoom') {
       c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * 1.8));
     } else if (action.type === 'fist') {
-      // 1. If currently in European country select mode:
-      // Fist confirms the country selection and enters artwork detail view
-      if (inCountrySelect) {
-        setEuropeNavMode('artwork_view');
-        const country = EUROPE_COUNTRIES[activeCountryIndexRef.current];
-        if (country) {
-          const primaryReg = geoRegions.find(r => r.id === country.regionIds[0]);
-          if (primaryReg) {
-            focusRegionRef.current?.(primaryReg, true);
-          }
-        }
-        return;
-      }
-
-      // 2. Center-of-Screen Selection (Fixed: Locks onto region closest to central line of sight)
+      // Center-of-Screen Selection (Fixed: Locks onto region closest to central line of sight)
       const cam = cameraRef.current;
       if (cam) {
         const camDir = cam.position.clone().normalize();
@@ -926,11 +951,18 @@ export default function GlobalExplorer() {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
+
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => handleResize());
+      resizeObserver.observe(container);
+    }
 
     // 9. Animation Loop (with 0.88 physics inertia decay for hand panning)
     let animId;
@@ -1052,6 +1084,7 @@ export default function GlobalExplorer() {
       window.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('wheel', handleWheel);
       window.removeEventListener('resize', handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
 
       // WebGL Memory Cleanup
       if (renderer.domElement && container.contains(renderer.domElement)) {
@@ -1189,9 +1222,20 @@ export default function GlobalExplorer() {
         </div>
       </div>
 
-      {/* Split-Screen: Left = 3D Globe Studio, Right = Dedicated Region Inspector */}
+      {/* Split-Screen: Left = Dedicated Hand Gesture HUD Dock, Center = 3D Globe Studio, Right = Dedicated Region Inspector */}
       <div className="global-explorer-split">
-        {/* Left Column: 3D Globe Viewport */}
+        {/* Left Column: Dedicated AI Hand Gesture HUD Dock in the left blank space */}
+        <div className="explorer-hud-col">
+          <GestureCameraHUD
+            onGestureAction={handleGestureAction}
+            isRegionSelected={Boolean(selectedRegion)}
+            isEuropeCountrySelect={isEurope && europeNavMode === 'country_select'}
+            selectedRegion={selectedRegion}
+            isDark={isDark}
+          />
+        </div>
+
+        {/* Center Column: 3D Globe Viewport */}
         <div className="explorer-globe-col">
           {/* Mount Three.js WebGL Canvas */}
           <div ref={mountRef} style={{ width: '100%', height: '100%', outline: 'none' }} />
@@ -1239,20 +1283,11 @@ export default function GlobalExplorer() {
             <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
               <span>
                 {isEurope && europeNavMode === 'country_select'
-                  ? '✋ 手掌上翻/下翻 (或鼠标点击) 选国 · ✊ 再次握拳确认进入'
+                  ? '✋ 上/下翻选国 · ✊ 握拳进入 · 4️⃣ 做数字4退出返回地球仪'
                   : '🖱️ 鼠标拖拽/滚轮/磁吸 · 📷 手势 (✋拨转 · 🤏张开放大 · 👌捏合缩小 · ✊握拳选中)'}
               </span>
             </div>
           </div>
-
-          {/* Floating AI Camera Hand Gesture Recognizer HUD (supports light blueprint theme) */}
-          <GestureCameraHUD
-            onGestureAction={handleGestureAction}
-            isRegionSelected={Boolean(selectedRegion)}
-            isEuropeCountrySelect={isEurope && europeNavMode === 'country_select'}
-            selectedRegion={selectedRegion}
-            isDark={isDark}
-          />
         </div>
 
         {/* Right Column: Dedicated Region Inspector Sidebar */}
@@ -1267,7 +1302,7 @@ export default function GlobalExplorer() {
                 style={{ borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', marginBottom: '8px', gap: '4px', alignSelf: 'flex-start' }}
               >
                 <ArrowLeft size={12} />
-                <span>◂ 返回当前城市作品浏览</span>
+                <span>◂ 退出国家选择 · 返回地球仪 (手势 4️⃣)</span>
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
