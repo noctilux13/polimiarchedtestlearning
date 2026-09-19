@@ -216,8 +216,7 @@ export default function GlobalExplorer() {
   const [selectedRegion, setSelectedRegion] = useState(geoRegions[0]);
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [visibleCityLabels, setVisibleCityLabels] = useState([]);
-  const [activeClusterFilter, setActiveClusterFilter] = useState('all');
-  const [europeNavMode, setEuropeNavMode] = useState('country_select'); // 'country_select' | 'artwork_view'
+  const [europeNavMode, setEuropeNavMode] = useState('artwork_view'); // 'artwork_view' by default; 'country_select' triggered by fist when facing Europe
   const [activeCountryIndex, setActiveCountryIndex] = useState(0);
 
   // Keep references to state so Three.js render loop and callbacks don't trigger unmounts
@@ -1260,6 +1259,16 @@ export default function GlobalExplorer() {
           /* European Country Selection Mode (Level 1 Hierarchy) */
           <div className="explorer-sidebar-col">
             <div className="explorer-sidebar-header">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setEuropeNavMode('artwork_view')}
+                style={{ borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', marginBottom: '8px', gap: '4px', alignSelf: 'flex-start' }}
+              >
+                <ArrowLeft size={12} />
+                <span>◂ 返回当前城市作品浏览</span>
+              </button>
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 <span className="chip chip-blue" style={{ fontSize: '0.72rem' }}>
                   🇪🇺 欧洲艺术与建筑文化区
@@ -1353,16 +1362,17 @@ export default function GlobalExplorer() {
           /* Artwork Masterworks View (Level 2 Hierarchy for Europe, Direct View for others) */
           <div className="explorer-sidebar-col">
             <div className="explorer-sidebar-header">
-              {/* If in Europe: Back Button to European Country List */}
+              {/* If in Europe: Button to European Country Selector Next Page */}
               {isEurope && (
                 <button
                   type="button"
                   className="btn btn-outline"
                   onClick={() => setEuropeNavMode('country_select')}
-                  style={{ borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', marginBottom: '8px', gap: '4px', alignSelf: 'flex-start' }}
+                  style={{ borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', marginBottom: '8px', gap: '5px', alignSelf: 'flex-start' }}
                 >
-                  <ArrowLeft size={12} />
-                  <span>◂ 返回欧洲国家列表 (或手势再次握拳)</span>
+                  <Layers size={12} style={{ color: 'var(--accent-blue)' }} />
+                  <span>🇪🇺 进入欧洲国家选择 (或旋转至欧洲握拳进入下一页)</span>
+                  <ChevronRight size={12} />
                 </button>
               )}
 
