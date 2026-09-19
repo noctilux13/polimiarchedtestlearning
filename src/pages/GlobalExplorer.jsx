@@ -35,8 +35,9 @@ function createGlowPointTexture() {
   const ctx = canvas.getContext('2d');
   const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
   grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  grad.addColorStop(0.22, 'rgba(56, 189, 248, 0.95)');
-  grad.addColorStop(0.55, 'rgba(14, 165, 233, 0.4)');
+  grad.addColorStop(0.28, 'rgba(186, 230, 253, 1)');
+  grad.addColorStop(0.60, 'rgba(56, 189, 248, 0.90)');
+  grad.addColorStop(0.85, 'rgba(14, 165, 233, 0.40)');
   grad.addColorStop(1, 'rgba(14, 165, 233, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 64, 64);
@@ -201,15 +202,16 @@ export default function GlobalExplorer() {
 
     if (action.type === 'hand_pan') {
       // Hand Translation: smooth natural rotation with small-to-medium physical momentum
+      // Reverse sign so the visible front face of the globe rotates in the direction the hand moves
       const panSensX = 2.4;
       const panSensY = 2.0;
 
-      c.targetTheta += action.deltaX * panSensX;
-      c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi - action.deltaY * panSensY));
+      c.targetTheta -= action.deltaX * panSensX;
+      c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + action.deltaY * panSensY));
 
       // Natural impulse velocity (decayed by 0.88 in animation loop for ~25°~40° travel then full stop)
-      c.velocityX = action.deltaX * panSensX * 0.42;
-      c.velocityY = -action.deltaY * panSensY * 0.42;
+      c.velocityX = -action.deltaX * panSensX * 0.42;
+      c.velocityY = action.deltaY * panSensY * 0.42;
     } else if (action.type === 'zoom') {
       c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * 1.8));
     } else if (action.type === 'fist') {
@@ -250,19 +252,19 @@ export default function GlobalExplorer() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = isDark ? 1.25 : 1.15;
+    renderer.toneMappingExposure = isDark ? 1.55 : 1.45;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     // 4. Multi-Source Sci-Fi Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.6 : 1.8);
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 2.2 : 2.4);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.4 : 2.0);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.8 : 2.5);
     dirLight1.position.set(6, 8, 7);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 1.3);
+    const dirLight2 = new THREE.DirectionalLight(0xbae6fd, 1.8);
     dirLight2.position.set(-7, -2, -5);
     scene.add(dirLight2);
 
@@ -342,15 +344,15 @@ export default function GlobalExplorer() {
           particlePositions[pIdx * 3 + 2] = pt.z;
 
           if (brightness < 0.15) {
-            // Core continent interior node
-            particleColors[pIdx * 3] = isDark ? 0.22 : 0.08;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.76 : 0.42;
-            particleColors[pIdx * 3 + 2] = isDark ? 0.98 : 0.78;
+            // Core continent interior node: luminous azure / deep cobalt
+            particleColors[pIdx * 3] = isDark ? 0.38 : 0.15;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.88 : 0.62;
+            particleColors[pIdx * 3 + 2] = isDark ? 1.00 : 0.98;
           } else {
-            // Coastline boundary highlight
-            particleColors[pIdx * 3] = isDark ? 0.85 : 0.15;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.95 : 0.55;
-            particleColors[pIdx * 3 + 2] = isDark ? 1.00 : 0.90;
+            // Coastline boundary highlight: pure brilliant white-cyan glow
+            particleColors[pIdx * 3] = isDark ? 0.95 : 0.35;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.98 : 0.78;
+            particleColors[pIdx * 3 + 2] = 1.00;
           }
         } else {
           // Subtle oceanic matrix grid dots
@@ -384,11 +386,11 @@ export default function GlobalExplorer() {
     particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const particleMat = new THREE.PointsMaterial({
-      size: 0.046,
+      size: isDark ? 0.062 : 0.056,
       map: glowTex,
       vertexColors: true,
       transparent: true,
-      opacity: isDark ? 0.95 : 0.88,
+      opacity: 1.0,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -990,7 +992,7 @@ export default function GlobalExplorer() {
             </div>
 
             <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-              <span>🖱️ 鼠标拖拽/滚轮/28px磁吸 · 📷 手势控制 (✋平移拨动旋转 · 🤟放大 · 🤏缩小 · ✊握拳选中)</span>
+              <span>🖱️ 鼠标拖拽/滚轮/28px磁吸 · 📷 手势控制 (✋平移拨动旋转 · 🤏拇食张开放大 · 👌捏合缩小 · ✊握拳选中)</span>
             </div>
           </div>
 
