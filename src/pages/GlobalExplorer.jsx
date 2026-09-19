@@ -241,27 +241,48 @@ export default function GlobalExplorer() {
     activeCountryIndexRef.current = activeCountryIndex;
   }, [activeCountryIndex]);
 
-  // Gesture Recognition Sensitivity (persisted in localStorage)
-  const [gestureSensitivity, setGestureSensitivity] = useState(() => {
+  // 1. Rotation & Pan Sensitivity (persisted in localStorage)
+  const [rotationSensitivity, setRotationSensitivity] = useState(() => {
     try {
-      const saved = localStorage.getItem('art_gesture_sensitivity');
+      const saved = localStorage.getItem('art_gesture_rot_sens');
       if (saved) {
         const parsed = parseFloat(saved);
-        if (!Number.isNaN(parsed) && parsed >= 0.4 && parsed <= 2.4) {
-          return parsed;
-        }
+        if (!Number.isNaN(parsed) && parsed >= 0.4 && parsed <= 2.4) return parsed;
       }
     } catch {}
     return 1.0;
   });
 
-  const gestureSensitivityRef = useRef(gestureSensitivity);
+  const rotationSensitivityRef = useRef(rotationSensitivity);
   useEffect(() => {
-    gestureSensitivityRef.current = gestureSensitivity;
+    rotationSensitivityRef.current = rotationSensitivity;
     try {
-      localStorage.setItem('art_gesture_sensitivity', String(gestureSensitivity));
+      localStorage.setItem('art_gesture_rot_sens', String(rotationSensitivity));
     } catch {}
-  }, [gestureSensitivity]);
+  }, [rotationSensitivity]);
+
+  // 2. Zoom Sensitivity (persisted in localStorage)
+  const [zoomSensitivity, setZoomSensitivity] = useState(() => {
+    try {
+      const saved = localStorage.getItem('art_gesture_zoom_sens');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!Number.isNaN(parsed) && parsed >= 0.4 && parsed <= 2.4) return parsed;
+      }
+    } catch {}
+    return 1.0;
+  });
+
+  const zoomSensitivityRef = useRef(zoomSensitivity);
+  useEffect(() => {
+    zoomSensitivityRef.current = zoomSensitivity;
+    try {
+      localStorage.setItem('art_gesture_zoom_sens', String(zoomSensitivity));
+    } catch {}
+  }, [zoomSensitivity]);
+
+  // Timestamp tracker to ensure strictly ONE discrete step per European country navigation action
+  const lastCountryStepTimeRef = useRef(0);
 
   // Orbital Controls State with Momentum & Hand Pan Inertia
   const controlsRef = useRef({
@@ -381,10 +402,15 @@ export default function GlobalExplorer() {
     }
 
     if (action.type === 'hand_hover') {
-      // Gentle deceleration if user holds hand still
+      // Active Air-Brake Interruption Animation:
+      // Holding hand steady actively interrupts and dampens any spinning inertia with smooth spring settle
       const c = controlsRef.current;
-      c.velocityX *= 0.94;
-      c.velocityY *= 0.94;
+      c.velocityX *= 0.70;
+      c.velocityY *= 0.70;
+      c.targetTheta += (c.currentTheta - c.targetTheta) * 0.25;
+      c.targetPhi += (c.currentPhi - c.targetPhi) * 0.25;
+      if (Math.abs(c.velocityX) < 0.0004) c.velocityX = 0;
+      if (Math.abs(c.velocityY) < 0.0004) c.velocityY = 0;
       return;
     }
 
@@ -404,7 +430,14 @@ export default function GlobalExplorer() {
       }
 
       // Vertical hand pan: navigate between European countries
+      // FIXED: Strictly ONE discrete step (+1 or -1) per hand motion, regardless of swipe amplitude or speed
       if (action.type === 'hand_pan') {
+        const now = Date.now();
+        if (now - lastCountryStepTimeRef.current < 550) {
+          return; // Debounce lock: single action triggers exactly one country switch
+        }
+        lastCountryStepTimeRef.current = now;
+
         if (action.direction === 'pan_up') {
           focusCountryByIndexRef.current?.(activeCountryIndexRef.current - 1);
         } else if (action.direction === 'pan_down') {
@@ -444,26 +477,37 @@ export default function GlobalExplorer() {
     c.lastInteractionTime = Date.now();
 
     if (action.type === 'hand_pan') {
-      // Hand Translation: smooth natural rotation with satisfying physical momentum
+      // Hand Translation: smooth natural rotation with satisfying physical momentum & immediate interruption
       // Reverse sign so the visible front face of the globe rotates in the direction the hand moves
-      // Scaled by gesture recognition sensitivity:
-      // High sensitivity = larger travel distance & stronger inertia; Low sensitivity = fine, delicate precision
-      const sens = gestureSensitivityRef.current || 1.0;
-      const panSensX = 3.6 * sens;
-      const panSensY = 2.8 * sens;
+      // Scaled by independent rotation sensitivity
+      const rotSens = rotationSensitivityRef.current || 1.0;
+      const panSensX = 3.6 * rotSens;
+      const panSensY = 2.8 * rotSens;
 
-      c.targetTheta -= action.deltaX * panSensX;
-      c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + action.deltaY * panSensY));
+      // Interrupt previous flight by starting from live on-screen presentation value:
+      c.targetTheta = c.currentTheta - action.deltaX * panSensX;
+      c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.currentPhi + action.deltaY * panSensY));
 
-      // Natural impulse velocity (scaled with sensitivity: 0.6x gives gentle micro glide, 2.0x gives wide leaps)
-      const impulseMultiplier = 0.85 * Math.pow(sens, 0.75);
+      // Natural impulse velocity (scaled with rotation sensitivity)
+      const impulseMultiplier = 0.85 * Math.pow(rotSens, 0.75);
       c.velocityX = -action.deltaX * panSensX * impulseMultiplier;
       c.velocityY = action.deltaY * panSensY * impulseMultiplier;
     } else if (action.type === 'zoom') {
-      const sens = gestureSensitivityRef.current || 1.0;
-      const zoomStep = 1.8 * sens;
+      // Interrupt ongoing rotation during zoom for a steady, focused viewport
+      c.velocityX *= 0.5;
+      c.velocityY *= 0.5;
+      c.targetTheta = c.currentTheta;
+      c.targetPhi = c.currentPhi;
+
+      const zoomSens = zoomSensitivityRef.current || 1.0;
+      const zoomStep = 1.8 * zoomSens;
       c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * zoomStep));
     } else if (action.type === 'fist') {
+      // Hard stop rotation on selection
+      c.velocityX = 0;
+      c.velocityY = 0;
+      c.targetTheta = c.currentTheta;
+      c.targetPhi = c.currentPhi;
       // Center-of-Screen Selection (Fixed: Locks onto region closest to central line of sight)
       const cam = cameraRef.current;
       if (cam) {
@@ -842,6 +886,9 @@ export default function GlobalExplorer() {
       c.dragStartY = e.clientY;
       c.prevMouseX = e.clientX;
       c.prevMouseY = e.clientY;
+      // Instant interruption: anchor to live on-screen orientation
+      c.targetTheta = c.currentTheta;
+      c.targetPhi = c.currentPhi;
       c.velocityX = 0;
       c.velocityY = 0;
       c.lastMoveTime = performance.now();
@@ -1265,8 +1312,10 @@ export default function GlobalExplorer() {
             isEuropeCountrySelect={isEurope && europeNavMode === 'country_select'}
             selectedRegion={selectedRegion}
             isDark={isDark}
-            sensitivity={gestureSensitivity}
-            onSensitivityChange={setGestureSensitivity}
+            rotationSensitivity={rotationSensitivity}
+            onRotationSensitivityChange={setRotationSensitivity}
+            zoomSensitivity={zoomSensitivity}
+            onZoomSensitivityChange={setZoomSensitivity}
           />
         </div>
 

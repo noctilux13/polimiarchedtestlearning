@@ -1301,6 +1301,20 @@ button.btn:active,
   transition: background 0.2s ease;
 }
 
+.hud-sensitivity-group {
+  margin-bottom: 8px;
+}
+
+.hud-sensitivity-group:last-of-type {
+  margin-bottom: 2px;
+}
+
+.hud-sensitivity-divider {
+  height: 1px;
+  background: var(--border-hairline);
+  margin: 10px 0;
+}
+
 .hud-sensitivity-header {
   display: flex;
   justify-content: space-between;

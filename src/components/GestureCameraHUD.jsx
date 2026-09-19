@@ -25,18 +25,32 @@ export const GESTURE_STATES = {
 
 const REQUIRED_STABLE_FRAMES = 3;
 
-export const SENSITIVITY_PRESETS = [
+export const ROTATION_PRESETS = [
   { val: 0.6, label: '0.6x 微操' },
   { val: 1.0, label: '1.0x 标准' },
   { val: 1.5, label: '1.5x 灵敏' },
   { val: 2.0, label: '2.0x 极速' }
 ];
 
-export function getSensitivityLabel(s) {
+export const ZOOM_PRESETS = [
+  { val: 0.6, label: '0.6x 细腻' },
+  { val: 1.0, label: '1.0x 均衡' },
+  { val: 1.5, label: '1.5x 灵敏' },
+  { val: 2.0, label: '2.0x 跨越' }
+];
+
+export function getRotationSensitivityLabel(s) {
   if (s <= 0.7) return '微操细腻';
   if (s <= 1.2) return '标准适中';
   if (s <= 1.7) return '灵敏宽幅';
   return '极速大跨度';
+}
+
+export function getZoomSensitivityLabel(s) {
+  if (s <= 0.7) return '精细微调';
+  if (s <= 1.2) return '标准适中';
+  if (s <= 1.7) return '快速缩放';
+  return '大幅跨越';
 }
 
 // MediaPipe 21 Hand Landmarks Connections
@@ -71,7 +85,7 @@ function loadExternalScript(src) {
   });
 }
 
-function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true, isEuropeCountrySelect = false, sensitivity = 1.0) {
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true, isEuropeCountrySelect = false, rotationSensitivity = 1.0, zoomSensitivity = 1.0) {
   ctx.clearRect(0, 0, width, height);
 
   // 1. Blueprint / Cyber coordinate grid lines
@@ -178,7 +192,8 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.shadowBlur = 0;
 
-  const sensBadge = sensitivity ? ` (${sensitivity.toFixed(1)}x)` : '';
+  const rotBadge = rotationSensitivity ? ` (${rotationSensitivity.toFixed(1)}x)` : '';
+  const zoomBadge = zoomSensitivity ? ` (${zoomSensitivity.toFixed(1)}x)` : '';
 
   if (activeAction === 'gesture_four') {
     ctx.fillStyle = '#a855f7';
@@ -187,27 +202,27 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else if (activeAction === 'pan_left') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : `✋ ◂ 向左拨转地球${sensBadge}`, width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : `✋ ◂ 向左拨转地球${rotBadge}`, width / 2, height - 12);
   } else if (activeAction === 'pan_right') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : `✋ 向右拨转地球 ▸${sensBadge}`, width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 欧洲选国中 · 地球仪已锁定' : `✋ 向右拨转地球 ▸${rotBadge}`, width / 2, height - 12);
   } else if (activeAction === 'pan_up') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ ▴ 向上翻：上一国家' : `✋ ▴ 向上翻转地球${sensBadge}`, width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ ▴ 向上翻：切换上一国 (单次)' : `✋ ▴ 向上翻转地球${rotBadge}`, width / 2, height - 12);
   } else if (activeAction === 'pan_down') {
     ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ ▾ 向下翻：下一国家' : `✋ ▾ 向下翻转地球${sensBadge}`, width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ ▾ 向下翻：切换下一国 (单次)' : `✋ ▾ 向下翻转地球${rotBadge}`, width / 2, height - 12);
   } else if (activeAction === 'zoom_in') {
     ctx.fillStyle = isDark ? '#4ade80' : '#16a34a';
     ctx.textAlign = 'center';
-    ctx.fillText(`🤏 拇指食指张开：推进放大${sensBadge} 🔍`, width / 2, height - 12);
+    ctx.fillText(`🤏 拇指食指张开：推进放大${zoomBadge} 🔍`, width / 2, height - 12);
   } else if (activeAction === 'zoom_out') {
     ctx.fillStyle = '#d97706';
     ctx.textAlign = 'center';
-    ctx.fillText(`👌 双指捏合：拉远缩小${sensBadge} 🔎`, width / 2, height - 12);
+    ctx.fillText(`👌 双指捏合：拉远缩小${zoomBadge} 🔎`, width / 2, height - 12);
   } else if (activeAction === 'fist') {
     ctx.fillStyle = '#f43f5e';
     ctx.textAlign = 'center';
@@ -215,7 +230,7 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   } else {
     ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.85)' : 'rgba(71, 85, 105, 0.9)';
     ctx.textAlign = 'center';
-    ctx.fillText(isEuropeCountrySelect ? '✋ 上下翻选国 · ✊ 确认 · 4️⃣ 退出' : `✋ 手掌平移 · 捏合缩放${sensBadge} · 悬停静止`, width / 2, height - 12);
+    ctx.fillText(isEuropeCountrySelect ? '✋ 翻动单次跳国 · ✊ 确认 · 4️⃣ 退出' : '✋ 手掌平移旋转 · 悬停隔空刹车', width / 2, height - 12);
   }
 
   ctx.restore();
@@ -257,8 +272,10 @@ export default function GestureCameraHUD({
   isRegionSelected,
   isEuropeCountrySelect = false,
   isDark = true,
-  sensitivity = 1.0,
-  onSensitivityChange
+  rotationSensitivity = 1.0,
+  onRotationSensitivityChange,
+  zoomSensitivity = 1.0,
+  onZoomSensitivityChange
 }) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -309,10 +326,15 @@ export default function GestureCameraHUD({
     isEuropeCountrySelectRef.current = isEuropeCountrySelect;
   }, [isEuropeCountrySelect]);
 
-  const sensitivityRef = useRef(sensitivity);
+  const rotationSensitivityRef = useRef(rotationSensitivity);
   useEffect(() => {
-    sensitivityRef.current = sensitivity;
-  }, [sensitivity]);
+    rotationSensitivityRef.current = rotationSensitivity;
+  }, [rotationSensitivity]);
+
+  const zoomSensitivityRef = useRef(zoomSensitivity);
+  useEffect(() => {
+    zoomSensitivityRef.current = zoomSensitivity;
+  }, [zoomSensitivity]);
 
   // State Machine and Tracking State
   const smRef = useRef({
@@ -369,8 +391,8 @@ export default function GestureCameraHUD({
       const dirLabels = {
         pan_left: isEuro ? '✋ 欧洲国家选择中 (已锁定地球仪)' : '✋ ◂ 向左拨转地球 (物理惯性)',
         pan_right: isEuro ? '✋ 欧洲国家选择中 (已锁定地球仪)' : '✋ 向右拨转地球 ▸ (物理惯性)',
-        pan_up: isEuro ? '✋ ▴ 向上翻：上一国家' : '✋ ▴ 向上翻转地球 (物理惯性)',
-        pan_down: isEuro ? '✋ ▾ 向下翻：下一国家' : '✋ ▾ 向下翻转地球 (物理惯性)'
+        pan_up: isEuro ? '✋ ▴ 向上翻：切换上一国 (单次跳步)' : '✋ ▴ 向上翻转地球 (物理惯性)',
+        pan_down: isEuro ? '✋ ▾ 向下翻：切换下一国 (单次跳步)' : '✋ ▾ 向下翻转地球 (物理惯性)'
       };
       setCurrentGesture({
         type: candidate,
@@ -384,7 +406,13 @@ export default function GestureCameraHUD({
         speed: rawParam?.speed ?? 0,
         direction: candidate
       });
-      sm.cooldownUntil = now + 16; // responsive physical tracking
+      if (isEuro) {
+        // Enforce strictly ONE country step per hand motion: 650ms cooldown and release active action lock
+        sm.cooldownUntil = now + 650;
+        sm.activeAction = null;
+      } else {
+        sm.cooldownUntil = now + 16; // responsive physical tracking
+      }
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'zoom_in') {
       setCurrentGesture({
@@ -478,7 +506,8 @@ export default function GestureCameraHUD({
     setDistanceFeedback({ status: currentDistStatus, label: currentDistLabel });
 
     // 2. Anatomical Finger Extension & Geometry
-    const sens = sensitivityRef.current || 1.0;
+    const rotSens = rotationSensitivityRef.current || 1.0;
+    const zoomSens = zoomSensitivityRef.current || 1.0;
     const isExt = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) > dist(lm[pipIdx], lm[0]) * 1.04;
 
     const indexExtended = isExt(8, 6);
@@ -490,10 +519,9 @@ export default function GestureCameraHUD({
     const pinchDist = dist(lm[4], lm[8]);
     const pinchRatio = pinchDist / palmBase;
 
-    // Responsive pinch (dynamic threshold based on sensitivity):
-    // Higher sensitivity makes pinch easier to trigger; lower requires closer contact
-    const maxPinchDist = Math.min(0.12, 0.088 + (sens - 1.0) * 0.018);
-    const maxPinchRatio = Math.min(0.70, 0.55 + (sens - 1.0) * 0.06);
+    // Responsive pinch (dynamic threshold based on zoom sensitivity):
+    const maxPinchDist = Math.min(0.12, 0.088 + (zoomSens - 1.0) * 0.018);
+    const maxPinchRatio = Math.min(0.70, 0.55 + (zoomSens - 1.0) * 0.06);
     const isPinch = pinchDist < maxPinchDist || pinchRatio < maxPinchRatio;
 
     // Mirror X for natural, 1:1 physical gesture mapping (moving hand right on screen = right)
@@ -523,16 +551,16 @@ export default function GestureCameraHUD({
     const isNumberFour = isEuroSelect && fourFingerCount === 4 && thumbTucked && moveDist < 0.010;
 
     // Guarded Thumb & Index Spread for Zoom In:
-    // Dynamic thresholds based on sensitivity:
-    const minSpreadDist = Math.max(0.13, 0.18 - (sens - 1.0) * 0.035);
-    const minSpreadRatio = Math.max(0.90, 1.10 - (sens - 1.0) * 0.08);
+    // Dynamic thresholds based on zoom sensitivity:
+    const minSpreadDist = Math.max(0.13, 0.18 - (zoomSens - 1.0) * 0.035);
+    const minSpreadRatio = Math.max(0.90, 1.10 - (zoomSens - 1.0) * 0.08);
     const isThumbIndexSpread = thumbExtended && indexExtended && !isPinch && !isNumberFour &&
       pinchRatio > minSpreadRatio && pinchDist > minSpreadDist &&
-      (fourFingerCount <= 3 || pinchDist > indexMiddleDist * (1.6 - (sens - 1.0) * 0.15));
+      (fourFingerCount <= 3 || pinchDist > indexMiddleDist * (1.6 - (zoomSens - 1.0) * 0.15));
 
     // Dynamic movement threshold for hand pan:
-    // Higher sensitivity captures subtle hand flicks; lower sensitivity demands clear intentional movement
-    const panMoveThreshold = 0.005 / Math.sqrt(Math.max(0.4, sens));
+    // Scaled by rotation sensitivity:
+    const panMoveThreshold = 0.005 / Math.sqrt(Math.max(0.4, rotSens));
 
     // 3. Discrete Mutually Exclusive Candidate Classification
     let rawCandidate = 'idle';
@@ -641,7 +669,8 @@ export default function GestureCameraHUD({
           isPinch,
           isDark,
           isEuropeCountrySelectRef.current,
-          sens
+          rotSens,
+          zoomSens
         );
       }
     }
@@ -660,7 +689,8 @@ export default function GestureCameraHUD({
         fingersCount: fourFingerCount,
         pinchRatio: parseFloat(pinchRatio.toFixed(2)),
         distanceRatio: parseFloat(handHeight.toFixed(2)),
-        sensitivity: `${sens.toFixed(1)}x (${getSensitivityLabel(sens)})`
+        rotSensitivity: `${rotSens.toFixed(1)}x (${getRotationSensitivityLabel(rotSens)})`,
+        zoomSensitivity: `${zoomSens.toFixed(1)}x (${getZoomSensitivityLabel(zoomSens)})`
       });
     }
   }, [dispatchConfirmedGesture, isDark]);
@@ -1127,9 +1157,16 @@ export default function GestureCameraHUD({
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#94a3b8' }}>Sensitivity:</span>
+                      <span style={{ color: '#94a3b8' }}>Rot Sensitivity:</span>
                       <span style={{ fontWeight: 650, color: '#38bdf8' }}>
-                        {debugState.sensitivity || `${sensitivity.toFixed(1)}x (${getSensitivityLabel(sensitivity)})`}
+                        {debugState.rotSensitivity || `${rotationSensitivity.toFixed(1)}x`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8' }}>Zoom Sensitivity:</span>
+                      <span style={{ fontWeight: 650, color: '#10b981' }}>
+                        {debugState.zoomSensitivity || `${zoomSensitivity.toFixed(1)}x`}
                       </span>
                     </div>
 
@@ -1156,44 +1193,86 @@ export default function GestureCameraHUD({
                   </div>
                 )}
 
-                {/* Real-time Sensitivity Adjustment Card */}
+                {/* Dual Sensitivity Control Card: Separated Rotation & Zoom */}
                 <div className="hud-sensitivity-card">
-                  <div className="hud-sensitivity-header">
-                    <div className="hud-sensitivity-label">
-                      <Sliders size={12} style={{ color: 'var(--accent-blue)' }} />
-                      <span>手势与运镜灵敏度</span>
+                  {/* Group 1: 🔄 旋转与平移灵敏度 */}
+                  <div className="hud-sensitivity-group">
+                    <div className="hud-sensitivity-header">
+                      <div className="hud-sensitivity-label">
+                        <Sliders size={12} style={{ color: 'var(--accent-blue)' }} />
+                        <span>🔄 旋转与平移灵敏度</span>
+                      </div>
+                      <div className="hud-sensitivity-badge">
+                        {rotationSensitivity.toFixed(1)}x · {getRotationSensitivityLabel(rotationSensitivity)}
+                      </div>
                     </div>
-                    <div className="hud-sensitivity-badge">
-                      {sensitivity.toFixed(1)}x · {getSensitivityLabel(sensitivity)}
+
+                    <input
+                      type="range"
+                      min="0.4"
+                      max="2.4"
+                      step="0.1"
+                      className="hud-range-slider"
+                      value={rotationSensitivity}
+                      onChange={(e) => onRotationSensitivityChange?.(parseFloat(e.target.value))}
+                      title={`旋转灵敏度: ${rotationSensitivity.toFixed(1)}x`}
+                    />
+
+                    <div className="hud-preset-chips">
+                      {ROTATION_PRESETS.map((p) => (
+                        <button
+                          key={p.val}
+                          type="button"
+                          className={`hud-preset-chip ${Math.abs(rotationSensitivity - p.val) < 0.05 ? 'active' : ''}`}
+                          onClick={() => onRotationSensitivityChange?.(p.val)}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <input
-                    type="range"
-                    min="0.4"
-                    max="2.4"
-                    step="0.1"
-                    className="hud-range-slider"
-                    value={sensitivity}
-                    onChange={(e) => onSensitivityChange?.(parseFloat(e.target.value))}
-                    title={`当前灵敏度: ${sensitivity.toFixed(1)}x`}
-                  />
+                  <div className="hud-sensitivity-divider" />
 
-                  <div className="hud-preset-chips">
-                    {SENSITIVITY_PRESETS.map((p) => (
-                      <button
-                        key={p.val}
-                        type="button"
-                        className={`hud-preset-chip ${Math.abs(sensitivity - p.val) < 0.05 ? 'active' : ''}`}
-                        onClick={() => onSensitivityChange?.(p.val)}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
+                  {/* Group 2: 🔍 视野缩放灵敏度 */}
+                  <div className="hud-sensitivity-group">
+                    <div className="hud-sensitivity-header">
+                      <div className="hud-sensitivity-label">
+                        <Sliders size={12} style={{ color: '#10b981' }} />
+                        <span>🔍 视野缩放灵敏度</span>
+                      </div>
+                      <div className="hud-sensitivity-badge" style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.2)', backgroundColor: 'rgba(16, 185, 129, 0.08)' }}>
+                        {zoomSensitivity.toFixed(1)}x · {getZoomSensitivityLabel(zoomSensitivity)}
+                      </div>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0.4"
+                      max="2.4"
+                      step="0.1"
+                      className="hud-range-slider"
+                      value={zoomSensitivity}
+                      onChange={(e) => onZoomSensitivityChange?.(parseFloat(e.target.value))}
+                      title={`缩放灵敏度: ${zoomSensitivity.toFixed(1)}x`}
+                    />
+
+                    <div className="hud-preset-chips">
+                      {ZOOM_PRESETS.map((p) => (
+                        <button
+                          key={p.val}
+                          type="button"
+                          className={`hud-preset-chip ${Math.abs(zoomSensitivity - p.val) < 0.05 ? 'active' : ''}`}
+                          onClick={() => onZoomSensitivityChange?.(p.val)}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="hud-sensitivity-tip">
-                    💡 调控手掌平移拨动旋转距离、视野缩放步长与手势触发门槛
+                    💡 旋转控制手掌平移自旋跨度与惯性；缩放控制张开推进/捏合拉远步长
                   </div>
                 </div>
 
@@ -1244,8 +1323,11 @@ export default function GestureCameraHUD({
             <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', gap: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                 <span style={{ whiteSpace: 'nowrap' }}>{currentGesture.icon} {currentGesture.label}</span>
-                <span className="hud-sensitivity-badge" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
-                  {sensitivity.toFixed(1)}x
+                <span className="hud-sensitivity-badge" style={{ fontSize: '0.62rem', padding: '1px 5px' }} title={`旋转灵敏度: ${rotationSensitivity.toFixed(1)}x`}>
+                  🔄 {rotationSensitivity.toFixed(1)}x
+                </span>
+                <span className="hud-sensitivity-badge" style={{ fontSize: '0.62rem', padding: '1px 5px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.2)', backgroundColor: 'rgba(16, 185, 129, 0.08)' }} title={`缩放灵敏度: ${zoomSensitivity.toFixed(1)}x`}>
+                  🔍 {zoomSensitivity.toFixed(1)}x
                 </span>
               </div>
               <button
