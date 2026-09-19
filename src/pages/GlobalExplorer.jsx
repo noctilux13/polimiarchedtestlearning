@@ -216,6 +216,7 @@ export default function GlobalExplorer() {
   const [selectedRegion, setSelectedRegion] = useState(geoRegions[0]);
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [visibleCityLabels, setVisibleCityLabels] = useState([]);
+  const [activeClusterFilter, setActiveClusterFilter] = useState('all');
   const [europeNavMode, setEuropeNavMode] = useState('artwork_view'); // 'artwork_view' by default; 'country_select' triggered by fist when facing Europe
   const [activeCountryIndex, setActiveCountryIndex] = useState(0);
 

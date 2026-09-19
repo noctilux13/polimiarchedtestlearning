@@ -13,6 +13,50 @@ import SettingsPage from './pages/Settings';
 import GlobalExplorer from './pages/GlobalExplorer';
 import AIFloatingAssistant from './components/AIFloatingAssistant';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
+          <div className="card" style={{ maxWidth: '560px', margin: '0 auto', padding: '2rem' }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', marginBottom: '0.75rem' }}>页面渲染出现异常</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '1.25rem' }}>
+              {this.state.error?.message || '组件在加载或运行时发生错误'}
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => { this.setState({ hasError: false, error: null }); window.location.hash = '#/'; }}
+              >
+                返回首页
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => window.location.reload()}
+              >
+                重新加载页面
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
     <AppProvider>
@@ -21,7 +65,8 @@ function App() {
           <Navbar />
           
           <main className="container" style={{ flex: 1 }}>
-            <Routes>
+            <ErrorBoundary>
+              <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/explorer" element={<GlobalExplorer />} />
               <Route path="/timeline" element={<Timeline />} />
@@ -32,7 +77,8 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
-          </main>
+          </ErrorBoundary>
+        </main>
 
           {/* Global AI Floating Assistant */}
           <AIFloatingAssistant />
