@@ -1258,6 +1258,55 @@ button.btn:active,
   box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.85);
 }
 
+[data-theme="light"] .gesture-camera-dock {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.16);
+  color: #0f172a;
+}
+
+/* Neighbor Cities Fast Switcher in Sidebar */
+.neighbor-cities-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 3px 0 5px 0;
+  margin-top: 0.35rem;
+}
+
+.neighbor-city-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  transition: all 140ms ease;
+  user-select: none;
+}
+
+.neighbor-city-pill:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-subtle);
+  transform: translateY(-1px);
+}
+
+.neighbor-city-pill.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border-color: var(--accent-blue);
+  font-weight: 650;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+}
+
 /* Vaul-style Smooth Bottom Drawer for Region Masterworks */
 .globe-drawer-backdrop {
   position: fixed;
@@ -1454,6 +1503,11 @@ button.btn:active,
   justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--border-hairline);
+}
+
+[data-theme="light"] .hud-wireframe-viewfinder {
+  background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #edf2f7 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .hud-wireframe-canvas {

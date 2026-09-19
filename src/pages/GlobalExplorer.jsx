@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import * as THREE from 'three';
 import { AppContext } from '../context/AppContext';
@@ -13,7 +13,8 @@ import {
   Palette,
   MapPin,
   ExternalLink,
-  Layers
+  Layers,
+  Compass
 } from 'lucide-react';
 
 // Math helper: Lat/Lng to 3D Cartesian coordinates on sphere
@@ -42,6 +43,66 @@ function createGlowPointTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
+// Cultural Geographic Clusters for easy navigation and neighbor shuttling
+const REGION_CLUSTERS = [
+  {
+    id: 'italy',
+    name: '🇮🇹 意大利文艺复兴与古典重镇',
+    shortName: '🇮🇹 意大利圈',
+    ids: ['milan-lombardy', 'turin-piedmont', 'florence-tuscany', 'rome-vatican', 'venice-veneto']
+  },
+  {
+    id: 'westEurope',
+    name: '⚜️ 西欧低地与英伦',
+    shortName: '⚜️ 西欧与低地',
+    ids: ['paris-france', 'marseille-france', 'brussels-lowcountries', 'london-uk']
+  },
+  {
+    id: 'centralIberia',
+    name: '🏰 中欧与伊比利亚半岛',
+    shortName: '🏰 中欧与伊比利亚',
+    ids: ['berlin-germany', 'vienna-austria', 'prague-czech', 'zurich-switzerland', 'barcelona-spain', 'madrid-bilbao-spain']
+  },
+  {
+    id: 'americasOther',
+    name: '🌐 美洲与全球其他重镇',
+    shortName: '🌐 美洲与其他',
+    ids: ['newyork-eastcoast', 'washington-charlottesville', 'chicago-midwest', 'losangeles-westcoast', 'brasilia-brazil', 'noumea-oceania']
+  }
+];
+
+// Offline Vector Continent Footprints ([lat, lng] polygons on equirectangular projection)
+const CONTINENT_POLYGONS = [
+  // Western & Central Europe
+  [[36, -9], [43, -9], [44, -1], [49, -1], [54, 8], [58, 10], [55, 14], [54, 19], [46, 16], [42, 19], [40, 23], [37, 23], [36, 14], [36, -9]],
+  // Scandinavia
+  [[55, 12], [63, 10], [70, 20], [70, 30], [60, 25], [55, 12]],
+  // British Isles
+  [[50, -5], [54, -3], [58, -5], [58, -2], [54, 0], [50, 1], [50, -5]],
+  // Italian Peninsula ("the boot") & Sicily
+  [[46, 7], [46, 13], [44, 12], [41, 15], [38, 16], [38, 14], [40, 14], [44, 8], [46, 7]],
+  [[37, 12.5], [38.5, 13.5], [38, 15.5], [36.8, 15.0], [37, 12.5]],
+  // Eurasia & Northern Asia
+  [[42, 28], [48, 38], [55, 37], [68, 45], [72, 70], [75, 110], [72, 140], [60, 160], [45, 140], [35, 128], [30, 122], [22, 114], [10, 105], [8, 98], [22, 88], [8, 77], [25, 68], [30, 50], [38, 35], [42, 28]],
+  // Japan
+  [[31, 130], [34, 132], [36, 137], [40, 140], [44, 144], [42, 141], [35, 139], [33, 135], [31, 130]],
+  // Africa
+  [[36, -6], [36, 11], [32, 25], [30, 32], [22, 37], [12, 43], [12, 51], [5, 48], [-12, 40], [-25, 33], [-34, 26], [-34, 18], [-22, 14], [-5, 12], [5, 2], [5, -4], [15, -17], [28, -13], [36, -6]],
+  // Madagascar
+  [[-12, 49], [-16, 50], [-25, 47], [-25, 44], [-16, 44], [-12, 49]],
+  // North America
+  [[25, -80], [30, -81], [38, -75], [44, -66], [48, -64], [52, -56], [60, -65], [68, -65], [72, -85], [72, -125], [65, -168], [58, -158], [49, -125], [32, -117], [23, -110], [18, -104], [16, -94], [25, -80]],
+  // Greenland
+  [[60, -45], [65, -53], [78, -68], [83, -30], [70, -20], [60, -45]],
+  // South America
+  [[12, -72], [10, -62], [5, -52], [-5, -35], [-15, -39], [-23, -43], [-34, -54], [-45, -65], [-55, -67], [-50, -74], [-38, -73], [-18, -70], [-5, -80], [8, -77], [12, -72]],
+  // Australia & New Zealand
+  [[-12, 130], [-12, 136], [-17, 138], [-12, 142], [-22, 150], [-34, 151], [-38, 144], [-35, 137], [-32, 132], [-35, 118], [-22, 114], [-15, 124], [-12, 130]],
+  [[-35, 173], [-38, 178], [-41, 175], [-46, 170], [-46, 166], [-42, 171], [-35, 173]],
+  // Antarctica
+  [[-65, -180], [-65, 180], [-88, 180], [-88, -180], [-65, -180]]
+];
+
 export default function GlobalExplorer() {
   const { isDark } = useContext(AppContext);
 
@@ -56,6 +117,7 @@ export default function GlobalExplorer() {
   const [selectedRegion, setSelectedRegion] = useState(geoRegions[0]);
   const [hoveredRegion, setHoveredRegion] = useState(null);
   const [visibleCityLabels, setVisibleCityLabels] = useState([]);
+  const [activeClusterFilter, setActiveClusterFilter] = useState('all');
 
   // Keep references to state so Three.js render loop and callbacks don't trigger unmounts
   const selectedRegionRef = useRef(selectedRegion);
@@ -68,7 +130,7 @@ export default function GlobalExplorer() {
     hoveredRegionRef.current = hoveredRegion;
   }, [hoveredRegion]);
 
-  // Orbital Controls State with Momentum & Inertia
+  // Orbital Controls State with Momentum & Hand Pan Inertia
   const controlsRef = useRef({
     isDragging: false,
     dragStartX: 0,
@@ -82,13 +144,13 @@ export default function GlobalExplorer() {
     targetPhi: 1.3,
     currentTheta: 1.2,
     currentPhi: 1.3,
-    targetDist: 5.4,
-    currentDist: 5.4,
+    targetDist: 5.2,
+    currentDist: 5.2,
     autoRotate: true,
     lastInteractionTime: Date.now()
   });
 
-  // Smoothly Focus Camera onto a Region with 100% Exact Mathematical Centering
+  // Smoothly Focus Camera onto a Region with 100% Exact Mathematical Centering & Adaptive European Zoom
   const focusRegion = useCallback((region) => {
     if (!region) return;
     setSelectedRegion(region);
@@ -107,7 +169,11 @@ export default function GlobalExplorer() {
 
     c.targetTheta = c.currentTheta + diff;
     c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, targetPhi));
-    c.targetDist = 4.4; // Optimal close-up view distance
+
+    // Adaptive Zoom Distance: Close-up 3.4 for dense European clusters to spread out pins; 4.5 for others
+    const isEurope = region.lat > 35 && region.lat < 62 && region.lng > -12 && region.lng < 30;
+    c.targetDist = isEurope ? 3.4 : 4.5;
+
     c.velocityX = 0;
     c.velocityY = 0;
     c.autoRotate = false;
@@ -119,10 +185,13 @@ export default function GlobalExplorer() {
     focusRegionRef.current = focusRegion;
   }, [focusRegion]);
 
-  // Stable Gesture Action Dispatcher (No re-mount triggers)
+  // Stable Gesture Action Dispatcher (Handles hand pan translation with physical inertia damping)
   const handleGestureAction = useCallback((action) => {
-    if (action.type === 'no_hand') {
-      setHoveredRegion(null);
+    if (action.type === 'no_hand' || action.type === 'hand_hover') {
+      // Hover/still hand: dampen any remaining rotation to stop immediately
+      const c = controlsRef.current;
+      c.velocityX *= 0.5;
+      c.velocityY *= 0.5;
       return;
     }
 
@@ -130,37 +199,19 @@ export default function GlobalExplorer() {
     c.autoRotate = false;
     c.lastInteractionTime = Date.now();
 
-    if (action.type === 'rotate') {
-      const dir = action.direction === 'left' ? -1 : 1;
-      const speed = (action.speed || 1.2) * 0.016;
-      c.targetTheta += dir * speed;
-      c.velocityX = dir * speed * 0.35;
-    } else if (action.type === 'swipe') {
-      const impulse = (action.direction === 'left' ? -0.45 : 0.45) * Math.min(action.velocity / 7, 1.8);
-      c.targetTheta += impulse;
+    if (action.type === 'hand_pan') {
+      // Hand Translation: smooth natural rotation with small-to-medium physical momentum
+      const panSensX = 2.4;
+      const panSensY = 2.0;
+
+      c.targetTheta += action.deltaX * panSensX;
+      c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi - action.deltaY * panSensY));
+
+      // Natural impulse velocity (decayed by 0.88 in animation loop for ~25°~40° travel then full stop)
+      c.velocityX = action.deltaX * panSensX * 0.42;
+      c.velocityY = -action.deltaY * panSensY * 0.42;
     } else if (action.type === 'zoom') {
-      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + action.delta * 2.0));
-    } else if (action.type === 'open_palm') {
-      let closest = null;
-      let minAngle = Infinity;
-      const camera = cameraRef.current;
-      if (camera && pinsGroupRef.current) {
-        const camDir = new THREE.Vector3();
-        camera.getWorldDirection(camDir).negate();
-
-        geoRegions.forEach(reg => {
-          const pinPos = latLngToVector3(reg.lat, reg.lng, 2.4).normalize();
-          const angle = camDir.angleTo(pinPos);
-          if (angle < minAngle) {
-            minAngle = angle;
-            closest = reg;
-          }
-        });
-
-        if (closest && minAngle < 0.9) {
-          setHoveredRegion(closest);
-        }
-      }
+      c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * 1.8));
     } else if (action.type === 'fist') {
       const currentHov = hoveredRegionRef.current;
       const currentSel = selectedRegionRef.current;
@@ -191,7 +242,7 @@ export default function GlobalExplorer() {
 
     // 2. Camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 5.4);
+    camera.position.set(0, 0, 5.2);
     cameraRef.current = camera;
 
     // 3. Renderer
@@ -199,32 +250,32 @@ export default function GlobalExplorer() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = isDark ? 1.2 : 1.1;
+    renderer.toneMappingExposure = isDark ? 1.25 : 1.15;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Clean, Restrained Sci-Fi Multi-Source Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.5 : 1.7);
+    // 4. Multi-Source Sci-Fi Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.6 : 1.8);
     scene.add(ambientLight);
 
     const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.4 : 2.0);
     dirLight1.position.set(6, 8, 7);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 1.2);
+    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, 1.3);
     dirLight2.position.set(-7, -2, -5);
     scene.add(dirLight2);
 
     const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e293b, 1.0);
     scene.add(hemiLight);
 
-    // 5. Aesthetic Cybernetic 3D Particle Globe (粒子效果 3D 地球仪)
+    // 5. High-Fidelity 3D Particle Globe (真经纬度高精度粒子地球仪)
     const globeRadius = 2.4;
 
     // 5a. Inner Dark Void Core (Occludes backside particles for authentic 3D spherical depth)
     const coreGeo = new THREE.SphereGeometry(globeRadius * 0.988, 48, 48);
     const coreMat = new THREE.MeshBasicMaterial({
-      color: isDark ? 0x060913 : 0x0f172a
+      color: isDark ? 0x060913 : 0x0a1628
     });
     const coreMesh = new THREE.Mesh(coreGeo, coreMat);
     scene.add(coreMesh);
@@ -237,89 +288,81 @@ export default function GlobalExplorer() {
     const particlePositions = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
 
-    // Golden ratio Fibonacci spiral sampling
     const goldenPhi = Math.PI * (Math.sqrt(5) - 1);
 
-    // Offscreen Canvas for Continent Bitmap Sampling
+    // Offscreen Canvas for Geographic Sampling (1024x512 equirectangular map)
     const sampleCanvas = document.createElement('canvas');
     sampleCanvas.width = 1024;
     sampleCanvas.height = 512;
     const sCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
 
-    // Initial procedural high-fidelity continent footprints
-    sCtx.fillStyle = '#000000';
-    sCtx.fillRect(0, 0, 1024, 512);
+    // Step 1: Draw instant offline continent vector polygons (White ocean = 255, Black land = 0)
     sCtx.fillStyle = '#ffffff';
+    sCtx.fillRect(0, 0, 1024, 512);
+    sCtx.fillStyle = '#000000';
 
-    const baseLands = [
-      { x: 480, y: 70, w: 120, h: 100 },   // Europe & Mediterranean
-      { x: 560, y: 65, w: 280, h: 150 },   // Eurasia & Central Asia
-      { x: 740, y: 120, w: 150, h: 120 },  // East Asia (China / Japan)
-      { x: 670, y: 170, w: 80, h: 80 },    // India
-      { x: 470, y: 170, w: 160, h: 200 },  // Africa
-      { x: 110, y: 65, w: 240, h: 150 },   // North America
-      { x: 200, y: 210, w: 70, h: 70 },    // Central America
-      { x: 260, y: 260, w: 130, h: 200 },  // South America
-      { x: 820, y: 310, w: 140, h: 110 },  // Australia
-      { x: 470, y: 40, w: 80, h: 70 },     // UK & Scandinavia
-      { x: 880, y: 130, w: 50, h: 70 }     // Japan
-    ];
-    baseLands.forEach(l => {
+    CONTINENT_POLYGONS.forEach(poly => {
       sCtx.beginPath();
-      sCtx.roundRect(l.x, l.y, l.w, l.h, 28);
+      poly.forEach(([lat, lng], idx) => {
+        const px = Math.round(((lng + 180) / 360) * 1024);
+        const py = Math.round(((90 - lat) / 180) * 512);
+        if (idx === 0) sCtx.moveTo(px, py);
+        else sCtx.lineTo(px, py);
+      });
+      sCtx.closePath();
       sCtx.fill();
     });
 
-    function computeParticles(data) {
+    function computeParticles(data, w, h) {
       let pIdx = 0;
       for (let i = 0; i < particleCount; i++) {
-        const y = 1 - (i / (particleCount - 1)) * 2;
-        const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
-        const theta = goldenPhi * i;
-        const x = Math.cos(theta) * radiusAtY;
-        const z = Math.sin(theta) * radiusAtY;
-
-        const lat = Math.asin(Math.max(-0.999, Math.min(0.999, y))) * (180 / Math.PI);
-        const lng = Math.atan2(z, -x) * (180 / Math.PI);
+        const yNorm = 1 - (i / (particleCount - 1)) * 2;
+        const phi = Math.acos(Math.max(-0.999, Math.min(0.999, yNorm)));
+        const lat = 90 - (phi * 180) / Math.PI;
+        const theta = (goldenPhi * i) % (Math.PI * 2);
+        const lng = ((theta * 180) / Math.PI) - 180;
 
         const u = Math.max(0, Math.min(1, (lng + 180) / 360));
         const v = Math.max(0, Math.min(1, (90 - lat) / 180));
 
-        const px = Math.min(1023, Math.floor(u * 1024));
-        const py = Math.min(511, Math.floor(v * 512));
-        const dIdx = (py * 1024 + px) * 4;
+        const px = Math.min(w - 1, Math.floor(u * w));
+        const py = Math.min(h - 1, Math.floor(v * h));
+        const dIdx = (py * w + px) * 4;
 
+        // In equirectangular specular mask, land is dark (black=0), ocean is bright specular (white=255)
         const brightness = (data[dIdx] * 0.299 + data[dIdx + 1] * 0.587 + data[dIdx + 2] * 0.114) / 255;
-        const isLand = brightness > 0.18;
+        const isLand = brightness < 0.5;
+
+        // Exact 3D spherical position matching latLngToVector3 100%
+        const pt = latLngToVector3(lat, lng, globeRadius * 1.008);
 
         if (isLand) {
-          const r = globeRadius * 1.008;
-          particlePositions[pIdx * 3] = x * r;
-          particlePositions[pIdx * 3 + 1] = y * r;
-          particlePositions[pIdx * 3 + 2] = z * r;
+          particlePositions[pIdx * 3] = pt.x;
+          particlePositions[pIdx * 3 + 1] = pt.y;
+          particlePositions[pIdx * 3 + 2] = pt.z;
 
-          if (brightness > 0.48) {
-            // Bright highlight node
-            particleColors[pIdx * 3] = 0.75;
-            particleColors[pIdx * 3 + 1] = 0.95;
-            particleColors[pIdx * 3 + 2] = 1.0;
+          if (brightness < 0.15) {
+            // Core continent interior node
+            particleColors[pIdx * 3] = isDark ? 0.22 : 0.08;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.76 : 0.42;
+            particleColors[pIdx * 3 + 2] = isDark ? 0.98 : 0.78;
           } else {
-            // Glowing cyan continent node
-            particleColors[pIdx * 3] = 0.22;
-            particleColors[pIdx * 3 + 1] = 0.74;
-            particleColors[pIdx * 3 + 2] = 0.97;
+            // Coastline boundary highlight
+            particleColors[pIdx * 3] = isDark ? 0.85 : 0.15;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.95 : 0.55;
+            particleColors[pIdx * 3 + 2] = isDark ? 1.00 : 0.90;
           }
         } else {
-          // Sparse oceanic matrix dots
-          const keepOcean = (i % 7 === 0) || Math.abs(lat) < 1.4 || Math.abs(lat - 23.5) < 1.4 || Math.abs(lat + 23.5) < 1.4;
+          // Subtle oceanic matrix grid dots
+          const keepOcean = (i % 11 === 0) || Math.abs(lat) < 1.0 || Math.abs(lat - 23.5) < 1.0 || Math.abs(lat + 23.5) < 1.0;
           if (keepOcean) {
-            const r = globeRadius * 1.002;
-            particlePositions[pIdx * 3] = x * r;
-            particlePositions[pIdx * 3 + 1] = y * r;
-            particlePositions[pIdx * 3 + 2] = z * r;
-            particleColors[pIdx * 3] = 0.04;
-            particleColors[pIdx * 3 + 1] = 0.25;
-            particleColors[pIdx * 3 + 2] = 0.45;
+            const opt = latLngToVector3(lat, lng, globeRadius * 1.002);
+            particlePositions[pIdx * 3] = opt.x;
+            particlePositions[pIdx * 3 + 1] = opt.y;
+            particlePositions[pIdx * 3 + 2] = opt.z;
+            particleColors[pIdx * 3] = isDark ? 0.04 : 0.55;
+            particleColors[pIdx * 3 + 1] = isDark ? 0.18 : 0.70;
+            particleColors[pIdx * 3 + 2] = isDark ? 0.32 : 0.82;
           } else {
             particlePositions[pIdx * 3] = 0;
             particlePositions[pIdx * 3 + 1] = 0;
@@ -333,7 +376,8 @@ export default function GlobalExplorer() {
       }
     }
 
-    computeParticles(sCtx.getImageData(0, 0, 1024, 512).data);
+    // Run initial computation immediately with vector continents
+    computeParticles(sCtx.getImageData(0, 0, 1024, 512).data, 1024, 512);
 
     const particleGeo = new THREE.BufferGeometry();
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
@@ -352,14 +396,14 @@ export default function GlobalExplorer() {
     scene.add(particleMesh);
     globeRef.current = particleMesh;
 
-    // Asynchronously load real earth dark texture to refine coastlines and islands
-    const earthImg = new Image();
-    earthImg.crossOrigin = 'anonymous';
-    earthImg.src = getAssetUrl('textures/earth-dark.jpg');
-    earthImg.onload = () => {
-      sCtx.drawImage(earthImg, 0, 0, 1024, 512);
+    // Step 2: Asynchronously load NASA specular high-res texture to refine coastlines & islands
+    const specularImg = new Image();
+    specularImg.crossOrigin = 'anonymous';
+    specularImg.src = getAssetUrl('textures/earth_specular_2048.jpg');
+    specularImg.onload = () => {
+      sCtx.drawImage(specularImg, 0, 0, 1024, 512);
       const detailedData = sCtx.getImageData(0, 0, 1024, 512).data;
-      computeParticles(detailedData);
+      computeParticles(detailedData, 1024, 512);
       particleGeo.attributes.position.needsUpdate = true;
       particleGeo.attributes.color.needsUpdate = true;
     };
@@ -393,7 +437,7 @@ export default function GlobalExplorer() {
     const haloMesh = new THREE.Points(haloGeo, haloMat);
     scene.add(haloMesh);
 
-    // 5e. Great-Circle 3D Cultural Flight Arcs (飞线) with Animated Traveling Pulses
+    // 5e. Great-Circle 3D Cultural Flight Arcs with Traveling Pulses
     const arcGroup = new THREE.Group();
     scene.add(arcGroup);
 
@@ -401,12 +445,10 @@ export default function GlobalExplorer() {
       { from: [41.9, 12.5], to: [48.8, 2.3] },    // Rome - Paris
       { from: [48.8, 2.3], to: [51.5, -0.1] },    // Paris - London
       { from: [51.5, -0.1], to: [40.7, -74.0] },  // London - New York
-      { from: [41.9, 12.5], to: [37.9, 23.7] },   // Rome - Athens
-      { from: [37.9, 23.7], to: [39.9, 116.4] },  // Athens - Beijing
-      { from: [39.9, 116.4], to: [35.6, 139.7] }, // Beijing - Tokyo
       { from: [41.9, 12.5], to: [43.7, 11.2] },   // Rome - Florence
       { from: [48.8, 2.3], to: [41.4, 2.2] },     // Paris - Barcelona
       { from: [41.9, 12.5], to: [45.4, 12.3] },   // Rome - Venice
+      { from: [45.4, 9.19], to: [45.0, 7.69] },   // Milan - Turin
       { from: [40.7, -74.0], to: [41.8, -87.6] }  // New York - Chicago
     ];
 
@@ -445,7 +487,7 @@ export default function GlobalExplorer() {
       arcPulseMeshes.push({ mesh: pulse, curve, offset: idx * 0.1 });
     });
 
-    // 5d. Deep Space Starfield
+    // 5f. Deep Space Starfield
     const starsGeo = new THREE.BufferGeometry();
     const starCoords = [];
     for (let i = 0; i < 800; i++) {
@@ -468,7 +510,7 @@ export default function GlobalExplorer() {
     const starsMesh = new THREE.Points(starsGeo, starsMat);
     scene.add(starsMesh);
 
-    // 6. Flat Planar Geographic Region Pins (Clean Modern Tangential Reticles)
+    // 6. Flat Planar Geographic Region Pins (Tangential Reticles)
     const pinsGroup = new THREE.Group();
     scene.add(pinsGroup);
     pinsGroupRef.current = pinsGroup;
@@ -485,33 +527,34 @@ export default function GlobalExplorer() {
       pinRoot.lookAt(pos.clone().multiplyScalar(2)); // Tangent to sphere surface
 
       // Planar solid disc
-      const coreMat = new THREE.MeshBasicMaterial({
+      const pinCoreMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
         opacity: 0.95,
         side: THREE.DoubleSide
       });
-      const coreMesh = new THREE.Mesh(flatCircleGeo, coreMat);
-      coreMesh.userData = { region };
-      pinRoot.add(coreMesh);
+      const pinCoreMesh = new THREE.Mesh(flatCircleGeo, pinCoreMat);
+      pinCoreMesh.userData = { region };
+      pinRoot.add(pinCoreMesh);
 
       // Planar pulse ring
-      const ringMat = new THREE.MeshBasicMaterial({
+      const pinRingMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
         opacity: 0.75,
         side: THREE.DoubleSide
       });
-      const ringMesh = new THREE.Mesh(flatRingGeo, ringMat);
-      pinRoot.add(ringMesh);
+      const pinRingMesh = new THREE.Mesh(flatRingGeo, pinRingMat);
+      pinRoot.add(pinRingMesh);
 
       pinsGroup.add(pinRoot);
-      pinMeshesRef.current.push({ root: pinRoot, dot: coreMesh, ring: ringMesh, region, pos });
+      pinMeshesRef.current.push({ root: pinRoot, dot: pinCoreMesh, ring: pinRingMesh, region, pos });
     });
 
-    // 7. Raycasting & Optimized Drag Interaction with Inertia & Pointer Capture
+    // 7. Raycasting & Screen-Space Magnetic Snap (28px Magnetic Radius for European Density)
     const raycaster = new THREE.Raycaster();
     const mousePos = new THREE.Vector2();
+    const SNAP_RADIUS = 28;
 
     const handlePointerDown = (e) => {
       try { container.setPointerCapture?.(e.pointerId); } catch {}
@@ -536,8 +579,8 @@ export default function GlobalExplorer() {
         const deltaX = e.clientX - c.prevMouseX;
         const deltaY = e.clientY - c.prevMouseY;
 
-        // Adaptive sensitivity scaled by camera distance for fine close-up control
-        const sensitivity = 0.0042 * (c.currentDist / 5.4);
+        // Adaptive sensitivity scaled by camera distance
+        const sensitivity = 0.0042 * (c.currentDist / 5.2);
         c.targetTheta += deltaX * sensitivity;
         c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi - deltaY * sensitivity));
 
@@ -550,21 +593,48 @@ export default function GlobalExplorer() {
         c.lastMoveTime = now;
       }
 
-      // Check pin hover
       const rect = container.getBoundingClientRect();
-      mousePos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mousePos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mousePos, camera);
+      const mousePxX = e.clientX - rect.left;
+      const mousePxY = e.clientY - rect.top;
 
-      const dots = pinMeshesRef.current.map(p => p.dot);
-      const intersects = raycaster.intersectObjects(dots);
-      if (intersects.length > 0) {
-        const hitRegion = intersects[0].object.userData.region;
-        setHoveredRegion(hitRegion);
+      // Screen-space 28px magnetic snap: projects front-facing pins onto 2D viewport
+      let nearestRegion = null;
+      let minScreenDist = Infinity;
+      const camPos = camera.position.clone();
+
+      pinMeshesRef.current.forEach(p => {
+        const normal = p.pos.clone().normalize();
+        const camDir = camPos.clone().normalize();
+        if (normal.dot(camDir) > 0.12) {
+          const screenPos = p.pos.clone().project(camera);
+          const sx = ((screenPos.x + 1) / 2) * rect.width;
+          const sy = ((-screenPos.y + 1) / 2) * rect.height;
+          const dist = Math.hypot(mousePxX - sx, mousePxY - sy);
+          if (dist < minScreenDist) {
+            minScreenDist = dist;
+            nearestRegion = p.region;
+          }
+        }
+      });
+
+      if (minScreenDist < SNAP_RADIUS && nearestRegion) {
+        setHoveredRegion(nearestRegion);
         container.style.cursor = 'pointer';
       } else {
-        setHoveredRegion(null);
-        container.style.cursor = c.isDragging ? 'grabbing' : 'grab';
+        // Fallback to 3D raycaster
+        mousePos.x = (mousePxX / rect.width) * 2 - 1;
+        mousePos.y = -(mousePxY / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mousePos, camera);
+
+        const dots = pinMeshesRef.current.map(p => p.dot);
+        const intersects = raycaster.intersectObjects(dots);
+        if (intersects.length > 0) {
+          setHoveredRegion(intersects[0].object.userData.region);
+          container.style.cursor = 'pointer';
+        } else {
+          setHoveredRegion(null);
+          container.style.cursor = c.isDragging ? 'grabbing' : 'grab';
+        }
       }
     };
 
@@ -576,17 +646,43 @@ export default function GlobalExplorer() {
 
         // Distinguish drag from click: small travel distance = click
         const distMoved = Math.hypot(e.clientX - c.dragStartX, e.clientY - c.dragStartY);
-        if (distMoved < 6) {
+        if (distMoved < 7) {
           const rect = container.getBoundingClientRect();
-          mousePos.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-          mousePos.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-          raycaster.setFromCamera(mousePos, camera);
+          const mousePxX = e.clientX - rect.left;
+          const mousePxY = e.clientY - rect.top;
 
-          const dots = pinMeshesRef.current.map(p => p.dot);
-          const intersects = raycaster.intersectObjects(dots);
-          if (intersects.length > 0) {
-            const hitRegion = intersects[0].object.userData.region;
-            focusRegionRef.current?.(hitRegion);
+          // Magnetic snap click
+          let nearestRegion = null;
+          let minScreenDist = Infinity;
+          const camPos = camera.position.clone();
+
+          pinMeshesRef.current.forEach(p => {
+            const normal = p.pos.clone().normalize();
+            const camDir = camPos.clone().normalize();
+            if (normal.dot(camDir) > 0.12) {
+              const screenPos = p.pos.clone().project(camera);
+              const sx = ((screenPos.x + 1) / 2) * rect.width;
+              const sy = ((-screenPos.y + 1) / 2) * rect.height;
+              const dist = Math.hypot(mousePxX - sx, mousePxY - sy);
+              if (dist < minScreenDist) {
+                minScreenDist = dist;
+                nearestRegion = p.region;
+              }
+            }
+          });
+
+          if (minScreenDist < SNAP_RADIUS && nearestRegion) {
+            focusRegionRef.current?.(nearestRegion);
+          } else {
+            mousePos.x = (mousePxX / rect.width) * 2 - 1;
+            mousePos.y = -(mousePxY / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mousePos, camera);
+
+            const dots = pinMeshesRef.current.map(p => p.dot);
+            const intersects = raycaster.intersectObjects(dots);
+            if (intersects.length > 0) {
+              focusRegionRef.current?.(intersects[0].object.userData.region);
+            }
           }
         }
       }
@@ -595,7 +691,7 @@ export default function GlobalExplorer() {
     const handleWheel = (e) => {
       e.preventDefault();
       const c = controlsRef.current;
-      c.targetDist = Math.max(3.3, Math.min(7.8, c.targetDist + e.deltaY * 0.0035));
+      c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + e.deltaY * 0.0035));
       c.autoRotate = false;
       c.lastInteractionTime = Date.now();
     };
@@ -616,7 +712,7 @@ export default function GlobalExplorer() {
     };
     window.addEventListener('resize', handleResize);
 
-    // 9. Animation Loop
+    // 9. Animation Loop (with 0.88 physics inertia decay for hand panning)
     let animId;
     let clock = new THREE.Clock();
     let lastLabelSync = 0;
@@ -627,25 +723,25 @@ export default function GlobalExplorer() {
       const c = controlsRef.current;
       const now = performance.now();
 
-      // Resume auto-rotation after 6s of inactivity
-      if (!c.isDragging && Date.now() - c.lastInteractionTime > 6000) {
-        c.targetTheta -= 0.001;
+      // Resume subtle idle rotation after 7s of inactivity
+      if (!c.isDragging && Date.now() - c.lastInteractionTime > 7000) {
+        c.targetTheta -= 0.0008;
       }
 
-      // Smooth inertia throw decay on release
+      // Smooth inertia throw decay (0.88 damping: turns 25°~40° naturally and comes to a full stop)
       if (!c.isDragging) {
         c.targetTheta += c.velocityX;
         c.targetPhi = Math.max(0.18, Math.min(Math.PI - 0.18, c.targetPhi + c.velocityY));
-        c.velocityX *= 0.92;
-        c.velocityY *= 0.92;
+        c.velocityX *= 0.88;
+        c.velocityY *= 0.88;
         if (Math.abs(c.velocityX) < 0.0001) c.velocityX = 0;
         if (Math.abs(c.velocityY) < 0.0001) c.velocityY = 0;
       }
 
       // Spherical Damping Interpolation
-      c.currentTheta += (c.targetTheta - c.currentTheta) * 0.08;
-      c.currentPhi += (c.targetPhi - c.currentPhi) * 0.08;
-      c.currentDist += (c.targetDist - c.currentDist) * 0.08;
+      c.currentTheta += (c.targetTheta - c.currentTheta) * 0.085;
+      c.currentPhi += (c.targetPhi - c.currentPhi) * 0.085;
+      c.currentDist += (c.targetDist - c.currentDist) * 0.085;
 
       // Update camera position from spherical coordinates
       const cx = c.currentDist * Math.sin(c.currentPhi) * Math.sin(c.currentTheta);
@@ -666,7 +762,7 @@ export default function GlobalExplorer() {
       // Atmospheric halo subtle drift
       haloMesh.rotation.y = elapsed * 0.012;
 
-      // Pulse wave ring animation on planar pins (Reads from refs for zero-overhead performance)
+      // Pulse wave ring animation on planar pins
       const currentSelected = selectedRegionRef.current;
       const currentHovered = hoveredRegionRef.current;
 
@@ -686,8 +782,8 @@ export default function GlobalExplorer() {
         const h = container.clientHeight;
         const dist = c.currentDist;
 
-        // Labels appear when zoomed in (dist <= 5.4), dissolve when zoomed out
-        const zoomOpacity = Math.max(0, Math.min(1, (5.5 - dist) / 1.3));
+        // Labels appear when zoomed in (dist <= 5.5), dissolve when zoomed out
+        const zoomOpacity = Math.max(0, Math.min(1, (5.6 - dist) / 1.4));
 
         if (zoomOpacity <= 0.02) {
           setVisibleCityLabels([]);
@@ -760,7 +856,24 @@ export default function GlobalExplorer() {
       flatRingGeo.dispose();
       renderer.dispose();
     };
-  }, [isDark]); // DEPENDS ONLY ON THEME, NEVER DESTROYS CANVAS ON HOVER/SELECTION
+  }, [isDark]);
+
+  // Culture Cluster Shuttle list for current selected region
+  const activeCluster = useMemo(() => {
+    return REGION_CLUSTERS.find(c => c.ids.includes(selectedRegion.id)) || REGION_CLUSTERS[0];
+  }, [selectedRegion]);
+
+  const neighborRegions = useMemo(() => {
+    if (!activeCluster) return [];
+    return activeCluster.ids.map(id => geoRegions.find(r => r.id === id)).filter(Boolean);
+  }, [activeCluster]);
+
+  // Filtered regions for topbar
+  const displayedRegions = useMemo(() => {
+    if (activeClusterFilter === 'all') return geoRegions;
+    const cluster = REGION_CLUSTERS.find(c => c.id === activeClusterFilter);
+    return cluster ? cluster.ids.map(id => geoRegions.find(r => r.id === id)).filter(Boolean) : geoRegions;
+  }, [activeClusterFilter]);
 
   return (
     <div className="global-explorer-page">
@@ -787,27 +900,53 @@ export default function GlobalExplorer() {
           </div>
         </div>
 
-        {/* Region Fast Jump Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', maxWidth: '640px', padding: '2px 0' }}>
-          {geoRegions.slice(0, 7).map(reg => (
+        {/* Region Culture Group Filter & Fast Jump Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+          {/* Group Category Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border-subtle)', paddingRight: '8px' }}>
             <button
-              key={reg.id}
               type="button"
-              className="btn btn-outline"
-              onClick={() => focusRegion(reg)}
-              style={{
-                borderRadius: 'var(--radius-pill)',
-                padding: '4px 11px',
-                fontSize: '0.74rem',
-                backgroundColor: selectedRegion?.id === reg.id ? 'var(--accent-blue-subtle)' : undefined,
-                borderColor: selectedRegion?.id === reg.id ? 'var(--accent-blue)' : undefined,
-                color: selectedRegion?.id === reg.id ? 'var(--accent-blue)' : undefined,
-                whiteSpace: 'nowrap'
-              }}
+              className={`btn ${activeClusterFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setActiveClusterFilter('all')}
+              style={{ borderRadius: 'var(--radius-pill)', padding: '3px 9px', fontSize: '0.72rem' }}
             >
-              {reg.nameZh} ({reg.artworksCount})
+              全部 (21)
             </button>
-          ))}
+            {REGION_CLUSTERS.map(cluster => (
+              <button
+                key={cluster.id}
+                type="button"
+                className={`btn ${activeClusterFilter === cluster.id ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setActiveClusterFilter(cluster.id)}
+                style={{ borderRadius: 'var(--radius-pill)', padding: '3px 9px', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
+              >
+                {cluster.shortName} ({cluster.ids.length})
+              </button>
+            ))}
+          </div>
+
+          {/* City Pills in Current Category */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflowX: 'auto', maxWidth: '420px', padding: '2px 0' }}>
+            {displayedRegions.map(reg => (
+              <button
+                key={reg.id}
+                type="button"
+                className="btn btn-outline"
+                onClick={() => focusRegion(reg)}
+                style={{
+                  borderRadius: 'var(--radius-pill)',
+                  padding: '3px 9px',
+                  fontSize: '0.72rem',
+                  backgroundColor: selectedRegion?.id === reg.id ? 'var(--accent-blue-subtle)' : undefined,
+                  borderColor: selectedRegion?.id === reg.id ? 'var(--accent-blue)' : undefined,
+                  color: selectedRegion?.id === reg.id ? 'var(--accent-blue)' : undefined,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {reg.nameZh}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -851,19 +990,20 @@ export default function GlobalExplorer() {
             </div>
 
             <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-              <span>🖱️ 鼠标拖拽/滚轮 · 📷 隔空单动作 (☝️单指向左 · ✌️双指向右 · 🤟放大 · 🤏缩小 · ✊握拳)</span>
+              <span>🖱️ 鼠标拖拽/滚轮/28px磁吸 · 📷 手势控制 (✋平移拨动旋转 · 🤟放大 · 🤏缩小 · ✊握拳选中)</span>
             </div>
           </div>
 
-          {/* Floating AI Camera Hand Gesture Recognizer HUD */}
+          {/* Floating AI Camera Hand Gesture Recognizer HUD (supports light blueprint theme) */}
           <GestureCameraHUD
             onGestureAction={handleGestureAction}
             isRegionSelected={Boolean(selectedRegion)}
             selectedRegion={selectedRegion}
+            isDark={isDark}
           />
         </div>
 
-        {/* Right Column: Dedicated Region Inspector Sidebar (No popup covering globe!) */}
+        {/* Right Column: Dedicated Region Inspector Sidebar */}
         <div className="explorer-sidebar-col">
           <div className="explorer-sidebar-header">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
@@ -883,7 +1023,30 @@ export default function GlobalExplorer() {
               {selectedRegion.summaryZh}
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.2rem' }}>
+            {/* Cultural Cluster Shuttle Strip (Solves European High-Density Selection UX) */}
+            {neighborRegions.length > 1 && (
+              <div className="neighbor-cities-strip" style={{ marginTop: '0.65rem' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+                  <Compass size={12} style={{ color: 'var(--accent-blue)' }} />
+                  <span>{activeCluster.name} · 快速穿梭</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                  {neighborRegions.map(reg => (
+                    <button
+                      key={reg.id}
+                      type="button"
+                      className={`neighbor-city-pill ${selectedRegion.id === reg.id ? 'active' : ''}`}
+                      onClick={() => focusRegion(reg)}
+                    >
+                      <span>{reg.nameZh}</span>
+                      <span style={{ opacity: 0.65, fontSize: '0.66rem' }}>({reg.artworksCount})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.45rem' }}>
               <span className="chip chip-outline" style={{ fontSize: '0.7rem' }}>
                 <Layers size={10} />
                 <span>{selectedRegion.artworksCount} 件代表地标</span>

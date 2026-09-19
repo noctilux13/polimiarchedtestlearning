@@ -57,12 +57,12 @@ function loadExternalScript(src) {
 }
 
 // Render holographic wireframe skeleton on transparent virtual canvas with single-action visual indicator
-function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch) {
+function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fourFingerCount, isPinch, isDark = true) {
   ctx.clearRect(0, 0, width, height);
 
-  // 1. Cyber coordinate grid lines
+  // 1. Blueprint / Cyber coordinate grid lines
   ctx.save();
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.07)' : 'rgba(2, 132, 199, 0.09)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let x = 16; x < width; x += 28) {
@@ -75,11 +75,12 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   }
   ctx.stroke();
 
-  // 2. Draw Bones (Fluorescent neon cyber lines)
+  // 2. Draw Bones
   ctx.lineWidth = 2.2;
-  ctx.strokeStyle = isOptimal ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)';
-  ctx.shadowColor = '#00f0ff';
-  ctx.shadowBlur = isOptimal ? 8 : 4;
+  const mainColor = isDark ? (isOptimal ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)') : (isOptimal ? '#0284c7' : 'rgba(2, 132, 199, 0.6)');
+  ctx.strokeStyle = mainColor;
+  ctx.shadowColor = isDark ? '#00f0ff' : '#38bdf8';
+  ctx.shadowBlur = isOptimal ? (isDark ? 8 : 4) : 2;
   ctx.beginPath();
   HAND_CONNECTIONS.forEach(([i, j]) => {
     const x1 = (1 - lm[i].x) * width;
@@ -96,12 +97,10 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   const ty = lm[4].y * height;
   const ix = (1 - lm[8].x) * width;
   const iy = lm[8].y * height;
-  const mx = (1 - lm[12].x) * width;
-  const my = lm[12].y * height;
 
   if (isPinch || activeAction === 'zoom_out') {
     ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = '#fbbf24';
+    ctx.strokeStyle = '#d97706';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(tx, ty);
@@ -114,30 +113,24 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
   for (let i = 0; i < 21; i++) {
     const cx = (1 - lm[i].x) * width;
     const cy = lm[i].y * height;
-    const isIndexTip = i === 8;
-    const isMiddleTip = i === 12;
-    const isRingTip = i === 16;
 
-    let fillColor = '#e2e8f0';
-    let ringSize = 2.2;
+    let fillColor = isDark ? '#e2e8f0' : '#475569';
+    let ringSize = 2.4;
 
-    if (activeAction === 'rotate_left' && isIndexTip) {
-      fillColor = '#38bdf8';
-      ringSize = 5.8;
-    } else if (activeAction === 'rotate_right' && (isIndexTip || isMiddleTip)) {
-      fillColor = '#38bdf8';
-      ringSize = 5.8;
-    } else if (activeAction === 'zoom_in' && (isIndexTip || isMiddleTip || isRingTip)) {
-      fillColor = '#4ade80';
-      ringSize = 5.5;
+    if (activeAction?.startsWith('pan') || activeAction === 'swipe') {
+      fillColor = isDark ? '#38bdf8' : '#0284c7';
+      ringSize = 3.8;
+    } else if (activeAction === 'zoom_in') {
+      fillColor = isDark ? '#4ade80' : '#16a34a';
+      ringSize = 4.8;
     } else if (activeAction === 'zoom_out' && (i === 4 || i === 8)) {
-      fillColor = '#fbbf24';
-      ringSize = 5.5;
+      fillColor = '#f59e0b';
+      ringSize = 5.2;
     } else if (activeAction === 'fist') {
       fillColor = '#f43f5e';
-      ringSize = 3.6;
+      ringSize = 3.8;
     } else if (i === 4 || i === 8 || i === 12 || i === 16 || i === 20) {
-      fillColor = '#4ade80';
+      fillColor = isDark ? '#38bdf8' : '#0284c7';
       ringSize = 3.2;
     }
 
@@ -145,50 +138,58 @@ function drawVirtualSkeleton(ctx, lm, width, height, isOptimal, activeAction, fo
     ctx.arc(cx, cy, ringSize, 0, Math.PI * 2);
     ctx.fillStyle = fillColor;
     ctx.shadowColor = fillColor;
-    ctx.shadowBlur = 7;
+    ctx.shadowBlur = isDark ? 6 : 2;
     ctx.fill();
   }
 
-  // 5. Real-time Exclusive Action Badge on Canvas
+  // 5. Real-time Action Badge on Canvas
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.shadowBlur = 0;
 
-  if (activeAction === 'rotate_left') {
-    ctx.fillStyle = '#38bdf8';
+  if (activeAction === 'pan_left') {
+    ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText('☝️ ◂ 向左旋转中', ix, iy - 12);
-  } else if (activeAction === 'rotate_right') {
-    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('✋ ◂ 向左挥动拨转', width / 2, height - 12);
+  } else if (activeAction === 'pan_right') {
+    ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.textAlign = 'center';
-    ctx.fillText('✌️ 向右旋转中 ▸', (ix + mx) / 2, Math.min(iy, my) - 12);
+    ctx.fillText('✋ 向右挥动拨转 ▸', width / 2, height - 12);
+  } else if (activeAction === 'pan_up') {
+    ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
+    ctx.textAlign = 'center';
+    ctx.fillText('✋ ▴ 向上俯视倾转', width / 2, height - 12);
+  } else if (activeAction === 'pan_down') {
+    ctx.fillStyle = isDark ? '#38bdf8' : '#0284c7';
+    ctx.textAlign = 'center';
+    ctx.fillText('✋ ▾ 向下仰视倾转', width / 2, height - 12);
   } else if (activeAction === 'zoom_in') {
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = isDark ? '#4ade80' : '#16a34a';
     ctx.textAlign = 'center';
-    ctx.fillText('🤟 推进放大中 🔍', (ix + mx) / 2, Math.min(iy, my) - 12);
+    ctx.fillText('🤟 三指张开：推进放大 🔍', width / 2, height - 12);
   } else if (activeAction === 'zoom_out') {
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = '#d97706';
     ctx.textAlign = 'center';
-    ctx.fillText('🤏 捏合缩小中 🔎', (tx + ix) / 2, Math.min(ty, iy) - 12);
+    ctx.fillText('🤏 双指捏合：拉远缩小 🔎', width / 2, height - 12);
   } else if (activeAction === 'fist') {
     ctx.fillStyle = '#f43f5e';
     ctx.textAlign = 'center';
-    ctx.fillText('✊ 握拳选中中', width / 2, height / 2);
+    ctx.fillText('✊ 握拳选中聚焦', width / 2, height / 2);
   } else {
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.85)' : 'rgba(71, 85, 105, 0.9)';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ 待机巡航中 (零误触)', width / 2, height - 12);
+    ctx.fillText('✋ 手掌平移控制地球 · 悬停静止', width / 2, height - 12);
   }
 
   ctx.restore();
 }
 
 // Render empty / searching radar animation
-function drawEmptyViewfinder(ctx, width, height) {
+function drawEmptyViewfinder(ctx, width, height, isDark = true) {
   ctx.clearRect(0, 0, width, height);
   ctx.save();
 
   // Concentric radar circles
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.2)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.arc(width / 2, height / 2, 45, 0, Math.PI * 2);
@@ -196,7 +197,7 @@ function drawEmptyViewfinder(ctx, width, height) {
   ctx.stroke();
 
   // Subtle grid crosshair
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+  ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.08)' : 'rgba(2, 132, 199, 0.12)';
   ctx.beginPath();
   ctx.moveTo(width / 2, 10);
   ctx.lineTo(width / 2, height - 10);
@@ -205,7 +206,7 @@ function drawEmptyViewfinder(ctx, width, height) {
   ctx.stroke();
 
   // Text status
-  ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+  ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.6)' : 'rgba(71, 85, 105, 0.75)';
   ctx.font = '10px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('AI 虚拟雷达感知中...', width / 2, height / 2 + 4);
@@ -213,7 +214,7 @@ function drawEmptyViewfinder(ctx, width, height) {
   ctx.restore();
 }
 
-export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) {
+export default function GestureCameraHUD({ onGestureAction, isRegionSelected, isDark = true }) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
@@ -262,6 +263,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
   const smRef = useRef({
     state: GESTURE_STATES.NO_HAND,
     activeAction: null, // Currently locked exclusive action mode
+    prevCentroidX: null,
+    prevCentroidY: null,
     candidate: null,
     stability: 0,
     idleStreak: 0,
@@ -291,31 +294,26 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       sm.cooldownUntil = now + 900;
       sm.state = GESTURE_STATES.COOLDOWN;
       sm.stability = 0;
-    } else if (candidate === 'rotate_left') {
+    } else if (candidate === 'pan_left' || candidate === 'pan_right' || candidate === 'pan_up' || candidate === 'pan_down') {
+      const dirLabels = {
+        pan_left: '✋ ◂ 向左挥动地球 (物理惯性)',
+        pan_right: '✋ 向右挥动地球 ▸ (物理惯性)',
+        pan_up: '✋ ▴ 向上俯视倾转 (物理惯性)',
+        pan_down: '✋ ▾ 向下仰视倾转 (物理惯性)'
+      };
       setCurrentGesture({
-        type: 'rotate_left',
-        label: '☝️ 单指伸出：向左旋转地球',
-        icon: '◂'
+        type: candidate,
+        label: dirLabels[candidate] || '✋ 手掌平移旋转中',
+        icon: '✋'
       });
       onGestureActionRef.current?.({
-        type: 'rotate',
-        direction: 'left',
-        speed: 1.4
+        type: 'hand_pan',
+        deltaX: rawParam?.deltaX ?? 0,
+        deltaY: rawParam?.deltaY ?? 0,
+        speed: rawParam?.speed ?? 0,
+        direction: candidate
       });
-      sm.cooldownUntil = now + 30; // Buttery smooth continuous control
-      sm.state = GESTURE_STATES.COOLDOWN;
-    } else if (candidate === 'rotate_right') {
-      setCurrentGesture({
-        type: 'rotate_right',
-        label: '✌️ 双指伸出：向右旋转地球',
-        icon: '▸'
-      });
-      onGestureActionRef.current?.({
-        type: 'rotate',
-        direction: 'right',
-        speed: 1.4
-      });
-      sm.cooldownUntil = now + 30; // Buttery smooth continuous control
+      sm.cooldownUntil = now + 16; // 60fps responsive physical tracking
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'zoom_in') {
       setCurrentGesture({
@@ -336,8 +334,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
       sm.cooldownUntil = now + 100;
       sm.state = GESTURE_STATES.COOLDOWN;
     } else if (candidate === 'idle') {
-      setCurrentGesture({ type: 'idle', label: '✋ 待机中立：手掌平展安全巡航', icon: '✋' });
-      onGestureActionRef.current?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
+      setCurrentGesture({ type: 'idle', label: '✋ 手掌悬停静止 · 零误触巡航', icon: '✋' });
+      onGestureActionRef.current?.({ type: 'hand_hover', x: rawParam?.x ?? 0.5, y: rawParam?.y ?? 0.5 });
     }
   }, []);
 
@@ -351,9 +349,12 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
     // Strict NO_HAND transition
     if (!hasHand) {
+      sm.prevCentroidX = null;
+      sm.prevCentroidY = null;
+
       if (wireframeCanvas) {
         const ctx = wireframeCanvas.getContext('2d');
-        if (ctx) drawEmptyViewfinder(ctx, wireframeCanvas.width, wireframeCanvas.height);
+        if (ctx) drawEmptyViewfinder(ctx, wireframeCanvas.width, wireframeCanvas.height, isDark);
       }
 
       sm.lostStreak = (sm.lostStreak || 0) + 1;
@@ -406,18 +407,12 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
     setDistanceFeedback({ status: currentDistStatus, label: currentDistLabel });
 
     // 2. Anatomical Finger Extension & Geometry
-    // A finger is extended if fingertip is noticeably further from wrist than its PIP joint:
     const isExt = (tipIdx, pipIdx) => dist(lm[tipIdx], lm[0]) > dist(lm[pipIdx], lm[0]) * 1.04;
 
     const indexExtended = isExt(8, 6);
     const middleExtended = isExt(12, 10);
     const ringExtended = isExt(16, 14);
     const pinkyExtended = isExt(20, 18);
-
-    const dIndex = dist(lm[8], lm[0]);
-    const dMiddle = dist(lm[12], lm[0]);
-    const dRing = dist(lm[16], lm[0]);
-    const dPinky = dist(lm[20], lm[0]);
 
     const palmBase = Math.max(0.01, dist(lm[0], lm[9]));
     const pinchDist = dist(lm[4], lm[8]);
@@ -426,49 +421,56 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
     const fourFingerCount = (indexExtended ? 1 : 0) + (middleExtended ? 1 : 0) + (ringExtended ? 1 : 0) + (pinkyExtended ? 1 : 0);
 
-    const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
-    const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
+    // Mirror X for natural, 1:1 physical gesture mapping (moving hand right on screen = right)
+    const currCentroidX = 1 - (lm[0].x + lm[5].x + lm[9].x + lm[17].x) / 4;
+    const currCentroidY = (lm[0].y + lm[5].y + lm[9].y + lm[17].y) / 4;
+
+    let deltaX = 0;
+    let deltaY = 0;
+    if (sm.prevCentroidX !== null && sm.prevCentroidY !== null) {
+      deltaX = currCentroidX - sm.prevCentroidX;
+      deltaY = currCentroidY - sm.prevCentroidY;
+    }
+    sm.prevCentroidX = currCentroidX;
+    sm.prevCentroidY = currCentroidY;
+
+    const moveDist = Math.hypot(deltaX, deltaY);
 
     // 3. Discrete Mutually Exclusive Candidate Classification
     let rawCandidate = 'idle';
     let rawParam = null;
 
-    // GESTURE 1: ✊ FIST (0 fingers extended or all 4 curled -> Select)
+    // GESTURE 1: ✊ FIST (All 4 fingers curled) -> Select / Focus
     if (fourFingerCount === 0 || (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended)) {
       rawCandidate = 'fist';
     }
-    // GESTURE 2: 🤏 PINCH (Index & Thumb tips touching -> Zoom Out)
+    // GESTURE 2: 🤏 PINCH (Index & Thumb tips touching) -> Zoom Out
     else if (isPinch && (fourFingerCount <= 2 || !middleExtended)) {
       rawCandidate = 'zoom_out';
       rawParam = 0.18;
     }
-    // GESTURE 3: ☝️ ONE FINGER (Only Index extended -> Rotate Left)
-    // Relaxed: Index extended, while middle is curled OR index is noticeably longer than middle
-    else if (indexExtended && (!middleExtended || dIndex > dMiddle * 1.12) && (!ringExtended || dIndex > dRing * 1.15)) {
-      rawCandidate = 'rotate_left';
-      rawParam = { direction: 'left', speed: 1.4 };
-    }
-    // GESTURE 4: ✌️ TWO FINGERS (Index & Middle extended -> Rotate Right)
-    // Relaxed: Index & Middle extended, while ring is curled OR middle is noticeably longer than ring
-    else if (indexExtended && middleExtended && (!ringExtended || dMiddle > dRing * 1.12) && (!pinkyExtended || dMiddle > dPinky * 1.15)) {
-      rawCandidate = 'rotate_right';
-      rawParam = { direction: 'right', speed: 1.4 };
-    }
-    // GESTURE 5: 🤟 THREE FINGERS (Index, Middle & Ring extended -> Zoom In)
+    // GESTURE 3: 🤟 SPREAD (3 fingers extended) -> Zoom In
     else if (indexExtended && middleExtended && ringExtended && !pinkyExtended && !isPinch) {
       rawCandidate = 'zoom_in';
       rawParam = -0.18;
     }
-    // GESTURE 6: ✋ OPEN PALM (4 or 5 fingers extended -> Neutral Standby Cruise)
-    else if (fourFingerCount >= 4 || (indexExtended && middleExtended && ringExtended && pinkyExtended)) {
+    // GESTURE 4: ✋ PHYSICAL HAND PAN WITH MOMENTUM (手掌整体位移旋转)
+    else if (moveDist > 0.010) {
+      const isHorizontal = Math.abs(deltaX) >= Math.abs(deltaY) * 0.75;
+      if (isHorizontal) {
+        rawCandidate = deltaX > 0 ? 'pan_right' : 'pan_left';
+      } else {
+        rawCandidate = deltaY > 0 ? 'pan_down' : 'pan_up';
+      }
+      rawParam = { deltaX, deltaY, speed: moveDist };
+    }
+    // GESTURE 5: ✋ HOVER STILL (手掌悬停静止)
+    else {
       rawCandidate = 'idle';
-      rawParam = { x: 1 - palmX, y: palmY };
-    } else {
-      rawCandidate = 'idle';
-      rawParam = { x: 1 - palmX, y: palmY };
+      rawParam = { x: currCentroidX, y: currCentroidY };
     }
 
-    // 4. Single-Action Exclusive State Machine (一次只识别一种动作，动作模式互斥锁定)
+    // 4. Single-Action Exclusive State Machine
     if (rawCandidate === 'idle') {
       sm.idleStreak = (sm.idleStreak || 0) + 1;
       sm.stability = 0;
@@ -480,8 +482,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
           sm.activeAction = null;
         }
         sm.state = GESTURE_STATES.NO_HAND;
-        setCurrentGesture({ type: 'idle', label: '✋ 待机中立：手掌平展安全巡航', icon: '✋' });
-        onGestureActionRef.current?.({ type: 'open_palm', centroidX: rawParam?.x ?? 0.5, centroidY: rawParam?.y ?? 0.5 });
+        setCurrentGesture({ type: 'idle', label: '✋ 手掌悬停静止 · 零误触巡航', icon: '✋' });
+        onGestureActionRef.current?.({ type: 'hand_hover', x: currCentroidX, y: currCentroidY });
       }
     } else {
       sm.idleStreak = 0;
@@ -493,7 +495,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         sm.stability = 1;
       }
 
-      const isContinuous = rawCandidate === 'rotate_left' || rawCandidate === 'rotate_right' || rawCandidate === 'zoom_in' || rawCandidate === 'zoom_out';
+      const isContinuous = rawCandidate.startsWith('pan_') || rawCandidate === 'zoom_in' || rawCandidate === 'zoom_out';
       const requiredFrames = isContinuous ? 1 : 2;
 
       if (sm.activeAction === null) {
@@ -506,11 +508,12 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
           sm.state = GESTURE_STATES.GESTURE_CANDIDATE;
         }
       } else {
-        // Action is currently locked: only execute if candidate matches or deliberate switch
-        if (rawCandidate === sm.activeAction) {
+        // Action is currently locked: execute if matching or immediate continuous stream
+        if (rawCandidate === sm.activeAction || (isContinuous && rawCandidate.startsWith('pan_'))) {
           if (now >= sm.cooldownUntil) {
+            sm.activeAction = rawCandidate;
             sm.state = GESTURE_STATES.GESTURE_CONFIRMED;
-            dispatchConfirmedGesture(sm.activeAction, rawParam);
+            dispatchConfirmedGesture(rawCandidate, rawParam);
           }
         } else if (sm.stability >= 3 && now >= sm.cooldownUntil) {
           // Switch action cleanly if held stably for 3 frames
@@ -533,7 +536,8 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
           currentDistStatus === 'optimal',
           sm.activeAction || rawCandidate,
           fourFingerCount,
-          isPinch
+          isPinch,
+          isDark
         );
       }
     }
@@ -554,7 +558,7 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
         distanceRatio: parseFloat(handHeight.toFixed(2))
       });
     }
-  }, [dispatchConfirmedGesture]);
+  }, [dispatchConfirmedGesture, isDark]);
 
   // Start Camera
   const startCamera = async () => {
@@ -1010,10 +1014,10 @@ export default function GestureCameraHUD({ onGestureAction, isRegionSelected }) 
 
                 {/* Gestures Legend / Tutorial Pills */}
                 <div style={{ padding: '8px 12px', fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '3px', backgroundColor: 'var(--bg-subtle)' }}>
-                  <div>• <strong>☝️ 单指 / ✌️ 双指</strong>：向左 / 右平滑旋转地球</div>
+                  <div>• <strong>✋ 手掌平移</strong>：左/右/上/下平移拨动地球，物理惯性旋转</div>
                   <div>• <strong>🤟 三指 / 🤏 捏合</strong>：推进放大 / 拉远缩小全局</div>
                   <div>• <strong>✊ 握拳</strong>：选中高亮地区 (再次握拳研读考点)</div>
-                  <div>• <strong>✋ 平展手掌</strong>：待机巡航，绝对零误触</div>
+                  <div>• <strong>✋ 悬停静止</strong>：零误触安全巡航</div>
                 </div>
 
                 {/* Toggle Switch Button */}
