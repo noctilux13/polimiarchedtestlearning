@@ -606,7 +606,7 @@ export default function GlobalExplorer() {
     const glowTex = createGlowPointTexture();
 
     // 5c. High-Density Continent-Mapped Particle Cloud
-    const particleCount = 26000;
+    const particleCount = 52000;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
 
@@ -676,7 +676,7 @@ export default function GlobalExplorer() {
           }
         } else {
           // Subtle oceanic matrix grid dots (Dimmed down heavily to make continents pop)
-          const keepOcean = (i % 16 === 0) || Math.abs(lat) < 0.6;
+          const keepOcean = (i % 32 === 0) || Math.abs(lat) < 0.6;
           if (keepOcean) {
             const opt = latLngToVector3(lat, lng, globeRadius * 1.002);
             particlePositions[pIdx * 3] = opt.x;
@@ -706,7 +706,7 @@ export default function GlobalExplorer() {
     particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const particleMat = new THREE.PointsMaterial({
-      size: isDark ? 0.064 : 0.056,
+      size: isDark ? 0.038 : 0.032,
       map: glowTex,
       vertexColors: true,
       transparent: true,
