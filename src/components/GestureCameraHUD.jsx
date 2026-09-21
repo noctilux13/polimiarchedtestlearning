@@ -278,7 +278,12 @@ export default function GestureCameraHUD({
   onZoomSensitivityChange
 }) {
   const [isEnabled, setIsEnabled] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
   const [showDebug, setShowDebug] = useState(false);
   const [engineType, setEngineType] = useState('MediaPipe Hands');
   const [errorMsg, setErrorMsg] = useState(null);

@@ -563,54 +563,80 @@ export default function GlobalExplorer() {
     sceneRef.current = scene;
 
     // 2. Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 5.2);
+    const baseFov = 45;
+    const mobileHorizontalFov = 56;
+    const aspect = width / height;
+    const fov = aspect < 1.0 
+      ? 2 * Math.atan(Math.tan((mobileHorizontalFov * Math.PI) / 360) / aspect) * (180 / Math.PI)
+      : baseFov;
+
+    // 2. Camera: Dynamically scale portrait FOV so the 3D globe is framed comfortably on mobile screens
+    const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
+    const initialDist = aspect < 1.0 ? 5.5 : 5.2;
+    camera.position.set(0, 0, initialDist);
+    controlsRef.current.currentDist = initialDist;
+    controlsRef.current.targetDist = initialDist;
     cameraRef.current = camera;
 
-    // 3. Renderer
+    // 3. Renderer with calibrated dynamic range exposure
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = isDark ? 1.55 : 1.45;
+    renderer.toneMappingExposure = isDark ? 1.82 : 1.68;
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Multi-Source Sci-Fi Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 2.2 : 2.4);
+    // 4. Multi-Source Sci-Fi Lighting (Brightened, high-vibrancy specular & diffuse)
+    const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 2.8 : 3.0);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, isDark ? 2.8 : 2.5);
+    const dirLight1 = new THREE.DirectionalLight(0xfffaf0, isDark ? 3.6 : 3.2);
     dirLight1.position.set(6, 8, 7);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0xbae6fd, 1.8);
+    const dirLight2 = new THREE.DirectionalLight(0x7dd3fc, isDark ? 2.4 : 2.0);
     dirLight2.position.set(-7, -2, -5);
     scene.add(dirLight2);
 
-    const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x1e293b, 1.0);
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 1.4);
     scene.add(hemiLight);
 
-    // 5. High-Fidelity 3D Particle Globe (真经纬度高精度粒子地球仪)
+    // 5. High-Fidelity 3D Continent Bead Globe (真经纬度高精度3D立体小点建模)
     const globeRadius = 2.4;
 
     // 5a. Inner Dark Void Core (Occludes backside particles for authentic 3D spherical depth)
-    const coreGeo = new THREE.SphereGeometry(globeRadius * 0.988, 48, 48);
+    const coreGeo = new THREE.SphereGeometry(globeRadius * 0.992, 48, 48);
     const coreMat = new THREE.MeshBasicMaterial({
-      color: isDark ? 0x060913 : 0x0a1628
+      color: isDark ? 0x050811 : 0x0a1628
     });
     const coreMesh = new THREE.Mesh(coreGeo, coreMat);
     scene.add(coreMesh);
 
-    // 5b. Particle Sprite Texture (Circular radial soft glow)
+    // 5b. Particle Sprite Texture (Circular radial soft glow for atmosphere and background)
     const glowTex = createGlowPointTexture();
 
-    // 5c. High-Density Continent-Mapped Particle Cloud
-    const particleCount = 52000;
-    const particlePositions = new Float32Array(particleCount * 3);
-    const particleColors = new Float32Array(particleCount * 3);
+    // 5c. True 3D Faceted Continent Micro-Mesh (Instanced 3D Icosahedron Beads with Radial Elevation)
+    const maxInstances = 58000;
+    const dotGeo = new THREE.IcosahedronGeometry(0.0105, 0);
+    const dotMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.22,
+      metalness: 0.32,
+      emissive: isDark ? new THREE.Color(0x0284c7) : new THREE.Color(0x0369a1),
+      emissiveIntensity: isDark ? 0.70 : 0.45,
+    });
+    const instancedMesh = new THREE.InstancedMesh(dotGeo, dotMat, maxInstances);
+    instancedMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    scene.add(instancedMesh);
+    globeRef.current = instancedMesh;
 
     const goldenPhi = Math.PI * (Math.sqrt(5) - 1);
+    const dummy = new THREE.Object3D();
+    const tempColor = new THREE.Color();
 
     // Offscreen Canvas for Geographic Sampling (1024x512 equirectangular map)
     const sampleCanvas = document.createElement('canvas');
@@ -635,10 +661,12 @@ export default function GlobalExplorer() {
       sCtx.fill();
     });
 
-    function computeParticles(data, w, h) {
-      let pIdx = 0;
-      for (let i = 0; i < particleCount; i++) {
-        const yNorm = 1 - (i / (particleCount - 1)) * 2;
+    function compute3DParticles(data, w, h) {
+      let count = 0;
+      const totalSamples = 165000;
+
+      for (let i = 0; i < totalSamples && count < maxInstances; i++) {
+        const yNorm = 1 - (i / (totalSamples - 1)) * 2;
         const phi = Math.acos(Math.max(-0.999, Math.min(0.999, yNorm)));
         const lat = 90 - (phi * 180) / Math.PI;
         const theta = (goldenPhi * i) % (Math.PI * 2);
@@ -651,72 +679,85 @@ export default function GlobalExplorer() {
         const py = Math.min(h - 1, Math.floor(v * h));
         const dIdx = (py * w + px) * 4;
 
-        // In equirectangular specular mask, land is dark (black=0), ocean is bright specular (white=255)
         const brightness = (data[dIdx] * 0.299 + data[dIdx + 1] * 0.587 + data[dIdx + 2] * 0.114) / 255;
         const isLand = brightness < 0.5;
 
-        // Exact 3D spherical position matching latLngToVector3 100%
-        const pt = latLngToVector3(lat, lng, globeRadius * 1.008);
+        // Sparse oceanic reference matrix (1 in 52 samples or near equator)
+        const isOceanBeacon = (!isLand) && ((i % 52 === 0) || Math.abs(lat) < 0.35);
+
+        if (!isLand && !isOceanBeacon) {
+          continue;
+        }
+
+        let radiusOffset = 1.005;
+        let scaleX = 1.0;
+        let scaleY = 1.0;
+        let scaleZ = 1.25;
 
         if (isLand) {
-          particlePositions[pIdx * 3] = pt.x;
-          particlePositions[pIdx * 3 + 1] = pt.y;
-          particlePositions[pIdx * 3 + 2] = pt.z;
-
-          if (brightness < 0.15) {
-            // Core continent interior node: luminous azure / deep cobalt
-            particleColors[pIdx * 3] = isDark ? 0.45 : 0.12;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.92 : 0.58;
-            particleColors[pIdx * 3 + 2] = isDark ? 1.00 : 0.96;
+          if (brightness < 0.18) {
+            // Core continent interior plateau / highlands: elevated 3D relief
+            radiusOffset = 1.013;
+            scaleX = 1.15;
+            scaleY = 1.15;
+            scaleZ = 1.45;
+            if (isDark) {
+              tempColor.setRGB(0.38, 0.94, 1.00); // Luminous electric cyan
+            } else {
+              tempColor.setRGB(0.08, 0.58, 0.98); // Vibrant Mediterranean cobalt
+            }
           } else {
-            // Coastline boundary highlight: pure brilliant white-cyan glow
-            particleColors[pIdx * 3] = isDark ? 1.00 : 0.28;
-            particleColors[pIdx * 3 + 1] = isDark ? 1.00 : 0.72;
-            particleColors[pIdx * 3 + 2] = 1.00;
+            // Coastlines & island edges: sparkling diamond contrast
+            radiusOffset = 1.008;
+            scaleX = 0.95;
+            scaleY = 0.95;
+            scaleZ = 1.20;
+            if (isDark) {
+              tempColor.setRGB(1.00, 1.00, 1.00); // Brilliant pure white highlight
+            } else {
+              tempColor.setRGB(0.12, 0.88, 0.98); // Crystal turquoise
+            }
           }
         } else {
-          // Subtle oceanic matrix grid dots (Dimmed down heavily to make continents pop)
-          const keepOcean = (i % 32 === 0) || Math.abs(lat) < 0.6;
-          if (keepOcean) {
-            const opt = latLngToVector3(lat, lng, globeRadius * 1.002);
-            particlePositions[pIdx * 3] = opt.x;
-            particlePositions[pIdx * 3 + 1] = opt.y;
-            particlePositions[pIdx * 3 + 2] = opt.z;
-            particleColors[pIdx * 3] = isDark ? 0.012 : 0.86;
-            particleColors[pIdx * 3 + 1] = isDark ? 0.05 : 0.90;
-            particleColors[pIdx * 3 + 2] = isDark ? 0.12 : 0.94;
+          // Ocean reference markers
+          radiusOffset = 1.002;
+          scaleX = 0.52;
+          scaleY = 0.52;
+          scaleZ = 0.60;
+          if (isDark) {
+            tempColor.setRGB(0.06, 0.20, 0.42);
           } else {
-            particlePositions[pIdx * 3] = 0;
-            particlePositions[pIdx * 3 + 1] = 0;
-            particlePositions[pIdx * 3 + 2] = 0;
-            particleColors[pIdx * 3] = 0;
-            particleColors[pIdx * 3 + 1] = 0;
-            particleColors[pIdx * 3 + 2] = 0;
+            tempColor.setRGB(0.72, 0.82, 0.92);
           }
         }
-        pIdx++;
+
+        const pt = latLngToVector3(lat, lng, globeRadius * radiusOffset);
+        dummy.position.set(pt.x, pt.y, pt.z);
+        dummy.lookAt(pt.x * 2, pt.y * 2, pt.z * 2);
+        dummy.scale.set(scaleX, scaleY, scaleZ);
+        dummy.updateMatrix();
+
+        instancedMesh.setMatrixAt(count, dummy.matrix);
+        instancedMesh.setColorAt(count, tempColor);
+        count++;
+      }
+
+      for (let k = count; k < maxInstances; k++) {
+        dummy.position.set(0, 0, 0);
+        dummy.scale.set(0, 0, 0);
+        dummy.updateMatrix();
+        instancedMesh.setMatrixAt(k, dummy.matrix);
+      }
+
+      instancedMesh.count = count;
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      if (instancedMesh.instanceColor) {
+        instancedMesh.instanceColor.needsUpdate = true;
       }
     }
 
     // Run initial computation immediately with vector continents
-    computeParticles(sCtx.getImageData(0, 0, 1024, 512).data, 1024, 512);
-
-    const particleGeo = new THREE.BufferGeometry();
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-
-    const particleMat = new THREE.PointsMaterial({
-      size: isDark ? 0.038 : 0.032,
-      map: glowTex,
-      vertexColors: true,
-      transparent: true,
-      opacity: 1.0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const particleMesh = new THREE.Points(particleGeo, particleMat);
-    scene.add(particleMesh);
-    globeRef.current = particleMesh;
+    compute3DParticles(sCtx.getImageData(0, 0, 1024, 512).data, 1024, 512);
 
     // Step 2: Asynchronously load NASA specular high-res texture to refine coastlines & islands
     const specularImg = new Image();
@@ -725,9 +766,7 @@ export default function GlobalExplorer() {
     specularImg.onload = () => {
       sCtx.drawImage(specularImg, 0, 0, 1024, 512);
       const detailedData = sCtx.getImageData(0, 0, 1024, 512).data;
-      computeParticles(detailedData, 1024, 512);
-      particleGeo.attributes.position.needsUpdate = true;
-      particleGeo.attributes.color.needsUpdate = true;
+      compute3DParticles(detailedData, 1024, 512);
     };
 
     // 5d. Atmospheric Floating Halo Particles (Dimmed to subtle whisper)
@@ -1021,18 +1060,60 @@ export default function GlobalExplorer() {
       c.lastInteractionTime = Date.now();
     };
 
+    // Touch Event Handlers for Mobile Multi-Touch Pinch-to-Zoom
+    let touchStartDist = 0;
+    let touchStartTargetDist = 5.2;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchStartDist = Math.hypot(dx, dy);
+        touchStartTargetDist = controlsRef.current.targetDist;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (e.touches.length === 2 && touchStartDist > 0) {
+        if (e.cancelable) e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDist = Math.hypot(dx, dy);
+        const scale = touchStartDist / Math.max(10, currentDist);
+        const c = controlsRef.current;
+        c.targetDist = Math.max(3.2, Math.min(7.8, touchStartTargetDist * scale));
+        c.autoRotate = false;
+        c.lastInteractionTime = Date.now();
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        touchStartDist = 0;
+      }
+    };
+
     container.addEventListener('pointerdown', handlePointerDown);
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
     container.addEventListener('wheel', handleWheel, { passive: false });
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
 
-    // 8. Resize Handler
+    // 8. Resize Handler with Mobile Portrait Horizontal FOV Preservation
     const handleResize = () => {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
       if (w === 0 || h === 0) return;
-      camera.aspect = w / h;
+      const aspect = w / h;
+      camera.aspect = aspect;
+      if (aspect < 1.0) {
+        camera.fov = 2 * Math.atan(Math.tan((mobileHorizontalFov * Math.PI) / 360) / aspect) * (180 / Math.PI);
+      } else {
+        camera.fov = baseFov;
+      }
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
@@ -1163,6 +1244,9 @@ export default function GlobalExplorer() {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('resize', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
 
@@ -1172,8 +1256,9 @@ export default function GlobalExplorer() {
       }
       coreGeo.dispose();
       coreMat.dispose();
-      particleGeo.dispose();
-      particleMat.dispose();
+      dotGeo.dispose();
+      dotMat.dispose();
+      instancedMesh.dispose();
       glowTex.dispose();
       haloGeo.dispose();
       haloMat.dispose();
@@ -1231,7 +1316,7 @@ export default function GlobalExplorer() {
     <div className="global-explorer-page">
       {/* Top Header & Navigation Breadcrumb */}
       <div className="global-explorer-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="topbar-title-row" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Link
             to="/"
             className="btn btn-outline"
@@ -1245,22 +1330,22 @@ export default function GlobalExplorer() {
               <GlobeIcon size={12} />
               <span>3D 全球探索</span>
             </span>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>·</span>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+            <span className="topbar-desc-text" style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>·</span>
+            <span className="topbar-desc-text" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
               21 个世界艺术与建筑重镇 · 135+ 件代表地标
             </span>
           </div>
         </div>
 
         {/* Region Culture Group Filter & Fast Jump Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+        <div className="explorer-filter-bar">
           {/* Group Category Tabs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border-subtle)', paddingRight: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border-subtle)', paddingRight: '8px', flexShrink: 0 }}>
             <button
               type="button"
               className={`btn ${activeClusterFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setActiveClusterFilter('all')}
-              style={{ borderRadius: 'var(--radius-pill)', padding: '3px 9px', fontSize: '0.72rem' }}
+              style={{ borderRadius: 'var(--radius-pill)', padding: '3px 9px', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
             >
               全部 (21)
             </button>
@@ -1278,7 +1363,7 @@ export default function GlobalExplorer() {
           </div>
 
           {/* City Pills in Current Category */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflowX: 'auto', maxWidth: '420px', padding: '2px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflowX: 'auto', padding: '2px 0', flexShrink: 0 }}>
             {displayedRegions.map(reg => (
               <button
                 key={reg.id}
@@ -1322,7 +1407,7 @@ export default function GlobalExplorer() {
         {/* Center Column: 3D Globe Viewport */}
         <div className="explorer-globe-col">
           {/* Mount Three.js WebGL Canvas */}
-          <div ref={mountRef} style={{ width: '100%', height: '100%', outline: 'none' }} />
+          <div ref={mountRef} className="explorer-globe-mount" />
 
           {/* Floating City Badges (Zoom LOD & Front-Facing Culling) */}
           {visibleCityLabels.map((lbl) => (
@@ -1364,12 +1449,16 @@ export default function GlobalExplorer() {
               </span>
             </div>
 
-            <div className="globe-pill" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+            <div className="globe-pill globe-pill-desktop-hint" style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
               <span>
                 {isEurope && europeNavMode === 'country_select'
                   ? '✋ 上/下翻选国 · ✊ 握拳进入 · 4️⃣ 做数字4退出返回地球仪'
                   : '🖱️ 鼠标拖拽/滚轮/磁吸 · 📷 手势 (✋拨转 · 🤏张开放大 · 👌捏合缩小 · ✊握拳选中)'}
               </span>
+            </div>
+
+            <div className="globe-pill globe-pill-mobile-hint" style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              <span>👆 单指滑动旋转 · 双指捏合缩放</span>
             </div>
           </div>
         </div>
