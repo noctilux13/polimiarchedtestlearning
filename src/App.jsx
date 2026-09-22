@@ -65,7 +65,7 @@ function AppContent() {
     <div className="app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
       
-      <main className={`container ${isExplorer ? 'container-explorer' : ''}`} style={{ flex: 1 }}>
+      <main className={`container ${isExplorer ? 'container-explorer' : ''}`} style={{ flex: 1, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Home />} />

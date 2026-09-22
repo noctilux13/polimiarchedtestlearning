@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import * as THREE from 'three';
 import { AppContext } from '../context/AppContext';
 import { geoRegions } from '../data/geoArtData';
+import { isLandAt } from '../data/earthLandMask';
 import GestureCameraHUD from '../components/GestureCameraHUD';
 import { ArtworkImage } from '../components/ArtworkImage';
 import { getAssetUrl } from '../utils/assetUrl';
@@ -170,35 +171,80 @@ const EUROPE_COUNTRIES = [
 const EUROPE_REGION_IDS = new Set(EUROPE_COUNTRIES.flatMap(c => c.regionIds));
 const isEuropeRegion = (region) => Boolean(region && EUROPE_REGION_IDS.has(region.id));
 
-// Offline Vector Continent Footprints ([lat, lng] polygons on equirectangular projection)
+// Geographically verified vector continent footprints ([lat, lng] polygons on equirectangular projection)
 const CONTINENT_POLYGONS = [
-  // Western & Central Europe
-  [[36, -9], [43, -9], [44, -1], [49, -1], [54, 8], [58, 10], [55, 14], [54, 19], [46, 16], [42, 19], [40, 23], [37, 23], [36, 14], [36, -9]],
-  // Scandinavia
-  [[55, 12], [63, 10], [70, 20], [70, 30], [60, 25], [55, 12]],
-  // British Isles
-  [[50, -5], [54, -3], [58, -5], [58, -2], [54, 0], [50, 1], [50, -5]],
-  // Italian Peninsula ("the boot") & Sicily
-  [[46, 7], [46, 13], [44, 12], [41, 15], [38, 16], [38, 14], [40, 14], [44, 8], [46, 7]],
-  [[37, 12.5], [38.5, 13.5], [38, 15.5], [36.8, 15.0], [37, 12.5]],
-  // Eurasia & Northern Asia
-  [[42, 28], [48, 38], [55, 37], [68, 45], [72, 70], [75, 110], [72, 140], [60, 160], [45, 140], [35, 128], [30, 122], [22, 114], [10, 105], [8, 98], [22, 88], [8, 77], [25, 68], [30, 50], [38, 35], [42, 28]],
-  // Japan
-  [[31, 130], [34, 132], [36, 137], [40, 140], [44, 144], [42, 141], [35, 139], [33, 135], [31, 130]],
-  // Africa
-  [[36, -6], [36, 11], [32, 25], [30, 32], [22, 37], [12, 43], [12, 51], [5, 48], [-12, 40], [-25, 33], [-34, 26], [-34, 18], [-22, 14], [-5, 12], [5, 2], [5, -4], [15, -17], [28, -13], [36, -6]],
-  // Madagascar
-  [[-12, 49], [-16, 50], [-25, 47], [-25, 44], [-16, 44], [-12, 49]],
-  // North America
-  [[25, -80], [30, -81], [38, -75], [44, -66], [48, -64], [52, -56], [60, -65], [68, -65], [72, -85], [72, -125], [65, -168], [58, -158], [49, -125], [32, -117], [23, -110], [18, -104], [16, -94], [25, -80]],
-  // Greenland
-  [[60, -45], [65, -53], [78, -68], [83, -30], [70, -20], [60, -45]],
-  // South America
-  [[12, -72], [10, -62], [5, -52], [-5, -35], [-15, -39], [-23, -43], [-34, -54], [-45, -65], [-55, -67], [-50, -74], [-38, -73], [-18, -70], [-5, -80], [8, -77], [12, -72]],
-  // Australia & New Zealand
-  [[-12, 130], [-12, 136], [-17, 138], [-12, 142], [-22, 150], [-34, 151], [-38, 144], [-35, 137], [-32, 132], [-35, 118], [-22, 114], [-15, 124], [-12, 130]],
-  [[-35, 173], [-38, 178], [-41, 175], [-46, 170], [-46, 166], [-42, 171], [-35, 173]],
-  // Antarctica
+  // 1. Iberia (Spain & Portugal)
+  [[36, -6], [36.5, -9], [42, -9], [43.5, -8.5], [43.5, -1.8], [42.5, 3], [36, -6]],
+  // 2. Continental Europe, Eastern Europe & Eurasia (Contiguous from France, Low Countries, Germany, Poland, Baltic, Ukraine, Russia across to China & Pacific)
+  [
+    [43.5, -1.8], [46, -1.5], [48.5, -4.5], [50, 1.5], [51, 2.5], [53.5, 7], [55, 8.5], [54.5, 10], 
+    [54.5, 14], [54.5, 19], [56, 21], [58, 22], [59.5, 26], [60, 30], [67, 45], [72, 70], [76, 100], 
+    [73, 135], [65, 175], [60, 165], [52, 142], [43, 132], [40, 124], [39, 118], [37, 122], [32, 121], 
+    [22, 114], [21, 108], [11, 107], [8.5, 105], [13, 100], [21, 97], [22, 89], [20, 86], [16, 82], 
+    [8, 77.5], [15, 74], [19, 73], [23, 68], [25, 62], [27, 51], [30, 48], [33, 36], [36.5, 32], 
+    [38, 27], [41, 29], [44.5, 29], [46, 31], [45, 36], [42, 41], [40, 50], [46, 48], [48, 24], 
+    [45, 20], [45.5, 13.5], [43.8, 7.5], [43, 6], [43.5, 3.5], [43.5, -1.8]
+  ],
+  // 3. British Isles (Great Britain & Ireland)
+  [[50, -5.5], [50.5, 1.5], [53, 0.5], [56, -2], [58.5, -3.5], [58.5, -5], [55.5, -5], [53.5, -3], [51.5, -5], [50, -5.5]],
+  [[51.5, -9.5], [52, -6], [54.5, -5.5], [55.3, -7.5], [54, -10], [51.5, -9.5]],
+  // 4. Scandinavia & Finland (Norway, Sweden, Finland)
+  [[55.5, 12.5], [58, 11], [62, 5], [69, 15], [71, 26], [70, 28], [65, 25], [60, 24], [60, 30], [60, 20], [56, 13], [55.5, 12.5]],
+  // 5. Italian Peninsula ("the boot") & Sicily
+  [[44, 8], [44, 12.5], [41.5, 15.8], [40, 18], [40, 16], [38, 16], [38, 15.5], [40.5, 14.5], [43.5, 10.5], [44, 8]],
+  [[37, 12.5], [38.2, 13.5], [38, 15.5], [36.7, 15], [37, 12.5]],
+  // 6. Balkans & Greece (Peloponnese, Attica & Aegean)
+  [[45, 15], [45, 20], [44, 28], [41.5, 27], [40.5, 23], [38, 24], [36.5, 23], [37, 21.5], [39.5, 20], [42, 18], [45, 15]],
+  // 7. Turkey / Anatolia
+  [[41, 26.5], [42, 28.5], [41.5, 35], [41, 41.5], [37, 43], [36.5, 36], [36, 32], [37, 27], [40, 26], [41, 26.5]],
+  // 8. Arabian Peninsula & Levant
+  [[30, 34], [31, 36], [30, 48], [25, 55], [23, 59], [17, 54], [13, 45], [12.5, 43.5], [20, 40], [28, 35], [30, 34]],
+  // 9. Sri Lanka
+  [[9.5, 80], [8.5, 81.5], [6, 81], [6, 80], [8, 79.5], [9.5, 80]],
+  // 10. Japan (Honshu, Hokkaido, Kyushu)
+  [[31, 130.5], [33.5, 130], [35.5, 135.5], [37, 137], [41, 140], [45, 142], [43, 145.5], [39, 142], [35.5, 140.5], [33.5, 135.5], [31, 130.5]],
+  // 11. Korean Peninsula
+  [[34.5, 126], [37.5, 126], [38.5, 128.5], [35.5, 129.5], [34.5, 126]],
+  // 12. Taiwan & Hainan
+  [[25.3, 121.5], [24, 122], [22, 121], [22, 120], [25, 121], [25.3, 121.5]],
+  [[20, 110.5], [19.5, 111], [18.2, 109.5], [18.5, 108.5], [19.8, 108.5], [20, 110.5]],
+  // 13. Southeast Asia (Indochina & Malay Peninsula)
+  [[21, 108], [11, 107], [8.5, 105], [1.5, 104], [3, 101], [6, 100], [13, 100], [18, 96], [21, 97], [21, 108]],
+  // 14. Indonesian Archipelago: Sumatra, Java, Borneo, Philippines, New Guinea
+  [[5.5, 95.5], [3, 98.5], [-2.5, 104], [-5.5, 106], [-3.5, 102], [0, 99], [5.5, 95.5]],
+  [[-6, 106], [-7, 110], [-7.5, 114], [-8.5, 114], [-8, 108], [-6, 106]],
+  [[6.5, 117], [5, 119], [-3.5, 116], [-3.5, 111], [1.5, 109], [4, 114], [6.5, 117]],
+  [[18, 120.5], [16, 122], [13, 124], [7, 126], [6, 124.5], [10, 122], [14, 120], [18, 120.5]],
+  [[-0.5, 131], [-3, 136], [-8, 147], [-9.5, 149], [-8, 141], [-4, 135], [-0.5, 131]],
+  // 15. Africa
+  [[36, -6], [37, 10], [33, 11], [32, 24], [31.5, 32], [28, 34], [22, 37], [12, 44], [11.5, 51], [5, 48], [-11, 40], [-25, 33], [-34.5, 26], [-34.5, 18.5], [-22, 14.5], [-5, 12], [4.5, 8.5], [5, 1.5], [4.5, -4], [5, -7.5], [15, -17], [28, -13], [36, -6]],
+  // 16. Madagascar
+  [[-12, 49.5], [-16, 50.5], [-25, 47], [-25.5, 44], [-16, 44], [-12, 49.5]],
+  // 17. North America (USA, Canada, Alaska, Mexico, Florida, Yucatan with accurate Gulf of Mexico)
+  [
+    [25, -80], [30, -81.5], [35, -75.5], [41, -72], [44, -66], [47, -64], [52, -55.5], [59, -64], 
+    [62, -66], [71, -70], [70, -125], [71, -156], [65, -168], [58, -158], [55, -132], [49, -125], 
+    [38, -123], [32, -117], [24, -110], [23, -107], [20, -105], [16, -97], [16, -94], [18.5, -96], 
+    [21.5, -97.5], [26, -97], [29, -94], [30, -88], [29.5, -84], [25, -80]
+  ],
+  // 18. Yucatan Peninsula
+  [[21.5, -87], [21.5, -90.5], [18.5, -91], [18.5, -88], [21.5, -87]],
+  // 19. Central America & Panama Isthmus (Seamless connection from North to South America)
+  [[16, -94], [15, -88], [14, -83.5], [9, -77.5], [8, -77], [7.5, -80], [8.5, -83.5], [13.5, -87.5], [16, -94]],
+  // 20. Greenland
+  [[60, -44], [65, -53], [76, -70], [83, -30], [76, -18], [65, -35], [60, -44]],
+  // 21. Caribbean (Cuba & Greater Antilles)
+  [[23, -82], [22, -84.5], [20, -75], [21.5, -74], [23, -82]],
+  // 22. South America
+  [[8, -77], [12, -72], [10.5, -62], [6, -51], [-5, -35], [-14, -39], [-23, -42], [-35, -57], [-45, -65], [-55, -66], [-55, -71], [-45, -75], [-35, -73], [-18, -71], [-5, -81], [5, -77.5], [8, -77]],
+  // 23. Australia
+  [[-11, 142], [-15, 145.5], [-24, 153], [-33, 152], [-38, 147], [-38, 141], [-35, 136], [-32, 132], [-35, 118], [-26, 113], [-20, 119], [-15, 124], [-12, 131], [-12, 136], [-17, 139], [-11, 142]],
+  // 24. Tasmania
+  [[-41, 145], [-41, 148], [-43.5, 147.5], [-43, 145], [-41, 145]],
+  // 25. New Zealand (North & South Islands)
+  [[-35, 173], [-37, 175], [-39, 178], [-41.5, 175], [-39, 174], [-35, 173]],
+  [[-41, 173], [-44, 171], [-46.5, 168], [-46, 166.5], [-42, 171], [-41, 173]],
+  // 26. Antarctica
   [[-65, -180], [-65, 180], [-88, 180], [-88, -180], [-65, -180]]
 ];
 
@@ -284,7 +330,7 @@ export default function GlobalExplorer() {
   // Timestamp tracker to ensure strictly ONE discrete step per European country navigation action
   const lastCountryStepTimeRef = useRef(0);
 
-  // Orbital Controls State with Momentum & Hand Pan Inertia
+  // Orbital Controls State with Momentum & Hand Pan Inertia (Defaults to facing selected region Milan/Europe)
   const controlsRef = useRef({
     isDragging: false,
     dragStartX: 0,
@@ -294,12 +340,12 @@ export default function GlobalExplorer() {
     velocityX: 0,
     velocityY: 0,
     lastMoveTime: 0,
-    targetTheta: 1.2,
-    targetPhi: 1.3,
-    currentTheta: 1.2,
-    currentPhi: 1.3,
-    targetDist: 5.2,
-    currentDist: 5.2,
+    targetTheta: 1.731,
+    targetPhi: 0.777,
+    currentTheta: 1.731,
+    currentPhi: 0.777,
+    targetDist: 3.8,
+    currentDist: 3.8,
     autoRotate: true,
     lastInteractionTime: Date.now()
   });
@@ -572,10 +618,14 @@ export default function GlobalExplorer() {
 
     // 2. Camera: Dynamically scale portrait FOV so the 3D globe is framed comfortably on mobile screens
     const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
-    const initialDist = aspect < 1.0 ? 5.5 : 5.2;
+    const initialDist = aspect < 1.0 ? 4.0 : 3.8;
     camera.position.set(0, 0, initialDist);
     controlsRef.current.currentDist = initialDist;
     controlsRef.current.targetDist = initialDist;
+    controlsRef.current.currentTheta = 1.731;
+    controlsRef.current.targetTheta = 1.731;
+    controlsRef.current.currentPhi = 0.777;
+    controlsRef.current.targetPhi = 0.777;
     cameraRef.current = camera;
 
     // 3. Renderer with calibrated dynamic range exposure
@@ -605,7 +655,7 @@ export default function GlobalExplorer() {
     const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 1.4);
     scene.add(hemiLight);
 
-    // 5. High-Fidelity 3D Continent Bead Globe (真经纬度高精度3D立体小点建模)
+    // 5. High-Fidelity 2D Glowing Sci-Fi Continent Particle Globe (高密度柔光粒子网格)
     const globeRadius = 2.4;
 
     // 5a. Inner Dark Void Core (Occludes backside particles for authentic 3D spherical depth)
@@ -619,23 +669,30 @@ export default function GlobalExplorer() {
     // 5b. Particle Sprite Texture (Circular radial soft glow for atmosphere and background)
     const glowTex = createGlowPointTexture();
 
-    // 5c. True 3D Faceted Continent Micro-Mesh (Instanced 3D Icosahedron Beads with Radial Elevation)
-    const maxInstances = 58000;
-    const dotGeo = new THREE.IcosahedronGeometry(0.0105, 0);
-    const dotMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.22,
-      metalness: 0.32,
-      emissive: isDark ? new THREE.Color(0x0284c7) : new THREE.Color(0x0369a1),
-      emissiveIntensity: isDark ? 0.70 : 0.45,
+    // 5c. True 2D High-Density Luminous Points Mesh (THREE.Points with Additive Glow)
+    const particleCount = 55000;
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleColors = new Float32Array(particleCount * 3);
+
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+    const particleMat = new THREE.PointsMaterial({
+      size: isDark ? 0.040 : 0.034,
+      map: glowTex,
+      vertexColors: true,
+      transparent: true,
+      opacity: isDark ? 0.96 : 0.90,
+      blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      depthWrite: false
     });
-    const instancedMesh = new THREE.InstancedMesh(dotGeo, dotMat, maxInstances);
-    instancedMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
-    scene.add(instancedMesh);
-    globeRef.current = instancedMesh;
+
+    const particleMesh = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleMesh);
+    globeRef.current = particleMesh;
 
     const goldenPhi = Math.PI * (Math.sqrt(5) - 1);
-    const dummy = new THREE.Object3D();
     const tempColor = new THREE.Color();
 
     // Offscreen Canvas for Geographic Sampling (1024x512 equirectangular map)
@@ -661,103 +718,103 @@ export default function GlobalExplorer() {
       sCtx.fill();
     });
 
-    function compute3DParticles(data, w, h) {
+    function computeParticles(data, w, h) {
       let count = 0;
-      const totalSamples = 165000;
+      const totalSamples = 175000;
 
-      for (let i = 0; i < totalSamples && count < maxInstances; i++) {
+      for (let i = 0; i < totalSamples && count < particleCount; i++) {
         const yNorm = 1 - (i / (totalSamples - 1)) * 2;
         const phi = Math.acos(Math.max(-0.999, Math.min(0.999, yNorm)));
         const lat = 90 - (phi * 180) / Math.PI;
         const theta = (goldenPhi * i) % (Math.PI * 2);
         const lng = ((theta * 180) / Math.PI) - 180;
 
-        const u = Math.max(0, Math.min(1, (lng + 180) / 360));
-        const v = Math.max(0, Math.min(1, (90 - lat) / 180));
+        // 1. Ground truth land check using true NASA 1024x512 Blue Marble landmask
+        let isLand = isLandAt(lat, lng);
 
-        const px = Math.min(w - 1, Math.floor(u * w));
-        const py = Math.min(h - 1, Math.floor(v * h));
-        const dIdx = (py * w + px) * 4;
+        // 2. Also check canvas data if available
+        let brightness = 1.0;
+        if (data && w && h) {
+          const u = Math.max(0, Math.min(1, (lng + 180) / 360));
+          const v = Math.max(0, Math.min(1, (90 - lat) / 180));
+          const px = Math.min(w - 1, Math.floor(u * w));
+          const py = Math.min(h - 1, Math.floor(v * h));
+          const dIdx = (py * w + px) * 4;
+          brightness = (data[dIdx] * 0.299 + data[dIdx + 1] * 0.587 + data[dIdx + 2] * 0.114) / 255;
+          if (brightness < 0.50) {
+            isLand = true;
+          }
+        }
 
-        const brightness = (data[dIdx] * 0.299 + data[dIdx + 1] * 0.587 + data[dIdx + 2] * 0.114) / 255;
-        const isLand = brightness < 0.5;
-
-        // Sparse oceanic reference matrix (1 in 52 samples or near equator)
-        const isOceanBeacon = (!isLand) && ((i % 52 === 0) || Math.abs(lat) < 0.35);
+        // Ocean reference matrix (1 in 48 samples or near equator)
+        const isOceanBeacon = (!isLand) && ((i % 48 === 0) || Math.abs(lat) < 0.35);
 
         if (!isLand && !isOceanBeacon) {
           continue;
         }
 
-        let radiusOffset = 1.005;
-        let scaleX = 1.0;
-        let scaleY = 1.0;
-        let scaleZ = 1.25;
+        let radiusOffset = 1.002;
 
         if (isLand) {
-          if (brightness < 0.18) {
-            // Core continent interior plateau / highlands: elevated 3D relief
-            radiusOffset = 1.013;
-            scaleX = 1.15;
-            scaleY = 1.15;
-            scaleZ = 1.45;
-            if (isDark) {
-              tempColor.setRGB(0.38, 0.94, 1.00); // Luminous electric cyan
-            } else {
-              tempColor.setRGB(0.08, 0.58, 0.98); // Vibrant Mediterranean cobalt
-            }
-          } else {
+          // Coastlines & islands vs interior continent highlands
+          const isCoast = !isLandAt(lat + 0.6, lng) || !isLandAt(lat - 0.6, lng) || !isLandAt(lat, lng + 0.8) || !isLandAt(lat, lng - 0.8) || brightness >= 0.25;
+
+          if (isCoast) {
             // Coastlines & island edges: sparkling diamond contrast
-            radiusOffset = 1.008;
-            scaleX = 0.95;
-            scaleY = 0.95;
-            scaleZ = 1.20;
+            radiusOffset = 1.006;
             if (isDark) {
               tempColor.setRGB(1.00, 1.00, 1.00); // Brilliant pure white highlight
             } else {
               tempColor.setRGB(0.12, 0.88, 0.98); // Crystal turquoise
             }
+          } else {
+            // Continent interior: luminous electric cyan
+            radiusOffset = 1.003;
+            if (isDark) {
+              tempColor.setRGB(0.38, 0.94, 1.00); // Luminous electric cyan
+            } else {
+              tempColor.setRGB(0.08, 0.58, 0.98); // Vibrant Mediterranean cobalt
+            }
           }
         } else {
           // Ocean reference markers
-          radiusOffset = 1.002;
-          scaleX = 0.52;
-          scaleY = 0.52;
-          scaleZ = 0.60;
+          radiusOffset = 1.001;
           if (isDark) {
-            tempColor.setRGB(0.06, 0.20, 0.42);
+            tempColor.setRGB(0.06, 0.20, 0.42); // Dim celestial navy
           } else {
-            tempColor.setRGB(0.72, 0.82, 0.92);
+            tempColor.setRGB(0.72, 0.82, 0.92); // Soft misty blue
           }
         }
 
         const pt = latLngToVector3(lat, lng, globeRadius * radiusOffset);
-        dummy.position.set(pt.x, pt.y, pt.z);
-        dummy.lookAt(pt.x * 2, pt.y * 2, pt.z * 2);
-        dummy.scale.set(scaleX, scaleY, scaleZ);
-        dummy.updateMatrix();
+        const idx3 = count * 3;
+        particlePositions[idx3] = pt.x;
+        particlePositions[idx3 + 1] = pt.y;
+        particlePositions[idx3 + 2] = pt.z;
 
-        instancedMesh.setMatrixAt(count, dummy.matrix);
-        instancedMesh.setColorAt(count, tempColor);
+        particleColors[idx3] = tempColor.r;
+        particleColors[idx3 + 1] = tempColor.g;
+        particleColors[idx3 + 2] = tempColor.b;
+
         count++;
       }
 
-      for (let k = count; k < maxInstances; k++) {
-        dummy.position.set(0, 0, 0);
-        dummy.scale.set(0, 0, 0);
-        dummy.updateMatrix();
-        instancedMesh.setMatrixAt(k, dummy.matrix);
+      for (let k = count; k < particleCount; k++) {
+        const k3 = k * 3;
+        particlePositions[k3] = 0;
+        particlePositions[k3 + 1] = 0;
+        particlePositions[k3 + 2] = 0;
+        particleColors[k3] = 0;
+        particleColors[k3 + 1] = 0;
+        particleColors[k3 + 2] = 0;
       }
 
-      instancedMesh.count = count;
-      instancedMesh.instanceMatrix.needsUpdate = true;
-      if (instancedMesh.instanceColor) {
-        instancedMesh.instanceColor.needsUpdate = true;
-      }
+      particleGeo.attributes.position.needsUpdate = true;
+      particleGeo.attributes.color.needsUpdate = true;
     }
 
-    // Run initial computation immediately with vector continents
-    compute3DParticles(sCtx.getImageData(0, 0, 1024, 512).data, 1024, 512);
+    // Run initial computation immediately with vector continents + landmask
+    computeParticles(sCtx.getImageData(0, 0, 1024, 512).data, 1024, 512);
 
     // Step 2: Asynchronously load NASA specular high-res texture to refine coastlines & islands
     const specularImg = new Image();
@@ -766,7 +823,7 @@ export default function GlobalExplorer() {
     specularImg.onload = () => {
       sCtx.drawImage(specularImg, 0, 0, 1024, 512);
       const detailedData = sCtx.getImageData(0, 0, 1024, 512).data;
-      compute3DParticles(detailedData, 1024, 512);
+      computeParticles(detailedData, 1024, 512);
     };
 
     // 5d. Atmospheric Floating Halo Particles (Dimmed to subtle whisper)
@@ -1256,9 +1313,8 @@ export default function GlobalExplorer() {
       }
       coreGeo.dispose();
       coreMat.dispose();
-      dotGeo.dispose();
-      dotMat.dispose();
-      instancedMesh.dispose();
+      particleGeo.dispose();
+      particleMat.dispose();
       glowTex.dispose();
       haloGeo.dispose();
       haloMat.dispose();
@@ -1338,7 +1394,7 @@ export default function GlobalExplorer() {
         </div>
 
         {/* Region Culture Group Filter & Fast Jump Selector */}
-        <div className="explorer-filter-bar">
+        <div className="explorer-filter-bar" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
           {/* Group Category Tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border-subtle)', paddingRight: '8px', flexShrink: 0 }}>
             <button
@@ -1362,8 +1418,8 @@ export default function GlobalExplorer() {
             ))}
           </div>
 
-          {/* City Pills in Current Category */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflowX: 'auto', padding: '2px 0', flexShrink: 0 }}>
+          {/* City Pills in Current Category: Contained scrollable strip */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflowX: 'auto', padding: '2px 0', minWidth: 0, flex: 1, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             {displayedRegions.map(reg => (
               <button
                 key={reg.id}
