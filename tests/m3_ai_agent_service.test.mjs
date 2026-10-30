@@ -301,6 +301,49 @@ async function runTests() {
     setNavigatorOnLine(true);
   });
 
+  // 15. Challenger Edge-Case Regression Suite
+  await asyncTestCase('15.1: executeSandboxedTool handles BigInt and circular parameters safely', async () => {
+    // BigInt parameter
+    const res1 = await mod.executeSandboxedTool('query_questions', { count: 10n, limit: 5 });
+    assert.strictEqual(res1.success, true);
+
+    // Circular parameter
+    const circular = { limit: 2 };
+    circular.self = circular;
+    const res2 = await mod.executeSandboxedTool('query_questions', circular);
+    assert.strictEqual(res2.success, true);
+  });
+
+  await asyncTestCase('15.2: handleDeterministicFallback safely handles non-string inputs', async () => {
+    const resNum = await mod.handleDeterministicFallback(12345);
+    assert.strictEqual(resNum.role, 'assistant');
+    assert.strictEqual(resNum.mode, 'fallback_offline');
+
+    const resBool = await mod.handleDeterministicFallback(true);
+    assert.strictEqual(resBool.role, 'assistant');
+
+    const resNull = await mod.handleDeterministicFallback(null);
+    assert.strictEqual(resNull.role, 'assistant');
+  });
+
+  await asyncTestCase('15.3: Fallback cleans natural language search queries without orphan characters', async () => {
+    const res1 = await mod.handleDeterministicFallback('Find questions about Bauhaus');
+    assert.strictEqual(res1.toolUsed, 'query_questions');
+    assert(!res1.content.includes('未检索到'));
+
+    const res2 = await mod.handleDeterministicFallback('请搜索蒙德里安');
+    assert.strictEqual(res2.toolUsed, 'query_questions');
+    assert(!res2.content.includes('未检索到'));
+  });
+
+  await asyncTestCase('15.4: Fallback recognizes natural English practice settings commands', async () => {
+    const resTime = await mod.handleDeterministicFallback('Set exam time to 45 min');
+    assert.strictEqual(resTime.toolUsed, 'configure_practice_settings');
+
+    const resCount = await mod.handleDeterministicFallback('Set exam to 25 questions');
+    assert.strictEqual(resCount.toolUsed, 'configure_practice_settings');
+  });
+
   console.log(`\n======================================================`);
   console.log(` Results: ${passed} passed, ${failed} failed`);
   console.log(`======================================================\n`);

@@ -13,7 +13,7 @@
 
 import * as questionBankService from './questionBankService.js';
 
-export const ALLOWED_TOOLS = [
+export const ALLOWED_TOOLS = Object.freeze([
   'get_question_bank_summary',
   'query_questions',
   'add_question',
@@ -22,7 +22,7 @@ export const ALLOWED_TOOLS = [
   'generate_questions',
   'configure_practice_settings',
   'reset_question_bank'
-];
+]);
 
 export const AI_SETTINGS_KEY = 'arched_ai_settings';
 export const PRACTICE_CONFIG_KEY = 'arched_practice_config';
@@ -41,15 +41,22 @@ export function sanitizeInput(text) {
 }
 
 /**
- * Prototype pollution safe shallow/deep sanitizer
+ * Prototype pollution safe shallow/deep sanitizer with BigInt & circular reference handling
  */
-function sanitizeObject(obj) {
+function sanitizeObject(obj, seen = new WeakSet()) {
+  if (typeof obj === 'bigint') {
+    const num = Number(obj);
+    return Number.isSafeInteger(num) ? num : obj.toString();
+  }
   if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  if (seen.has(obj)) return undefined;
+  seen.add(obj);
+
+  if (Array.isArray(obj)) return obj.map(item => sanitizeObject(item, seen));
   const clean = Object.create(null);
   for (const key of Object.keys(obj)) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
-    clean[key] = sanitizeObject(obj[key]);
+    clean[key] = sanitizeObject(obj[key], seen);
   }
   return clean;
 }
@@ -384,25 +391,36 @@ const CURATED_GENERATION_TEMPLATES = {
  * Executes a sandboxed tool with strict boundary validation
  */
 export async function executeSandboxedTool(toolName, rawParams = {}) {
-  // 1. Tool authorization check
-  if (!ALLOWED_TOOLS.includes(toolName)) {
-    return {
-      success: false,
-      error: `Unauthorized tool: "${toolName}". The AI agent is restricted to whitelisted practice tools only.`
-    };
-  }
-
-  // 2. Prevent prototype pollution & massive payload attacks
-  const params = sanitizeObject(rawParams || {});
-  const serialized = JSON.stringify(params);
-  if (serialized.length > 50000) {
-    return {
-      success: false,
-      error: 'Payload size limit exceeded (maximum 50 KB).'
-    };
-  }
-
   try {
+    // 1. Tool authorization check
+    if (!ALLOWED_TOOLS.includes(toolName)) {
+      return {
+        success: false,
+        error: `Unauthorized tool: "${toolName}". The AI agent is restricted to whitelisted practice tools only.`
+      };
+    }
+
+    // 2. Prevent prototype pollution & massive payload attacks
+    const params = sanitizeObject(rawParams || {}) || {};
+    let serialized;
+    try {
+      serialized = JSON.stringify(params, (key, value) =>
+        typeof value === 'bigint' ? Number(value) : value
+      );
+    } catch (serErr) {
+      return {
+        success: false,
+        error: `Parameter serialization error: ${serErr?.message || String(serErr)}`
+      };
+    }
+
+    if (serialized && serialized.length > 50000) {
+      return {
+        success: false,
+        error: 'Payload size limit exceeded (maximum 50 KB).'
+      };
+    }
+
     switch (toolName) {
       case 'get_question_bank_summary': {
         const summary = questionBankService.getSummary();
@@ -911,6 +929,9 @@ export async function callMultiProviderAI(prompt, options = {}) {
  * Deterministic Local Fallback Handler (Zero-Key / Zero-Network)
  */
 export async function handleDeterministicFallback(promptText = '') {
+  if (typeof promptText !== 'string') {
+    promptText = promptText === null || promptText === undefined ? '' : String(promptText);
+  }
   const prompt = (promptText || '').trim();
 
   // 1. Empty or Help prompt
@@ -951,26 +972,41 @@ export async function handleDeterministicFallback(promptText = '') {
   }
 
   // 3. Practice Settings Configuration Intent
-  if (/设置|设定|修改|时限|题数|分钟|timer|倒计时|评分|倒扣|负分|negative|quiz count|exam count/i.test(prompt)) {
-    const timeMatch = prompt.match(/(\d+)\s*分钟/) || prompt.match(/timer\s*(\d+)/i) || prompt.match(/(\d+)\s*min/i) || prompt.match(/倒计时\s*(\d+)/);
-    const countMatch = prompt.match(/(\d+)\s*题/) || prompt.match(/count\s*(\d+)/i);
+  if (/设置|设定|修改|时限|题数|分钟|timer|倒计时|评分|倒扣|负分|negative|quiz count|exam count|exam time|quiz time|time limit|exam\s+(?:to\s+)?\d+|quiz\s+(?:to\s+)?\d+|set\s+(?:exam|quiz|time|timer)/i.test(prompt)) {
+    const timeMatch = prompt.match(/(?:set\s+)?exam\s+time\s+(?:to\s+)?(\d+)\s*(?:min|minutes?)/i) ||
+                      prompt.match(/(\d+)\s*分钟/) ||
+                      prompt.match(/timer\s*(?:to\s+)?(\d+)/i) ||
+                      prompt.match(/(\d+)\s*min(?:utes?)?/i) ||
+                      prompt.match(/倒计时\s*(\d+)/);
+
+    const countMatch = prompt.match(/(?:set\s+)?exam\s+(?:to\s+)?(\d+)\s*(?:questions?|q)/i) ||
+                       prompt.match(/exam\s*count\s*(?:to\s+)?(\d+)/i) ||
+                       prompt.match(/(\d+)\s*题/) ||
+                       prompt.match(/count\s*(\d+)/i);
+
+    const quizCountMatch = prompt.match(/(?:set\s+)?quiz\s+(?:to\s+)?(\d+)\s*(?:questions?|q)/i) ||
+                           prompt.match(/quiz\s*count\s*(?:to\s+)?(\d+)/i);
+
     const negMatch = prompt.match(/倒扣|负分|negative/i);
 
-    const patch = {};
-    if (timeMatch) patch.examTimeLimitMinutes = parseInt(timeMatch[1], 10);
-    if (countMatch) patch.examQuestionCount = parseInt(countMatch[1], 10);
-    if (negMatch) patch.negativeScoring = !prompt.includes('不') && !prompt.includes('关闭') && !prompt.includes('false');
+    if (timeMatch || countMatch || quizCountMatch || negMatch || /设置|设定|配置/.test(prompt)) {
+      const patch = {};
+      if (timeMatch) patch.examTimeLimitMinutes = parseInt(timeMatch[1], 10);
+      if (countMatch) patch.examQuestionCount = parseInt(countMatch[1], 10);
+      if (quizCountMatch) patch.quizQuestionCount = parseInt(quizCountMatch[1], 10);
+      if (negMatch) patch.negativeScoring = !prompt.includes('不') && !prompt.includes('关闭') && !prompt.includes('false') && !prompt.includes('off') && !prompt.includes('disable');
 
-    const res = await executeSandboxedTool('configure_practice_settings', patch);
-    const cfg = res.data || {};
+      const res = await executeSandboxedTool('configure_practice_settings', patch);
+      const cfg = res.data || {};
 
-    return {
-      role: 'assistant',
-      mode: 'fallback_offline',
-      toolUsed: 'configure_practice_settings',
-      content: `【离线规则引擎 / Offline Fallback Mode】模拟考场参数已为您成功更新：\n⏱️ 考试倒计时时限: ${cfg.examTimeLimitMinutes || 30} 分钟\n📝 套卷题目数量: ${cfg.examQuestionCount || 20} 题\n⚖️ 倒扣分机制 (ARCHED 标准 -0.25分): ${cfg.negativeScoring !== false ? '已开启' : '已关闭'}`,
-      timestamp: Date.now()
-    };
+      return {
+        role: 'assistant',
+        mode: 'fallback_offline',
+        toolUsed: 'configure_practice_settings',
+        content: `【离线规则引擎 / Offline Fallback Mode】模拟考场参数已为您成功更新：\n⏱️ 考试倒计时时限: ${cfg.examTimeLimitMinutes || 30} 分钟\n📝 套卷题目数量: ${cfg.examQuestionCount || 20} 题\n🎯 抽题速测数量: ${cfg.quizQuestionCount || 10} 题\n⚖️ 倒扣分机制 (ARCHED 标准 -0.25分): ${cfg.negativeScoring !== false ? '已开启' : '已关闭'}`,
+        timestamp: Date.now()
+      };
+    }
   }
 
   // 4. Generate Synthetic Questions Intent
@@ -1022,10 +1058,12 @@ export async function handleDeterministicFallback(promptText = '') {
   }
 
   // 6. Question Search / Query Intent
-  if (/搜索|查找|列出|查|关于|search|find|question|look up|蒙德里安|包豪斯|卡拉瓦乔|达利|透视|封塔纳|巴洛克|文艺复兴/i.test(prompt)) {
+  if (/搜索|查找|列出|查|关于|search|find|questions?|look up|蒙德里安|包豪斯|卡拉瓦乔|达利|透视|封塔纳|巴洛克|文艺复兴/i.test(prompt)) {
     const cleanKw = prompt
-      .replace(/搜索|查找|列出|查|关于|题目|考题|相关的|search|find|question|look up/gi, '')
-      .replace(/^[的与及和]+|[的与及和]+$/g, '')
+      .replace(/(?:请|帮我|麻烦|查一下|找一下|搜索|查找|寻找|查询|列出|关于|相关的?|题目|考题|试题)/g, ' ')
+      .replace(/\b(?:questions?|find|search|show|get|look\s*up|about|for|on|of|the|a|an|me|some)\b/gi, ' ')
+      .replace(/^[的与及和\s]+|[的与及和\s]+$/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
 
     const res = await executeSandboxedTool('query_questions', {

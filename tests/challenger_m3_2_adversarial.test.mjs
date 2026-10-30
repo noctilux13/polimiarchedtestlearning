@@ -346,7 +346,7 @@ async function runAdversarialChallenge() {
 
     // Polimi scoring oracle verification:
     // +1.5 for correct, -0.25 for wrong, 0 for omitted
-    function calculatePolimiScore(correctCount, wrongCount, omittedCount) {
+    function calculatePolimiScore(correctCount, wrongCount, _omittedCount) {
       const rawScore = (correctCount * 1.5) - (wrongCount * 0.25);
       const finalScore = parseFloat(Math.max(0, rawScore).toFixed(2));
       return { rawScore, finalScore };
@@ -382,6 +382,106 @@ async function runAdversarialChallenge() {
       assert(card.frontEn.length > 0, `Card ${idx} missing frontEn`);
       assert(card.backZh.includes(card.correctOptionZh), `Card ${idx} back must include correct answer text`);
     });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 4. Extreme Boundary, Injection & Security Stress Tests
+  // ─────────────────────────────────────────────────────────────
+  console.log('\n[Target 4: Extreme Boundary, Injection & Security Stress Tests]');
+
+  await asyncTestCase('4.1: Immutable ARCHED questions cannot be deleted by agent tools', async () => {
+    const res1 = await aiService.executeSandboxedTool('delete_question', { id: 'arched_001' });
+    assert.strictEqual(res1.success, false);
+    assert(res1.error.includes('Cannot delete built-in immutable question'));
+
+    const res2 = await aiService.executeSandboxedTool('delete_question', { id: 'arched_125' });
+    assert.strictEqual(res2.success, false);
+    assert(res2.error.includes('Cannot delete built-in immutable question'));
+  });
+
+  await asyncTestCase('4.2: Malicious script and protocol injection neutralized in add_question', async () => {
+    // Attempt javascript: image URL
+    const evilImgRes = await aiService.executeSandboxedTool('add_question', {
+      questionZh: '恶意脚本考题',
+      image: 'javascript:alert(document.cookie)'
+    });
+    assert.strictEqual(evilImgRes.success, false);
+    assert(evilImgRes.error.includes('Disallowed image URL protocol'));
+
+    // Attempt data:text/html protocol
+    const evilDataRes = await aiService.executeSandboxedTool('add_question', {
+      questionZh: '恶意 HTML 注入',
+      image: 'data:text/html;base64,PHNjcmlwdD4='
+    });
+    assert.strictEqual(evilDataRes.success, false);
+    assert(evilDataRes.error.includes('Disallowed image URL protocol'));
+
+    // Attempt inline XSS script in questionZh
+    const evilTextRes = await aiService.executeSandboxedTool('add_question', {
+      questionZh: '<script>alert("pwned")</script>蒙德里安几何抽象<img src=x onerror=alert(1)>'
+    });
+    assert.strictEqual(evilTextRes.success, true);
+    assert(!evilTextRes.data.questionZh.includes('<script>'), 'Script tag must be stripped');
+    assert(!evilTextRes.data.questionZh.includes('onerror='), 'On-error handler must be stripped');
+    assert(evilTextRes.data.questionZh.includes('蒙德里安几何抽象'), 'Legitimate text preserved');
+
+    // Clean up added test question
+    await aiService.executeSandboxedTool('delete_question', { id: evilTextRes.data.id });
+  });
+
+  await asyncTestCase('4.3: Payload size limit enforcement rejects massive argument blobs (> 50KB)', async () => {
+    const hugeBlob = 'A'.repeat(60 * 1024);
+    const hugeRes = await aiService.executeSandboxedTool('query_questions', { keyword: hugeBlob });
+    assert.strictEqual(hugeRes.success, false);
+    assert(hugeRes.error.includes('Payload size limit exceeded'));
+  });
+
+  await asyncTestCase('4.4: Boundary values in configure_practice_settings are safely clamped', async () => {
+    // Negative numbers
+    const resLow = await aiService.executeSandboxedTool('configure_practice_settings', {
+      examTimeLimitMinutes: -100,
+      examQuestionCount: -20,
+      quizQuestionCount: -5
+    });
+    assert.strictEqual(resLow.success, true);
+    assert.strictEqual(resLow.data.examTimeLimitMinutes, 5, 'Min timer must be clamped to 5');
+    assert.strictEqual(resLow.data.examQuestionCount, 5, 'Min exam count must be clamped to 5');
+    assert.strictEqual(resLow.data.quizQuestionCount, 5, 'Min quiz count must be clamped to 5');
+
+    // Excessive numbers
+    const resHigh = await aiService.executeSandboxedTool('configure_practice_settings', {
+      examTimeLimitMinutes: 99999,
+      examQuestionCount: 5000,
+      quizQuestionCount: 200
+    });
+    assert.strictEqual(resHigh.success, true);
+    assert.strictEqual(resHigh.data.examTimeLimitMinutes, 180, 'Max timer must be clamped to 180');
+    assert.strictEqual(resHigh.data.examQuestionCount, 100, 'Max exam count must be clamped to 100');
+    assert.strictEqual(resHigh.data.quizQuestionCount, 50, 'Max quiz count must be clamped to 50');
+
+    // Verify persistence in LocalStorage
+    const persisted = aiService.getPracticeConfig();
+    assert.strictEqual(persisted.examTimeLimitMinutes, 180);
+    assert.strictEqual(persisted.examQuestionCount, 100);
+    assert.strictEqual(persisted.quizQuestionCount, 50);
+
+    // Reset back to standard defaults for subsequent tests
+    await aiService.executeSandboxedTool('configure_practice_settings', {
+      examTimeLimitMinutes: 30,
+      examQuestionCount: 20,
+      quizQuestionCount: 10,
+      negativeScoring: true
+    });
+  });
+
+  await asyncTestCase('4.5: Query limits in query_questions are safely clamped', async () => {
+    const resLow = await aiService.executeSandboxedTool('query_questions', { limit: -10 });
+    assert.strictEqual(resLow.success, true);
+    assert(resLow.data.length <= 1);
+
+    const resHigh = await aiService.executeSandboxedTool('query_questions', { limit: 9999 });
+    assert.strictEqual(resHigh.success, true);
+    assert(resHigh.data.length <= 20, 'Max limit must be clamped to 20');
   });
 
   console.log('\n======================================================');
