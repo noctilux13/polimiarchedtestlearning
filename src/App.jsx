@@ -8,6 +8,8 @@ import MovementDetail from './pages/MovementDetail';
 import ArtistDetail from './pages/ArtistDetail';
 import ArtworkDetail from './pages/ArtworkDetail';
 import Quiz from './pages/Quiz';
+import Flashcards from './pages/Flashcards';
+import ExamSimulator from './pages/ExamSimulator';
 import Dashboard from './pages/Dashboard';
 import SettingsPage from './pages/Settings';
 import GlobalExplorer from './pages/GlobalExplorer';
@@ -75,6 +77,9 @@ function AppContent() {
             <Route path="/artist/:movementId/:id" element={<ArtistDetail />} />
             <Route path="/artwork/:movementId/:artistId/:id" element={<ArtworkDetail />} />
             <Route path="/quiz" element={<Quiz />} />
+            <Route path="/flashcards" element={<Flashcards />} />
+            <Route path="/simulator" element={<ExamSimulator />} />
+            <Route path="/exam" element={<ExamSimulator />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>

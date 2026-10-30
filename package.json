@@ -8,7 +8,10 @@
     "build": "vite build && node scripts/buildSingleFileHtml.js",
     "package": "node scripts/buildSingleFileHtml.js",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/e2e/test_runner.mjs",
+    "test:e2e": "node tests/e2e/test_runner.mjs",
+    "verify:questions": "node scripts/verify_arched_question_bank.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

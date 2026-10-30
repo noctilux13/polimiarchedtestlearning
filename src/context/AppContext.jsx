@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getAllCustomImages, saveCustomImage, deleteCustomImage, clearAllCustomImages } from '../utils/imageStorage';
 import { translations, LANGUAGES } from '../i18n/translations';
 import { localizedContent } from '../data/localizedContent';
@@ -42,8 +42,23 @@ export const AppProvider = ({ children }) => {
   const resolvedTheme = theme === 'auto' ? (systemIsDark ? 'dark' : 'light') : theme;
   const isDark = resolvedTheme === 'dark';
 
+  const isInitialThemeMount = useRef(true);
+
   useEffect(() => {
+    if (isInitialThemeMount.current) {
+      isInitialThemeMount.current = false;
+      document.documentElement.setAttribute('data-theme', resolvedTheme);
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme-transitioning', 'true');
     document.documentElement.setAttribute('data-theme', resolvedTheme);
+
+    const timer = setTimeout(() => {
+      document.documentElement.removeAttribute('data-theme-transitioning');
+    }, 380);
+
+    return () => clearTimeout(timer);
   }, [resolvedTheme]);
 
   const setTheme = useCallback((newTheme) => {

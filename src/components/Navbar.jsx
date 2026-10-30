@@ -2,7 +2,7 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppContext } from '../context/AppContext';
-import { Compass, History, Brain, Award, Settings as SettingsIcon, Globe, ChevronDown, Check, Sun, Moon } from 'lucide-react';
+import { Compass, History, Brain, Award, Settings as SettingsIcon, Globe, ChevronDown, Check, Sun, Moon, Layers, Landmark } from 'lucide-react';
 
 export default function Navbar() {
   const location = useLocation();
@@ -17,6 +17,8 @@ export default function Navbar() {
     { to: '/explorer', label: t('nav.explorer', '全球探索'), icon: Globe, badge: '3D' },
     { to: '/timeline', label: t('nav.timeline', '时间轴'), icon: History },
     { to: '/quiz', label: t('nav.quiz', '测验'), icon: Brain },
+    { to: '/flashcards', label: t('nav.flashcards', '记忆卡'), icon: Layers },
+    { to: '/simulator', label: t('nav.simulator', 'ARCHED模考'), icon: Landmark },
     { to: '/dashboard', label: t('nav.dashboard', '看板'), icon: Award },
     { to: '/settings', label: t('nav.settings', '设置'), icon: SettingsIcon },
   ];

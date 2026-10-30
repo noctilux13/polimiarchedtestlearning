@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing & temporary agent artifacts
+.test-edge-profile
+.agents/teamwork
+.edge-temp*
+

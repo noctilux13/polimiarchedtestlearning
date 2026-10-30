@@ -1,16 +1,42 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Send, Loader2, Sparkles, Trash2, Copy, Check, CornerDownLeft, Layers, Compass } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Bot,
+  X,
+  Send,
+  Loader2,
+  Sparkles,
+  Trash2,
+  Copy,
+  Check,
+  Compass,
+  Terminal,
+  ShieldCheck,
+  Database,
+  Sliders,
+  Play,
+  RotateCcw,
+  Wifi,
+  WifiOff,
+  ChevronRight,
+  AlertTriangle
+} from 'lucide-react';
 import { AppContext } from '../context/AppContext';
-import { chatWithFloatingAssistant } from '../services/aiService';
+import {
+  processAgentMessage,
+  executeSandboxedTool,
+  getAISettings,
+  getPracticeConfig
+} from '../services/aiAgentService';
 
 const EASE = [0.16, 1, 0.3, 1];
 
 export default function AIFloatingAssistant() {
+  const navigate = useNavigate();
   const {
     apiKey,
     t,
-    language,
     isAiOpen,
     setIsAiOpen,
     aiContextData,
@@ -23,18 +49,39 @@ export default function AIFloatingAssistant() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [pendingConfirm, setPendingConfirm] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Initialize greeting if history is empty
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const aiSettings = getAISettings();
+  const hasValidKey = Boolean(apiKey || aiSettings.apiKey);
+  const activeMode = isOnline && hasValidKey ? 'online' : 'offline_fallback';
+
+  // Greeting if history is empty
   const defaultGreeting = t
-    ? t('assistant.greeting', 'Hello! I am your AI Art & Architecture tutor. Ask me anything about movements, master biographies, techniques, or examination highlights!')
-    : 'Hello! I am your AI Art & Architecture tutor. Ask me anything!';
+    ? t(
+        'assistant.greeting',
+        '您好！我是您的 ARCHED 建筑与艺术史智能助教。我可在本地沙箱中直接为您查询题库、分析五大考纲考点、定制模考参数，或通过大模型进行深度学术对话！'
+      )
+    : '您好！我是您的 ARCHED 建筑与艺术史智能助教。我可在本地沙箱中直接为您查询题库、分析考纲考点、定制模考参数！';
 
   const displayMessages = chatHistory.length > 0 ? chatHistory : [
     {
       role: 'assistant',
       content: defaultGreeting,
+      mode: 'fallback_offline',
       timestamp: Date.now()
     }
   ];
@@ -54,26 +101,6 @@ export default function AIFloatingAssistant() {
     const textToSend = (customPrompt || inputValue).trim();
     if (!textToSend || isLoading) return;
 
-    if (!apiKey) {
-      setChatHistory(prev => [
-        ...prev,
-        { role: 'user', content: textToSend, timestamp: Date.now() },
-        {
-          role: 'assistant',
-          content: t ? t('assistant.configureKey', 'Please configure your API Key in Settings first.') : 'Please configure your API Key in Settings first.',
-          timestamp: Date.now()
-        }
-      ]);
-      setInputValue('');
-      return;
-    }
-
-    const contextPrefix = aiContextData
-      ? `[研读对象: ${aiContextData.title || ''} (${aiContextData.artistName || ''} · ${aiContextData.movementName || ''})]`
-      : '艺术史研考';
-
-    const fullContext = `${contextPrefix} ${aiContextData?.details || ''}`;
-
     const newHistory = [
       ...chatHistory,
       { role: 'user', content: textToSend, timestamp: Date.now() }
@@ -83,18 +110,75 @@ export default function AIFloatingAssistant() {
     setIsLoading(true);
 
     try {
-      const response = await chatWithFloatingAssistant(fullContext, textToSend);
-      setChatHistory([
-        ...newHistory,
-        { role: 'assistant', content: response, timestamp: Date.now() }
-      ]);
+      const response = await processAgentMessage(textToSend, {
+        context: aiContextData
+      });
+
+      const nextMsg = {
+        role: 'assistant',
+        content: response.content || response.text || response.message || '',
+        mode: response.mode || (hasValidKey && isOnline ? 'online' : 'fallback_offline'),
+        toolUsed: response.toolUsed || null,
+        toolArgs: response.toolArgs || null,
+        toolResult: response.toolResult || null,
+        fallbackNotice: response.fallbackNotice || null,
+        timestamp: Date.now()
+      };
+
+      setChatHistory([...newHistory, nextMsg]);
+
+      // If user prompted reset bank, check if confirmation modal should be offered
+      if (/重置题库|恢复出厂/i.test(textToSend) && !/确认/i.test(textToSend)) {
+        setPendingConfirm({
+          action: 'reset_question_bank',
+          title: '确认将题库恢复出厂设置？',
+          description: '此操作将清空所有用户及 AI 生成的自定义题目，恢复为官方 210 道 ARCHED 经典母题。'
+        });
+      }
     } catch (err) {
       setChatHistory([
         ...newHistory,
-        { role: 'assistant', content: `[请求出错]: ${err.message}`, timestamp: Date.now() }
+        {
+          role: 'assistant',
+          content: `【助教沙箱提示】系统运行发生异常: ${err.message}`,
+          mode: 'fallback_offline',
+          timestamp: Date.now()
+        }
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmAction = async (action) => {
+    if (action === 'reset_question_bank') {
+      setIsLoading(true);
+      try {
+        const res = await executeSandboxedTool('reset_question_bank', { confirm: true });
+        setChatHistory(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: res.message || '题库已成功重置恢复至官方 210 道 ARCHED 经典母题！',
+            mode: 'fallback_offline',
+            toolUsed: 'reset_question_bank',
+            timestamp: Date.now()
+          }
+        ]);
+      } catch (e) {
+        setChatHistory(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `重置失败: ${e.message}`,
+            mode: 'fallback_offline',
+            timestamp: Date.now()
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+        setPendingConfirm(null);
+      }
     }
   };
 
@@ -112,15 +196,17 @@ export default function AIFloatingAssistant() {
   };
 
   const handleClearHistory = () => {
-    if (window.confirm(t ? t('assistant.clearConfirm', 'Clear all chat history?') : 'Clear all chat history?')) {
+    if (window.confirm(t ? t('assistant.clearConfirm', '确认清空与助教的所有对话记录？') : 'Clear all chat history?')) {
       clearChatHistory();
     }
   };
 
   const QUICK_PROMPTS = [
-    { label: t ? t('assistant.promptComposition', '分析构图秩序与形式语言') : 'Analyze composition & formal language', icon: Compass },
-    { label: t ? t('assistant.promptContext', '阐述该作品的历史时代背景') : 'Explain historical context', icon: Layers },
-    { label: t ? t('assistant.promptExam', '总结该流派的研考核心要点') : 'Summarize key exam takeaways', icon: Sparkles }
+    { label: '📊 考纲五大领域统计', prompt: '题库概况与统计', icon: Database },
+    { label: '🔍 检索蒙德里安与包豪斯', prompt: '搜索关于蒙德里安的题目', icon: Compass },
+    { label: '⏱️ 模考设为 20题/30分钟', prompt: '设置模拟考题数为 20 题，时限 30 分钟', icon: Sliders },
+    { label: '✨ 生成一道文艺复兴考题', prompt: '生成一道文艺复兴与透视法考题', icon: Sparkles },
+    { label: '⚠️ 重置恢复官方母题', prompt: '恢复出厂重置题库', icon: RotateCcw }
   ];
 
   return (
@@ -154,16 +240,17 @@ export default function AIFloatingAssistant() {
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           >
             <Bot size={17} style={{ color: 'var(--accent-blue-subtle)' }} />
-            <span>{t ? t('assistant.title', 'AI Tutor') : 'AI Tutor'}</span>
-            {aiContextData && (
-              <span style={{
+            <span>{t ? t('assistant.title', 'AI 助教') : 'AI 助教'}</span>
+            <span
+              style={{
                 width: '7px',
                 height: '7px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--accent-sage)',
+                backgroundColor: activeMode === 'online' ? 'var(--accent-sage)' : 'var(--text-tertiary)',
                 marginLeft: '-2px'
-              }} />
-            )}
+              }}
+              title={activeMode === 'online' ? '在线模型模式' : '离线规则沙箱模式'}
+            />
           </motion.button>
         )}
       </AnimatePresence>
@@ -176,9 +263,9 @@ export default function AIFloatingAssistant() {
               position: 'fixed',
               right: '20px',
               bottom: '20px',
-              width: '430px',
+              width: '440px',
               maxWidth: 'calc(100vw - 32px)',
-              height: '620px',
+              height: '640px',
               maxHeight: 'calc(100vh - 40px)',
               backgroundColor: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
@@ -207,8 +294,8 @@ export default function AIFloatingAssistant() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                 <div style={{
-                  width: '30px',
-                  height: '30px',
+                  width: '32px',
+                  height: '32px',
                   borderRadius: '50%',
                   backgroundColor: 'var(--accent-blue-subtle)',
                   border: '1px solid var(--accent-blue-border)',
@@ -217,14 +304,44 @@ export default function AIFloatingAssistant() {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Bot size={16} />
+                  <Bot size={17} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>
-                    {t ? t('assistant.title', 'AI Tutor') : 'AI Tutor'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>
+                      {t ? t('assistant.title', 'ARCHED AI 助教') : 'ARCHED AI 助教'}
+                    </span>
+                    {/* Status Badge */}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 7px',
+                        borderRadius: 'var(--radius-pill)',
+                        fontSize: '0.66rem',
+                        fontWeight: 600,
+                        backgroundColor: activeMode === 'online' ? 'var(--accent-sage-subtle)' : 'var(--bg-canvas)',
+                        color: activeMode === 'online' ? 'var(--accent-sage)' : 'var(--text-secondary)',
+                        border: `1px solid ${activeMode === 'online' ? 'var(--accent-sage-border)' : 'var(--border-hairline)'}`
+                      }}
+                      title={activeMode === 'online' ? '在线智能连接模式' : '100% 离线规则沙箱模式'}
+                    >
+                      {activeMode === 'online' ? (
+                        <>
+                          <Wifi size={10} />
+                          <span>在线 ({aiSettings.provider || 'Gemini'})</span>
+                        </>
+                      ) : (
+                        <>
+                          <WifiOff size={10} />
+                          <span>离线沙箱</span>
+                        </>
+                      )}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
-                    {aiContextData ? `${aiContextData.title || ''}` : '艺术与建筑史研考学伴'}
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '1px' }}>
+                    {aiContextData ? `研读焦点: ${aiContextData.title || ''}` : '安全沙箱工具调用与考纲辅导'}
                   </div>
                 </div>
               </div>
@@ -245,7 +362,7 @@ export default function AIFloatingAssistant() {
                       display: 'flex',
                       alignItems: 'center'
                     }}
-                    title={t ? t('assistant.clearHistory', 'Clear Chat History') : 'Clear History'}
+                    title={t ? t('assistant.clearHistory', '清空历史') : '清空历史'}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -285,7 +402,7 @@ export default function AIFloatingAssistant() {
                 color: 'var(--accent-blue)'
               }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  🎯 聚焦研读: <strong>{aiContextData.title}</strong> ({aiContextData.artistName})
+                  🎯 研读对象: <strong>{aiContextData.title}</strong> ({aiContextData.artistName})
                 </span>
                 <button
                   type="button"
@@ -323,10 +440,35 @@ export default function AIFloatingAssistant() {
                       position: 'relative'
                     }}
                   >
+                    {/* Tool execution badge if tool was called */}
+                    {!isUser && msg.toolUsed && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '3px 8px',
+                          marginBottom: '5px',
+                          borderRadius: 'var(--radius-xs)',
+                          backgroundColor: 'var(--accent-blue-subtle)',
+                          border: '1px solid var(--accent-blue-border)',
+                          color: 'var(--accent-blue)',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.02em'
+                        }}
+                      >
+                        <Terminal size={11} />
+                        <span>[Tool Called: <code>{msg.toolUsed}</code>]</span>
+                        <ShieldCheck size={11} style={{ color: 'var(--accent-sage)' }} title="沙箱安全验证通过" />
+                      </div>
+                    )}
+
+                    {/* Message Bubble */}
                     <div
                       style={{
-                        maxWidth: '86%',
-                        padding: '0.8rem 1rem',
+                        maxWidth: '88%',
+                        padding: '0.85rem 1.05rem',
                         borderRadius: isUser ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
                         backgroundColor: isUser ? 'var(--accent-primary)' : 'var(--bg-subtle)',
                         color: isUser ? '#fff' : 'var(--text-primary)',
@@ -339,6 +481,43 @@ export default function AIFloatingAssistant() {
                     >
                       {msg.content}
                     </div>
+
+                    {/* Practice Quick-Apply Card if practice config was updated */}
+                    {!isUser && msg.toolUsed === 'configure_practice_settings' && (
+                      <div
+                        style={{
+                          marginTop: '6px',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: 'var(--bg-surface)',
+                          border: '1px solid var(--accent-blue-border)',
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          flexWrap: 'wrap'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Sliders size={12} /> 模考偏好已就绪:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setIsAiOpen(false); navigate('/simulator'); }}
+                          className="btn btn-primary"
+                          style={{ padding: '3px 9px', fontSize: '0.74rem', borderRadius: 'var(--radius-pill)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Play size={10} /> 前往模拟考场
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setIsAiOpen(false); navigate('/quiz'); }}
+                          className="btn btn-outline"
+                          style={{ padding: '3px 9px', fontSize: '0.74rem', borderRadius: 'var(--radius-pill)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          极速测验
+                        </button>
+                      </div>
+                    )}
 
                     {!isUser && msg.content !== defaultGreeting && (
                       <button
@@ -356,17 +535,17 @@ export default function AIFloatingAssistant() {
                           marginTop: '3px',
                           padding: '2px 4px'
                         }}
-                        title={t ? t('assistant.copy', 'Copy') : 'Copy'}
+                        title={t ? t('assistant.copy', '复制') : '复制'}
                       >
                         {copiedIndex === idx ? (
                           <>
                             <Check size={11} style={{ color: 'var(--accent-sage)' }} />
-                            <span style={{ color: 'var(--accent-sage)' }}>{t ? t('assistant.copied', 'Copied') : 'Copied'}</span>
+                            <span style={{ color: 'var(--accent-sage)' }}>已复制</span>
                           </>
                         ) : (
                           <>
                             <Copy size={11} />
-                            <span>{t ? t('assistant.copy', 'Copy') : 'Copy'}</span>
+                            <span>复制</span>
                           </>
                         )}
                       </button>
@@ -375,10 +554,58 @@ export default function AIFloatingAssistant() {
                 );
               })}
 
+              {/* Action Confirmation Card if pending */}
+              {pendingConfirm && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{
+                    padding: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--accent-terracotta-subtle)',
+                    border: '1.5px solid var(--accent-terracotta-border)',
+                    margin: '8px 0'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-terracotta)', fontWeight: 600, fontSize: '0.86rem', marginBottom: '4px' }}>
+                    <AlertTriangle size={15} />
+                    <span>{pendingConfirm.title}</span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 10px 0' }}>
+                    {pendingConfirm.description}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmAction(pendingConfirm.action)}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '0.76rem',
+                        backgroundColor: 'var(--accent-terracotta)',
+                        borderColor: 'var(--accent-terracotta)',
+                        color: '#fff',
+                        borderRadius: 'var(--radius-pill)'
+                      }}
+                    >
+                      确认执行
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingConfirm(null)}
+                      className="btn btn-outline"
+                      style={{ padding: '4px 12px', fontSize: '0.76rem', borderRadius: 'var(--radius-pill)' }}
+                    >
+                      取消
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
               {isLoading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '0.5rem 0' }}>
                   <Loader2 size={15} className="animate-spin" style={{ color: 'var(--accent-blue)' }} />
-                  <span>AI 正在深入思考中...</span>
+                  <span>沙箱执行与分析中...</span>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -400,7 +627,7 @@ export default function AIFloatingAssistant() {
                   <button
                     key={qidx}
                     type="button"
-                    onClick={() => handleSend(qp.label)}
+                    onClick={() => handleSend(qp.prompt || qp.label)}
                     disabled={isLoading}
                     style={{
                       padding: '4px 9px',
@@ -416,7 +643,7 @@ export default function AIFloatingAssistant() {
                       flexShrink: 0
                     }}
                   >
-                    <Icon size={10} style={{ color: 'var(--accent-blue)' }} />
+                    <Icon size={11} style={{ color: 'var(--accent-blue)' }} />
                     <span>{qp.label}</span>
                   </button>
                 );
@@ -437,7 +664,7 @@ export default function AIFloatingAssistant() {
               <textarea
                 ref={inputRef}
                 className="input-field"
-                placeholder={t ? t('assistant.placeholder', 'Ask about art history, styles, works...') : 'Ask about art history...'}
+                placeholder={t ? t('assistant.placeholder', '输入指令（如「题库概况」、「设置模拟考20题」、「搜索蒙德里安」）...') : '输入指令...'}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}

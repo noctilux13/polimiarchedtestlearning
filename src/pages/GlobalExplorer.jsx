@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { AppContext } from '../context/AppContext';
 import { geoRegions } from '../data/geoArtData';
@@ -16,7 +17,8 @@ import {
   ExternalLink,
   Layers,
   Compass,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert
 } from 'lucide-react';
 
 // Math helper: Lat/Lng to 3D Cartesian coordinates on sphere
@@ -261,10 +263,18 @@ export default function GlobalExplorer() {
 
   const [selectedRegion, setSelectedRegion] = useState(geoRegions[0]);
   const [hoveredRegion, setHoveredRegion] = useState(null);
-  const [visibleCityLabels, setVisibleCityLabels] = useState([]);
   const [activeClusterFilter, setActiveClusterFilter] = useState('all');
   const [europeNavMode, setEuropeNavMode] = useState('artwork_view'); // 'artwork_view' by default; 'country_select' triggered by fist when facing Europe
   const [activeCountryIndex, setActiveCountryIndex] = useState(0);
+  const [isAirBrakeActive, setIsAirBrakeActive] = useState(false);
+
+  // Decoupled Zero-React-Re-render City Labels: Direct GPU transform DOM element cache
+  const cityLabelsLayerRef = useRef(null);
+  const cityLabelDomsRef = useRef({});
+
+  // Dynamic Interruption and Air-Brake hooks
+  const triggerShockwaveRef = useRef(null);
+  const airBrakeRefCurrent = useRef({ active: false, lastActiveTime: 0, opacity: 0 });
 
   // Keep references to state so Three.js render loop and callbacks don't trigger unmounts
   const selectedRegionRef = useRef(selectedRegion);
@@ -330,7 +340,7 @@ export default function GlobalExplorer() {
   // Timestamp tracker to ensure strictly ONE discrete step per European country navigation action
   const lastCountryStepTimeRef = useRef(0);
 
-  // Orbital Controls State with Momentum & Hand Pan Inertia (Defaults to facing selected region Milan/Europe)
+  // Orbital Controls State with Momentum & Hand Pan Inertia + Elastic Shock Absorption
   const controlsRef = useRef({
     isDragging: false,
     dragStartX: 0,
@@ -347,7 +357,10 @@ export default function GlobalExplorer() {
     targetDist: 3.8,
     currentDist: 3.8,
     autoRotate: true,
-    lastInteractionTime: Date.now()
+    lastInteractionTime: Date.now(),
+    // Elastic Kinetic Interruption Physics (Harmonic oscillator squash & rebound)
+    interruptSquash: 1.0,
+    interruptVelocity: 0
   });
 
   // Focus and select European Country by index (with smooth spherical camera guidance)
@@ -451,12 +464,30 @@ export default function GlobalExplorer() {
       // Active Air-Brake Interruption Animation:
       // Holding hand steady actively interrupts and dampens any spinning inertia with smooth spring settle
       const c = controlsRef.current;
-      c.velocityX *= 0.70;
-      c.velocityY *= 0.70;
-      c.targetTheta += (c.currentTheta - c.targetTheta) * 0.25;
-      c.targetPhi += (c.currentPhi - c.targetPhi) * 0.25;
-      if (Math.abs(c.velocityX) < 0.0004) c.velocityX = 0;
-      if (Math.abs(c.velocityY) < 0.0004) c.velocityY = 0;
+      const cutSpeed = Math.hypot(c.velocityX, c.velocityY);
+      
+      if (cutSpeed > 0.0006) {
+        // Trigger air-brake holographic visual field and HUD
+        if (airBrakeRefCurrent.current) {
+          airBrakeRefCurrent.current.active = true;
+          airBrakeRefCurrent.current.lastActiveTime = Date.now();
+        }
+        setIsAirBrakeActive(true);
+
+        // Elastic cushion
+        const impulse = Math.min(0.04, 0.012 + cutSpeed * 1.4);
+        c.interruptSquash = 1.0 - impulse;
+        c.interruptVelocity = -impulse * 0.35;
+        triggerShockwaveRef.current?.(Math.min(1.2, 0.5 + cutSpeed * 10));
+      }
+
+      // Strong aerodynamic drag
+      c.velocityX *= 0.62;
+      c.velocityY *= 0.62;
+      c.targetTheta += (c.currentTheta - c.targetTheta) * 0.28;
+      c.targetPhi += (c.currentPhi - c.targetPhi) * 0.28;
+      if (Math.abs(c.velocityX) < 0.0002) c.velocityX = 0;
+      if (Math.abs(c.velocityY) < 0.0002) c.velocityY = 0;
       return;
     }
 
@@ -549,7 +580,14 @@ export default function GlobalExplorer() {
       const zoomStep = 1.8 * zoomSens;
       c.targetDist = Math.max(3.2, Math.min(7.8, c.targetDist + action.delta * zoomStep));
     } else if (action.type === 'fist') {
-      // Hard stop rotation on selection
+      // Hard stop rotation on selection with elastic shock absorption cushion
+      const cutSpeed = Math.hypot(c.velocityX, c.velocityY);
+      if (cutSpeed > 0.0008) {
+        const impulse = Math.min(0.045, 0.015 + cutSpeed * 1.5);
+        c.interruptSquash = 1.0 - impulse;
+        c.interruptVelocity = -impulse * 0.4;
+        triggerShockwaveRef.current?.(1.0);
+      }
       c.velocityX = 0;
       c.velocityY = 0;
       c.targetTheta = c.currentTheta;
@@ -657,6 +695,8 @@ export default function GlobalExplorer() {
 
     // 5. High-Fidelity 2D Glowing Sci-Fi Continent Particle Globe (高密度柔光粒子网格)
     const globeRadius = 2.4;
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
 
     // 5a. Inner Dark Void Core (Occludes backside particles for authentic 3D spherical depth)
     const coreGeo = new THREE.SphereGeometry(globeRadius * 0.992, 48, 48);
@@ -664,7 +704,7 @@ export default function GlobalExplorer() {
       color: isDark ? 0x050811 : 0x0a1628
     });
     const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-    scene.add(coreMesh);
+    globeGroup.add(coreMesh);
 
     // 5b. Particle Sprite Texture (Circular radial soft glow for atmosphere and background)
     const glowTex = createGlowPointTexture();
@@ -689,7 +729,7 @@ export default function GlobalExplorer() {
     });
 
     const particleMesh = new THREE.Points(particleGeo, particleMat);
-    scene.add(particleMesh);
+    globeGroup.add(particleMesh);
     globeRef.current = particleMesh;
 
     const goldenPhi = Math.PI * (Math.sqrt(5) - 1);
@@ -853,11 +893,11 @@ export default function GlobalExplorer() {
       depthWrite: false
     });
     const haloMesh = new THREE.Points(haloGeo, haloMat);
-    scene.add(haloMesh);
+    globeGroup.add(haloMesh);
 
     // 5e. Great-Circle 3D Cultural Flight Arcs with Traveling Pulses
     const arcGroup = new THREE.Group();
-    scene.add(arcGroup);
+    globeGroup.add(arcGroup);
 
     const ARC_ROUTES = [
       { from: [41.9, 12.5], to: [48.8, 2.3] },    // Rome - Paris
@@ -928,9 +968,71 @@ export default function GlobalExplorer() {
     const starsMesh = new THREE.Points(starsGeo, starsMat);
     scene.add(starsMesh);
 
+    // 5g. Kinetic Interruption Shockwave Ripple Ring (Additive Hologram)
+    const shockwaveGeo = new THREE.RingGeometry(globeRadius * 0.99, globeRadius * 1.055, 64);
+    const shockwaveMat = new THREE.MeshBasicMaterial({
+      color: isDark ? 0x38bdf8 : 0x0284c7,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const shockwaveMesh = new THREE.Mesh(shockwaveGeo, shockwaveMat);
+    shockwaveMesh.visible = false;
+    scene.add(shockwaveMesh);
+
+    const shockwaveState = {
+      active: false,
+      progress: 0,
+      intensity: 1.0
+    };
+
+    const triggerShockwave = (intensity = 1.0) => {
+      shockwaveState.active = true;
+      shockwaveState.progress = 0;
+      shockwaveState.intensity = Math.min(1.5, Math.max(0.6, intensity));
+      shockwaveMesh.visible = true;
+      shockwaveMesh.quaternion.copy(camera.quaternion);
+      shockwaveMesh.position.set(0, 0, 0);
+      shockwaveMesh.scale.set(1.0, 1.0, 1.0);
+    };
+    triggerShockwaveRef.current = triggerShockwave;
+
+    // 5h. Cybernetic Holographic Air-Brake Rings (AI Hand Gesture Braking Field)
+    const airBrakeGroup = new THREE.Group();
+    airBrakeGroup.visible = false;
+    scene.add(airBrakeGroup);
+
+    const abRing1Geo = new THREE.RingGeometry(globeRadius * 1.025, globeRadius * 1.042, 64);
+    const abRing1Mat = new THREE.MeshBasicMaterial({
+      color: isDark ? 0x38bdf8 : 0x0ea5e9,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const abRing1 = new THREE.Mesh(abRing1Geo, abRing1Mat);
+    airBrakeGroup.add(abRing1);
+
+    const abRing2Geo = new THREE.RingGeometry(globeRadius * 1.062, globeRadius * 1.078, 64);
+    const abRing2Mat = new THREE.MeshBasicMaterial({
+      color: isDark ? 0x60a5fa : 0x2563eb,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const abRing2 = new THREE.Mesh(abRing2Geo, abRing2Mat);
+    airBrakeGroup.add(abRing2);
+
+    const airBrakeRef = airBrakeRefCurrent.current;
+
     // 6. Flat Planar Geographic Region Pins (Tangential Reticles)
     const pinsGroup = new THREE.Group();
-    scene.add(pinsGroup);
+    globeGroup.add(pinsGroup);
     pinsGroupRef.current = pinsGroup;
     pinMeshesRef.current = [];
 
@@ -977,6 +1079,16 @@ export default function GlobalExplorer() {
     const handlePointerDown = (e) => {
       try { container.setPointerCapture?.(e.pointerId); } catch {}
       const c = controlsRef.current;
+
+      // Elastic shock absorber cushion & shockwave upon interrupting spinning rotation
+      const cutSpeed = Math.hypot(c.velocityX, c.velocityY);
+      if (cutSpeed > 0.0008 || c.autoRotate) {
+        const impulse = Math.min(0.045, 0.012 + cutSpeed * 1.6);
+        c.interruptSquash = 1.0 - impulse;
+        c.interruptVelocity = -impulse * 0.42;
+        triggerShockwave(Math.min(1.4, 0.6 + cutSpeed * 12));
+      }
+
       c.isDragging = true;
       c.dragStartX = e.clientX;
       c.dragStartY = e.clientY;
@@ -1122,6 +1234,16 @@ export default function GlobalExplorer() {
     let touchStartTargetDist = 5.2;
 
     const handleTouchStart = (e) => {
+      const c = controlsRef.current;
+      // Elastic shock absorber cushion & shockwave upon touch interruption
+      const cutSpeed = Math.hypot(c.velocityX, c.velocityY);
+      if (cutSpeed > 0.0008 || c.autoRotate) {
+        const impulse = Math.min(0.045, 0.012 + cutSpeed * 1.6);
+        c.interruptSquash = 1.0 - impulse;
+        c.interruptVelocity = -impulse * 0.42;
+        triggerShockwave(Math.min(1.4, 0.6 + cutSpeed * 12));
+      }
+
       if (e.touches.length === 2) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -1182,16 +1304,19 @@ export default function GlobalExplorer() {
       resizeObserver.observe(container);
     }
 
-    // 9. Animation Loop (with 0.88 physics inertia decay for hand panning)
+    // Pre-allocated scratch vectors to eliminate garbage collection inside 60-120fps RAF loop
+    const _camPos = new THREE.Vector3();
+    const _normal = new THREE.Vector3();
+    const _screenPos = new THREE.Vector3();
+
+    // 9. Animation Loop (with 0.91 physics inertia decay and zero-re-render direct GPU DOM updates)
     let animId;
     let clock = new THREE.Clock();
-    let lastLabelSync = 0;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
       const c = controlsRef.current;
-      const now = performance.now();
 
       // Resume subtle idle rotation after 7s of inactivity
       if (!c.isDragging && Date.now() - c.lastInteractionTime > 7000) {
@@ -1212,6 +1337,69 @@ export default function GlobalExplorer() {
       c.currentTheta += (c.targetTheta - c.currentTheta) * 0.085;
       c.currentPhi += (c.targetPhi - c.currentPhi) * 0.085;
       c.currentDist += (c.targetDist - c.currentDist) * 0.085;
+
+      // Dynamic Kinetic FOV Kick proportional to transit angular speed
+      const angSpeed = Math.hypot(c.targetTheta - c.currentTheta, c.targetPhi - c.currentPhi);
+      const targetFov = baseFov + Math.min(3.8, angSpeed * 22);
+      camera.fov += (targetFov - camera.fov) * 0.12;
+      camera.updateProjectionMatrix();
+
+      // Damped harmonic oscillator for interruption squash & elastic rebound
+      if (c.interruptSquash !== 1.0 || c.interruptVelocity !== 0) {
+        const k = 0.28;
+        const d = 0.74;
+        const delta = 1.0 - c.interruptSquash;
+        c.interruptVelocity = (c.interruptVelocity + delta * k) * d;
+        c.interruptSquash += c.interruptVelocity;
+        if (Math.abs(1.0 - c.interruptSquash) < 0.0004 && Math.abs(c.interruptVelocity) < 0.0004) {
+          c.interruptSquash = 1.0;
+          c.interruptVelocity = 0;
+        }
+        globeGroup.scale.set(c.interruptSquash, c.interruptSquash, c.interruptSquash);
+      }
+
+      // Interruption Shockwave Ripple Animation
+      if (shockwaveState.active) {
+        shockwaveState.progress += 0.045; // ~22 frames (~360ms)
+        if (shockwaveState.progress >= 1.0) {
+          shockwaveState.active = false;
+          shockwaveMesh.visible = false;
+        } else {
+          shockwaveMesh.visible = true;
+          const p = shockwaveState.progress;
+          const s = 1.0 + p * 0.38;
+          shockwaveMesh.scale.set(s, s, s);
+          const alpha = (1 - p) * (1 - p) * 0.85 * shockwaveState.intensity;
+          shockwaveMat.opacity = alpha;
+          shockwaveMesh.quaternion.copy(camera.quaternion);
+        }
+      }
+
+      // Holographic Air-Brake Rings Animation
+      if (airBrakeRef.active) {
+        if (Date.now() - airBrakeRef.lastActiveTime > 450 && Math.hypot(c.velocityX, c.velocityY) < 0.0003) {
+          airBrakeRef.active = false;
+          setIsAirBrakeActive(false);
+        }
+      }
+
+      if (airBrakeRef.active) {
+        airBrakeRef.opacity = Math.min(1.0, airBrakeRef.opacity + 0.14);
+      } else {
+        airBrakeRef.opacity = Math.max(0.0, airBrakeRef.opacity - 0.08);
+      }
+
+      if (airBrakeRef.opacity > 0.01) {
+        airBrakeGroup.visible = true;
+        airBrakeGroup.quaternion.copy(camera.quaternion);
+        abRing1.rotation.z += 0.035;
+        abRing2.rotation.z -= 0.026;
+        const pulse = 0.65 + 0.35 * Math.sin(elapsed * 12);
+        abRing1Mat.opacity = airBrakeRef.opacity * 0.75 * pulse;
+        abRing2Mat.opacity = airBrakeRef.opacity * 0.45 * pulse;
+      } else {
+        airBrakeGroup.visible = false;
+      }
 
       // Update camera position from spherical coordinates
       const cx = c.currentDist * Math.sin(c.currentPhi) * Math.sin(c.currentTheta);
@@ -1245,48 +1433,45 @@ export default function GlobalExplorer() {
         ring.material.opacity = isSel ? 0.95 : isHov ? 0.85 : 0.55;
       });
 
-      // City Names Zoom LOD & Backside Culling Calculation (throttled ~30fps)
-      if (now - lastLabelSync > 32) {
-        lastLabelSync = now;
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        const dist = c.currentDist;
+      // Zero-React-Re-render City Labels: Direct GPU DOM Updates via translate3d
+      const doms = cityLabelDomsRef.current;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      const dist = c.currentDist;
+      const zoomOpacity = Math.max(0, Math.min(1, (5.6 - dist) / 1.4));
 
-        // Labels appear when zoomed in (dist <= 5.5), dissolve when zoomed out
-        const zoomOpacity = Math.max(0, Math.min(1, (5.6 - dist) / 1.4));
+      _camPos.copy(camera.position).normalize();
+
+      for (let i = 0; i < pinMeshesRef.current.length; i++) {
+        const item = pinMeshesRef.current[i];
+        const dom = doms[item.region.id];
+        if (!dom) continue;
 
         if (zoomOpacity <= 0.02) {
-          setVisibleCityLabels([]);
+          if (dom.style.display !== 'none') dom.style.display = 'none';
+          continue;
+        }
+
+        _normal.copy(item.pos).normalize();
+        const dot = _normal.dot(_camPos);
+
+        if (dot > 0.12) {
+          _screenPos.copy(item.pos).project(camera);
+          const sx = ((_screenPos.x + 1) / 2) * w;
+          const sy = ((-_screenPos.y + 1) / 2) * h;
+          const edgeFade = Math.min(1, Math.max(0, (dot - 0.12) / 0.25));
+          const finalOpacity = Math.round((zoomOpacity * edgeFade) * 100) / 100;
+
+          if (finalOpacity > 0.02) {
+            if (dom.style.display !== 'block') dom.style.display = 'block';
+            dom.style.transform = `translate3d(${Math.round(sx + 10)}px, ${Math.round(sy - 12)}px, 0)`;
+            dom.style.opacity = finalOpacity;
+            dom.style.pointerEvents = finalOpacity > 0.4 ? 'auto' : 'none';
+          } else {
+            if (dom.style.display !== 'none') dom.style.display = 'none';
+          }
         } else {
-          const camPos = camera.position.clone();
-          const nextLabels = [];
-
-          pinMeshesRef.current.forEach(({ region, pos }) => {
-            const normal = pos.clone().normalize();
-            const camDir = camPos.clone().normalize();
-            const dot = normal.dot(camDir);
-
-            // Front-facing hemisphere test
-            if (dot > 0.12) {
-              const screenPos = pos.clone().project(camera);
-              const sx = ((screenPos.x + 1) / 2) * w;
-              const sy = ((-screenPos.y + 1) / 2) * h;
-              const edgeFade = Math.min(1, Math.max(0, (dot - 0.12) / 0.25));
-              const finalOpacity = zoomOpacity * edgeFade;
-
-              nextLabels.push({
-                id: region.id,
-                nameZh: region.nameZh,
-                nameEn: region.nameEn,
-                x: Math.round(sx),
-                y: Math.round(sy),
-                opacity: Number(finalOpacity.toFixed(2)),
-                region
-              });
-            }
-          });
-
-          setVisibleCityLabels(nextLabels);
+          if (dom.style.display !== 'none') dom.style.display = 'none';
         }
       }
 
@@ -1320,6 +1505,12 @@ export default function GlobalExplorer() {
       haloMat.dispose();
       pulseGeo.dispose();
       pulseMat.dispose();
+      shockwaveGeo.dispose();
+      shockwaveMat.dispose();
+      abRing1Geo.dispose();
+      abRing1Mat.dispose();
+      abRing2Geo.dispose();
+      abRing2Mat.dispose();
       arcGroup.children.forEach(child => {
         child.geometry?.dispose();
         child.material?.dispose();
@@ -1397,35 +1588,69 @@ export default function GlobalExplorer() {
         <div className="explorer-filter-bar" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
           {/* Group Category Tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRight: '1px solid var(--border-subtle)', paddingRight: '8px', flexShrink: 0 }}>
-            <button
+            <motion.button
               type="button"
               className={`btn ${activeClusterFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setActiveClusterFilter('all')}
-              style={{ borderRadius: 'var(--radius-pill)', padding: '3px 9px', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
+              whileTap={{ scale: 0.95 }}
+              style={{ position: 'relative', borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden' }}
             >
-              全部 (21)
-            </button>
+              {activeClusterFilter === 'all' && (
+                <motion.div
+                  layoutId="explorer-cluster-pill"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'var(--accent-blue)',
+                    borderRadius: 'var(--radius-pill)',
+                    zIndex: 0
+                  }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                />
+              )}
+              <span style={{ position: 'relative', zIndex: 1, color: activeClusterFilter === 'all' ? '#ffffff' : undefined }}>
+                全部 (21)
+              </span>
+            </motion.button>
             {REGION_CLUSTERS.map(cluster => (
-              <button
+              <motion.button
                 key={cluster.id}
                 type="button"
                 className={`btn ${activeClusterFilter === cluster.id ? 'btn-primary' : 'btn-outline'}`}
                 onClick={() => setActiveClusterFilter(cluster.id)}
-                style={{ borderRadius: 'var(--radius-pill)', padding: '3px 9px', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
+                whileTap={{ scale: 0.95 }}
+                style={{ position: 'relative', borderRadius: 'var(--radius-pill)', padding: '3px 10px', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden' }}
               >
-                {cluster.shortName} ({cluster.ids.length})
-              </button>
+                {activeClusterFilter === cluster.id && (
+                  <motion.div
+                    layoutId="explorer-cluster-pill"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'var(--accent-blue)',
+                      borderRadius: 'var(--radius-pill)',
+                      zIndex: 0
+                    }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1, color: activeClusterFilter === cluster.id ? '#ffffff' : undefined }}>
+                  {cluster.shortName} ({cluster.ids.length})
+                </span>
+              </motion.button>
             ))}
           </div>
 
           {/* City Pills in Current Category: Contained scrollable strip */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflowX: 'auto', padding: '2px 0', minWidth: 0, flex: 1, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             {displayedRegions.map(reg => (
-              <button
+              <motion.button
                 key={reg.id}
                 type="button"
                 className="btn btn-outline"
                 onClick={() => focusRegion(reg, true)}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
                   borderRadius: 'var(--radius-pill)',
                   padding: '3px 9px',
@@ -1437,7 +1662,7 @@ export default function GlobalExplorer() {
                 }}
               >
                 {reg.nameZh}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -1465,28 +1690,35 @@ export default function GlobalExplorer() {
           {/* Mount Three.js WebGL Canvas */}
           <div ref={mountRef} className="explorer-globe-mount" />
 
-          {/* Floating City Badges (Zoom LOD & Front-Facing Culling) */}
-          {visibleCityLabels.map((lbl) => (
-            <div
-              key={lbl.id}
-              className="globe-city-badge"
-              style={{
-                left: `${lbl.x + 10}px`,
-                top: `${lbl.y - 12}px`,
-                opacity: lbl.opacity,
-                pointerEvents: lbl.opacity > 0.4 ? 'auto' : 'none'
-              }}
-              onClick={() => focusRegion(lbl.region, true)}
-              onMouseEnter={() => setHoveredRegion(lbl.region)}
-              onMouseLeave={() => setHoveredRegion(null)}
-            >
-              <div className="globe-city-badge-inner">
-                <span className="globe-city-dot" />
-                <span className="globe-city-title">{lbl.nameZh}</span>
-                <span className="globe-city-sub">{lbl.nameEn}</span>
+          {/* Holographic Kinetic Air-Brake Active Feedback HUD */}
+          <div className={`globe-airbrake-badge ${isAirBrakeActive ? 'active' : ''}`}>
+            <span className="globe-airbrake-pulse-ring" />
+            <ShieldAlert size={13} style={{ flexShrink: 0 }} />
+            <span>动能空气阻尼制动锁定中</span>
+          </div>
+
+          {/* Floating City Badges Layer (Zero React Re-render, direct GPU compositor transforms) */}
+          <div ref={cityLabelsLayerRef} className="globe-city-labels-layer">
+            {geoRegions.map((reg) => (
+              <div
+                key={reg.id}
+                ref={(el) => {
+                  if (el) cityLabelDomsRef.current[reg.id] = el;
+                }}
+                className="globe-city-badge"
+                style={{ display: 'none', transform: 'translate3d(0, 0, 0)' }}
+                onClick={() => focusRegion(reg, true)}
+                onMouseEnter={() => setHoveredRegion(reg)}
+                onMouseLeave={() => setHoveredRegion(null)}
+              >
+                <div className="globe-city-badge-inner">
+                  <span className="globe-city-dot" />
+                  <span className="globe-city-title">{reg.nameZh}</span>
+                  <span className="globe-city-sub">{reg.nameEn}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
           {/* Subtle Top HUD Overlay */}
           <div className="globe-hud-top">
@@ -1564,10 +1796,12 @@ export default function GlobalExplorer() {
               {europeCountriesWithStats.map((country, idx) => {
                 const isActive = idx === activeCountryIndex;
                 return (
-                  <div
+                  <motion.div
                     key={country.id}
                     id={`europe-country-${country.id}`}
                     className={`europe-country-card ${isActive ? 'active' : ''}`}
+                    whileHover={{ scale: 1.015, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
+                    whileTap={{ scale: 0.985 }}
                     onClick={() => {
                       focusCountryByIndex(idx);
                       setEuropeNavMode('artwork_view');
@@ -1618,7 +1852,7 @@ export default function GlobalExplorer() {
                         <ChevronRight size={12} />
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1718,7 +1952,12 @@ export default function GlobalExplorer() {
             {/* Scrollable Masterworks List */}
             <div className="explorer-sidebar-body">
               {selectedRegion.artworks.map((item) => (
-                <div key={item.id} className="inspector-artwork-card">
+                <motion.div
+                  key={item.id}
+                  className="inspector-artwork-card"
+                  whileHover={{ y: -3, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
+                  whileTap={{ scale: 0.985 }}
+                >
                   {/* Artwork Image Frame */}
                   <div className="image-box" style={{ height: '145px', borderRadius: '8px', overflow: 'hidden' }}>
                     <ArtworkImage artworkId={item.id} alt={item.title} fit="cover" />
@@ -1759,7 +1998,7 @@ export default function GlobalExplorer() {
                     <span>研读考点详情</span>
                     <ExternalLink size={12} />
                   </Link>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
