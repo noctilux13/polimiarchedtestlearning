@@ -971,7 +971,27 @@ export async function handleDeterministicFallback(promptText = '') {
     };
   }
 
-  // 3. Practice Settings Configuration Intent
+  // 3. Reset Question Bank Intent (Evaluated before settings so '恢复出厂设置' is not treated as setting config)
+  if (/恢复出厂|重置题库|恢复题库|reset bank|factory reset/i.test(prompt)) {
+    if (/确认|confirm|yes/i.test(prompt)) {
+      await executeSandboxedTool('reset_question_bank', { confirm: true });
+      return {
+        role: 'assistant',
+        mode: 'fallback_offline',
+        toolUsed: 'reset_question_bank',
+        content: '【离线规则引擎 / Offline Fallback Mode】题库已成功重置恢复至官方 210 道 ARCHED 经典母题！所有自定义增订已清空。',
+        timestamp: Date.now()
+      };
+    }
+    return {
+      role: 'assistant',
+      mode: 'fallback_offline',
+      content: '⚠️ 【高风险操作确认】您正在请求将题库恢复为出厂设置。这将清空所有用户与 AI 自定义添加的题目。如确认执行，请输入「确认重置题库」。',
+      timestamp: Date.now()
+    };
+  }
+
+  // 4. Practice Settings Configuration Intent
   if (/设置|设定|修改|时限|题数|分钟|timer|倒计时|评分|倒扣|负分|negative|quiz count|exam count|exam time|quiz time|time limit|exam\s+(?:to\s+)?\d+|quiz\s+(?:to\s+)?\d+|set\s+(?:exam|quiz|time|timer)/i.test(prompt)) {
     const timeMatch = prompt.match(/(?:set\s+)?exam\s+time\s+(?:to\s+)?(\d+)\s*(?:min|minutes?)/i) ||
                       prompt.match(/(\d+)\s*分钟/) ||
@@ -1035,26 +1055,6 @@ export async function handleDeterministicFallback(promptText = '') {
         timestamp: Date.now()
       };
     }
-  }
-
-  // 5. Reset Question Bank Intent
-  if (/恢复出厂|重置题库|恢复题库|reset bank|factory reset/i.test(prompt)) {
-    if (/确认|confirm|yes/i.test(prompt)) {
-      await executeSandboxedTool('reset_question_bank', { confirm: true });
-      return {
-        role: 'assistant',
-        mode: 'fallback_offline',
-        toolUsed: 'reset_question_bank',
-        content: '【离线规则引擎 / Offline Fallback Mode】题库已成功重置恢复至官方 210 道 ARCHED 经典母题！所有自定义增订已清空。',
-        timestamp: Date.now()
-      };
-    }
-    return {
-      role: 'assistant',
-      mode: 'fallback_offline',
-      content: '⚠️ 【高风险操作确认】您正在请求将题库恢复为出厂设置。这将清空所有用户与 AI 自定义添加的题目。如确认执行，请输入「确认重置题库」。',
-      timestamp: Date.now()
-    };
   }
 
   // 6. Question Search / Query Intent
