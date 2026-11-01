@@ -5,7 +5,7 @@
  * Agent: challenger_m2_remed_1_rep (critic, specialist)
  * 
  * Evaluates:
- * 1. Question bank integrity (210 questions, continuous sequential IDs arched_001..arched_210)
+ * 1. Question bank integrity (320 questions, continuous sequential IDs arched_001..arched_320)
  * 2. Balanced key distribution across options 0, 1, 2, 3 (~25% each, Chi-Square goodness-of-fit)
  * 3. Option synchronization between Chinese and English (structure, semantic alignment, correctness)
  * 4. Local fallback image disk existence and positive byte size
@@ -93,12 +93,12 @@ function assertEqual(actual, expected, msg) {
 // =============================================================================
 console.log('--- Tier 1: Question Bank Integrity & ID Sequencing ---');
 
-check('1.1: Question bank has exactly 210 questions', () => {
-  assertEqual(ARCHED_QUESTION_BANK.length, 210, 'Total question count');
+check('1.1: Question bank has exactly 320 questions', () => {
+  assertEqual(ARCHED_QUESTION_BANK.length, 320, 'Total question count');
 });
 
-check('1.2: IDs are continuous, 3-digit zero-padded arched_001 through arched_210', () => {
-  for (let i = 1; i <= 210; i++) {
+check('1.2: IDs are continuous, 3-digit zero-padded arched_001 through arched_320', () => {
+  for (let i = 1; i <= 320; i++) {
     const expectedId = `arched_${String(i).padStart(3, '0')}`;
     const question = ARCHED_QUESTION_BANK[i - 1];
     assert(question, `Missing question at index ${i - 1}`);
@@ -106,7 +106,7 @@ check('1.2: IDs are continuous, 3-digit zero-padded arched_001 through arched_21
   }
 });
 
-check('1.3: 5 Syllabus domains meet minimum quotas (>= 30 questions each)', () => {
+check('1.3: 5 Syllabus domains meet minimum quotas (>= 60 questions each)', () => {
   const expectedDomains = ['chronology', 'visual_id', 'avant_garde', 'artist_movement', 'renaissance_classical'];
   const domainTally = {};
   expectedDomains.forEach(d => domainTally[d] = 0);
@@ -117,12 +117,12 @@ check('1.3: 5 Syllabus domains meet minimum quotas (>= 30 questions each)', () =
   });
 
   expectedDomains.forEach(d => {
-    assert(domainTally[d] >= 30, `Domain '${d}' has only ${domainTally[d]} questions (min 30 required)`);
+    assert(domainTally[d] >= 60, `Domain '${d}' has only ${domainTally[d]} questions (min 60 required)`);
     console.log(`         Domain '${d}': ${domainTally[d]} questions`);
   });
 });
 
-check('1.4: Schema completeness across all 210 items (no null/undefined/empty critical fields)', () => {
+check('1.4: Schema completeness across all 320 items (no null/undefined/empty critical fields)', () => {
   ARCHED_QUESTION_BANK.forEach(q => {
     assert(q.id && q.id.trim(), `Empty ID in question`);
     assert(q.domain && q.domain.trim(), `${q.id}: empty domain`);
@@ -163,8 +163,8 @@ check('2.1: Key distribution across options 0, 1, 2, 3 is ~25% each (between 24%
   }
 });
 
-check('2.2: Chi-Square Goodness-of-Fit Test for uniform answer distribution (E = 52.5)', () => {
-  const expected = 210 / 4; // 52.5
+check('2.2: Chi-Square Goodness-of-Fit Test for uniform answer distribution (E = 80)', () => {
+  const expected = 320 / 4; // 80
   let chiSquare = 0;
   for (let k = 0; k <= 3; k++) {
     chiSquare += Math.pow(keyCounts[k] - expected, 2) / expected;
@@ -253,14 +253,14 @@ check('3.3: Canonical historical entity semantic alignment on sample questions',
       expectedEnSub: 'Psychic automatism'
     },
     {
-      id: 'arched_172', // Masaccio Holy Trinity
-      expectedZhSub: '圣三位一体',
-      expectedEnSub: 'Holy Trinity'
+      id: 'arched_172', // Cologne Cathedral (replaced Masaccio)
+      expectedZhSub: '双塔',
+      expectedEnSub: 'spires'
     },
     {
-      id: 'arched_013', // Bernini David Chronology
-      expectedZhSub: '贝尼尼',
-      expectedEnSub: 'Bernini'
+      id: 'arched_013', // Italian Architecture Chronology
+      expectedZhSub: '坦比哀多礼拜堂',
+      expectedEnSub: 'Tempietto'
     }
   ];
 
@@ -311,9 +311,9 @@ check('4.1: Every fallbackImage referenced in ARCHED bank exists on disk with si
   console.log(`         Verified ${fallbackImageCount} fallback image files on disk.`);
 });
 
-check('4.2: Visual ID domain (45 questions) has 100% stimulus coverage (image + fallbackImage)', () => {
+check('4.2: Visual ID domain (64 questions) has 100% stimulus coverage (image + fallbackImage)', () => {
   const visualQuestions = ARCHED_QUESTION_BANK.filter(q => q.domain === 'visual_id');
-  assertEqual(visualQuestions.length, 45, 'Visual ID question count');
+  assertEqual(visualQuestions.length, 64, 'Visual ID question count');
 
   visualQuestions.forEach(q => {
     assert(q.image && (q.image.startsWith('http') || q.image.startsWith('/')), `${q.id}: missing or invalid image URL`);
@@ -329,12 +329,12 @@ console.log('\n--- Tier 5: questionBankService Robustness & API Hardening ---');
 check('5.1: queryQuestions(null) executes gracefully without TypeError and returns all questions', () => {
   const res = queryQuestions(null);
   assert(Array.isArray(res), 'Should return array');
-  assertEqual(res.length, 210, 'Should return all 210 questions on null filter');
+  assertEqual(res.length, 320, 'Should return all 320 questions on null filter');
 });
 
-check('5.2: queryQuestions(undefined) and queryQuestions({}) return all 210 questions', () => {
-  assertEqual(queryQuestions(undefined).length, 210, 'undefined filter');
-  assertEqual(queryQuestions({}).length, 210, 'empty object filter');
+check('5.2: queryQuestions(undefined) and queryQuestions({}) return all 320 questions', () => {
+  assertEqual(queryQuestions(undefined).length, 320, 'undefined filter');
+  assertEqual(queryQuestions({}).length, 320, 'empty object filter');
 });
 
 check('5.3: queryQuestions keyword search is case-insensitive across Chinese and English', () => {
@@ -353,8 +353,8 @@ check('5.5: getQuestionById returns correct question for valid ID and null for i
   const qFirst = questionBankService.getQuestionById('arched_001');
   assert(qFirst && qFirst.id === 'arched_001', 'Should find arched_001');
 
-  const qLast = questionBankService.getQuestionById('arched_210');
-  assert(qLast && qLast.id === 'arched_210', 'Should find arched_210');
+  const qLast = questionBankService.getQuestionById('arched_320');
+  assert(qLast && qLast.id === 'arched_320', 'Should find arched_320');
 
   assertEqual(questionBankService.getQuestionById('arched_999'), null, 'Non-existent ID');
   assertEqual(questionBankService.getQuestionById(''), null, 'Empty string');

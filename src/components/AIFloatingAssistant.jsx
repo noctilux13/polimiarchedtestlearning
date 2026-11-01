@@ -132,7 +132,7 @@ export default function AIFloatingAssistant() {
         setPendingConfirm({
           action: 'reset_question_bank',
           title: '确认将题库恢复出厂设置？',
-          description: '此操作将清空所有用户及 AI 生成的自定义题目，恢复为官方 210 道 ARCHED 经典母题。'
+          description: '此操作将清空所有用户及 AI 生成的自定义题目，恢复为官方 320 道 ARCHED 经典母题。'
         });
       }
     } catch (err) {
@@ -159,7 +159,7 @@ export default function AIFloatingAssistant() {
           ...prev,
           {
             role: 'assistant',
-            content: res.message || '题库已成功重置恢复至官方 210 道 ARCHED 经典母题！',
+            content: res.message || '题库已成功重置恢复至官方 320 道 ARCHED 经典母题！',
             mode: 'fallback_offline',
             toolUsed: 'reset_question_bank',
             timestamp: Date.now()

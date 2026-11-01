@@ -249,14 +249,14 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
       assert(fs.existsSync(bankPath), 'src/data/archedQuestionBank.js must exist');
     });
 
-    test('6.2: Question bank exports an array of at least 200 items', async () => {
+    test('6.2: Question bank exports an array of at least 300 items', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       assert(fs.existsSync(bankPath), 'src/data/archedQuestionBank.js must exist');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       assert(Array.isArray(bank), 'Question bank must export an array');
-      assertGreaterThanOrEqual(bank.length, 200, `Question bank count must be >= 200, found ${bank.length}`);
+      assertGreaterThanOrEqual(bank.length, 300, `Question bank count must be >= 300, found ${bank.length}`);
     });
 
     test('6.3: Each question conforms to unique string id format', async () => {
@@ -299,13 +299,13 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
   // Feature 7: Chronological Sequencing Domain (D1)
   // =========================================================================
   describe('F7: Chronological Sequencing Domain (D1)', () => {
-    test('7.1: Domain "chronology" contains at least 30 questions', async () => {
+    test('7.1: Domain "chronology" contains at least 60 questions', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const chronologyQs = bank.filter(q => q.domain === 'chronology');
-      assertGreaterThanOrEqual(chronologyQs.length, 30, `Chronology domain must have >= 30 questions, found ${chronologyQs.length}`);
+      assertGreaterThanOrEqual(chronologyQs.length, 60, `Chronology domain must have >= 60 questions, found ${chronologyQs.length}`);
     });
 
     test('7.2: Chronology questions cover movement sequencing (Neoclassicism to Pop Art)', async () => {
@@ -363,13 +363,13 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
   // Feature 8: Visual Artwork & Author ID Domain (D2)
   // =========================================================================
   describe('F8: Visual Artwork & Author ID Domain (D2)', () => {
-    test('8.1: Domain "visual_id" contains at least 30 questions', async () => {
+    test('8.1: Domain "visual_id" contains at least 60 questions', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const visualQs = bank.filter(q => q.domain === 'visual_id');
-      assertGreaterThanOrEqual(visualQs.length, 30, `Visual ID domain must have >= 30 questions, found ${visualQs.length}`);
+      assertGreaterThanOrEqual(visualQs.length, 60, `Visual ID domain must have >= 60 questions, found ${visualQs.length}`);
     });
 
     test('8.2: Visual ID questions cover Mondrian, Miró, and Pollock', async () => {
@@ -422,13 +422,13 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
   // Feature 9: 20th-Century Avant-Garde Domain (D3)
   // =========================================================================
   describe('F9: 20th-Century Avant-Garde Domain (D3)', () => {
-    test('9.1: Domain "avant_garde" contains at least 30 questions', async () => {
+    test('9.1: Domain "avant_garde" contains at least 60 questions', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const avantGardeQs = bank.filter(q => q.domain === 'avant_garde');
-      assertGreaterThanOrEqual(avantGardeQs.length, 30, `Avant-garde domain must have >= 30 questions, found ${avantGardeQs.length}`);
+      assertGreaterThanOrEqual(avantGardeQs.length, 60, `Avant-garde domain must have >= 60 questions, found ${avantGardeQs.length}`);
     });
 
     test('9.2: Avant-garde domain covers Italian Rationalism and Gruppo 7 / Terragni', async () => {
@@ -441,14 +441,14 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
       assert(text.includes('Rationalis') || text.includes('Terragni') || text.includes('Gruppo 7') || text.includes('理性主义'), 'Must test Italian Rationalism');
     });
 
-    test('9.3: Avant-garde domain covers Russian Constructivism and Suprematism (Malevich, Tatlin)', async () => {
+    test('9.3: Avant-garde domain covers De Stijl and Modernist Masters (Le Corbusier, Mies van der Rohe)', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const avantGardeQs = bank.filter(q => q.domain === 'avant_garde');
       const text = avantGardeQs.map(q => q.questionEn + q.questionZh + q.explanationEn + q.explanationZh + q.tags.join(' ')).join(' ');
-      assert(text.includes('Constructivis') || text.includes('Suprematis') || text.includes('Malevich') || text.includes('Tatlin') || text.includes('至上主义') || text.includes('构成主义'), 'Must test Constructivism / Suprematism');
+      assert(text.includes('Corbusier') || text.includes('柯布西耶') || text.includes('Mies') || text.includes('密斯') || text.includes('De Stijl') || text.includes('风格派'), 'Must test De Stijl / Modernist Masters');
     });
 
     test('9.4: Avant-garde domain covers Bauhaus and Chicago School steel frame', async () => {
@@ -477,13 +477,13 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
   // Feature 10: Artist Movement Categorization Domain (D4)
   // =========================================================================
   describe('F10: Artist Movement Categorization Domain (D4)', () => {
-    test('10.1: Domain "artist_movement" contains at least 30 questions', async () => {
+    test('10.1: Domain "artist_movement" contains at least 60 questions', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const movementQs = bank.filter(q => q.domain === 'artist_movement');
-      assertGreaterThanOrEqual(movementQs.length, 30, `Artist movement domain must have >= 30 questions, found ${movementQs.length}`);
+      assertGreaterThanOrEqual(movementQs.length, 60, `Artist movement domain must have >= 60 questions, found ${movementQs.length}`);
     });
 
     test('10.2: Artist movement domain covers Surrealism affiliations and manifestos', async () => {
@@ -531,47 +531,46 @@ describe('Tier 1: Feature Coverage (Features 1 - 21)', () => {
   // Feature 11: Renaissance & Classical Mastery Domain (D5)
   // =========================================================================
   describe('F11: Renaissance & Classical Mastery Domain (D5)', () => {
-    test('11.1: Domain "renaissance_classical" contains at least 30 questions', async () => {
+    test('11.1: Domain "renaissance_classical" contains at least 60 questions', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const renQs = bank.filter(q => q.domain === 'renaissance_classical');
-      assertGreaterThanOrEqual(renQs.length, 30, `Renaissance domain must have >= 30 questions, found ${renQs.length}`);
+      assertGreaterThanOrEqual(renQs.length, 60, `Renaissance domain must have >= 60 questions, found ${renQs.length}`);
     });
 
-    test('11.2: Renaissance domain covers Giotto, Masaccio, and linear perspective', async () => {
+    test('11.2: Renaissance domain covers Brunelleschi, Alberti, and architectural perspective', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const renQs = bank.filter(q => q.domain === 'renaissance_classical');
       const text = renQs.map(q => q.questionEn + q.questionZh + q.explanationEn + q.tags.join(' ')).join(' ');
-      assert(text.includes('Giotto') || text.includes('乔托'), 'Must test Giotto');
-      assert(text.includes('Masaccio') || text.includes('马萨乔') || text.includes('Trinity'), 'Must test Masaccio');
+      assert(text.includes('Brunelleschi') || text.includes('布鲁内莱斯基'), 'Must test Brunelleschi');
+      assert(text.includes('Alberti') || text.includes('阿尔伯蒂'), 'Must test Alberti');
     });
 
-    test('11.3: Renaissance domain covers Piero della Francesca and Mantegna foreshortening', async () => {
+    test('11.3: Renaissance domain covers Bramante and High Renaissance centralized planning (Tempietto)', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const renQs = bank.filter(q => q.domain === 'renaissance_classical');
       const text = renQs.map(q => q.questionEn + q.questionZh + q.explanationEn + q.tags.join(' ')).join(' ');
-      assert(text.includes('Piero della Francesca') || text.includes('皮耶罗'), 'Must test Piero della Francesca');
-      assert(text.includes('Mantegna') || text.includes('曼特尼亚'), 'Must test Mantegna');
+      assert(text.includes('Bramante') || text.includes('伯拉孟特') || text.includes('Tempietto') || text.includes('坦比哀多'), 'Must test Bramante / Tempietto');
     });
 
-    test('11.4: Renaissance domain covers Botticelli, Caravaggio, and Bernini', async () => {
+    test('11.4: Renaissance & Baroque domain covers Michelangelo, Palladio, and Bernini', async () => {
       const bankPath = path.resolve(PROJECT_ROOT, 'src/data/archedQuestionBank.js');
       const fileUrl = 'file:///' + bankPath.replace(/\\/g, '/');
       const mod = await import(fileUrl);
       const bank = mod.ARCHED_QUESTION_BANK || mod.archedQuestions || mod.default;
       const renQs = bank.filter(q => q.domain === 'renaissance_classical');
       const text = renQs.map(q => q.questionEn + q.questionZh + q.explanationEn + q.tags.join(' ')).join(' ');
-      assert(text.includes('Botticelli') || text.includes('波提切利'), 'Must test Botticelli');
-      assert(text.includes('Caravaggio') || text.includes('卡拉瓦乔'), 'Must test Caravaggio');
-      assert(text.includes('Bernini') || text.includes('贝尼尼'), 'Must test Bernini');
+      assert(text.includes('Michelangelo') || text.includes('米开朗基罗'), 'Must test Michelangelo');
+      assert(text.includes('Palladio') || text.includes('帕拉第奥'), 'Must test Palladio');
+      assert(text.includes('Bernini') || text.includes('贝尼尼') || text.includes('贝尔尼尼'), 'Must test Bernini');
     });
 
     test('11.5: Renaissance domain covers Classical orders and architectural masters (Brunelleschi, Alberti, Palladio)', async () => {

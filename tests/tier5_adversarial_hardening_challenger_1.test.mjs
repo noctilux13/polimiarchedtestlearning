@@ -261,10 +261,10 @@ describe('T5-Challenger-1 Suite 2: ArtworkImage Resilient Loader & Fallback Orac
 // =========================================================================
 describe('T5-Challenger-1 Suite 3: Canonical ARCHED Question Bank Integrity & Distribution', () => {
 
-  test('3.1: Exactly 210 questions with strictly sequential IDs arched_001..arched_210', () => {
-    assertEqual(ARCHED_QUESTION_BANK.length, 210, 'Question bank must contain exactly 210 questions');
+  test('3.1: Exactly 320 questions with strictly sequential IDs arched_001..arched_320', () => {
+    assertEqual(ARCHED_QUESTION_BANK.length, 320, 'Question bank must contain exactly 320 questions');
 
-    for (let i = 0; i < 210; i++) {
+    for (let i = 0; i < 320; i++) {
       const expectedId = `arched_${String(i + 1).padStart(3, '0')}`;
       const actualId = ARCHED_QUESTION_BANK[i].id;
       assertEqual(actualId, expectedId, `Question index ${i} ID mismatch`);
@@ -277,11 +277,11 @@ describe('T5-Challenger-1 Suite 3: Canonical ARCHED Question Bank Integrity & Di
       domainCounts[q.domain] = (domainCounts[q.domain] || 0) + 1;
     });
 
-    assertEqual(domainCounts['chronology'], 40, 'Chronology domain quota');
-    assertEqual(domainCounts['visual_id'], 45, 'Visual ID domain quota');
-    assertEqual(domainCounts['avant_garde'], 45, 'Avant-Garde domain quota');
-    assertEqual(domainCounts['artist_movement'], 35, 'Artist Movement domain quota');
-    assertEqual(domainCounts['renaissance_classical'], 45, 'Renaissance Classical domain quota');
+    assertEqual(domainCounts['chronology'], 64, 'Chronology domain quota');
+    assertEqual(domainCounts['visual_id'], 64, 'Visual ID domain quota');
+    assertEqual(domainCounts['avant_garde'], 64, 'Avant-Garde domain quota');
+    assertEqual(domainCounts['artist_movement'], 64, 'Artist Movement domain quota');
+    assertEqual(domainCounts['renaissance_classical'], 64, 'Renaissance Classical domain quota');
   });
 
   test('3.3: 100% Bilingual Option Parity (optionsZh: 4, optionsEn: 4) & Valid Answer Keys', () => {
@@ -322,7 +322,7 @@ describe('T5-Challenger-1 Suite 3: Canonical ARCHED Question Bank Integrity & Di
     assertLessThanOrEqual(chiSquare, 7.815, `Chi-square statistic ${chiSquare.toFixed(2)} indicates non-uniform distribution`);
   });
 
-  test('3.5: 100% of defined fallbackImage paths (59 visual questions) exist in public/ with positive byte size', () => {
+  test('3.5: 100% of defined fallbackImage paths (72 visual questions) exist in public/ with positive byte size', () => {
     let checkedCount = 0;
     ARCHED_QUESTION_BANK.forEach(q => {
       if (q.fallbackImage) {
@@ -334,8 +334,8 @@ describe('T5-Challenger-1 Suite 3: Canonical ARCHED Question Bank Integrity & Di
         assertGreaterThanOrEqual(stat.size, 100, `fallbackImage size is suspiciously small: ${fullPath}`);
       }
     });
-    // 59 visual questions (45 in Domain 2 Visual ID + 14 across architecture domains)
-    assertEqual(checkedCount, 59, 'Exactly 59 visual questions must have physical local fallback images');
+    // 72 visual questions (64 in Domain 2 Visual ID + 8 across architecture domains)
+    assertEqual(checkedCount, 72, 'Exactly 72 visual questions must have physical local fallback images');
   });
 });
 
@@ -356,7 +356,7 @@ describe('T5-Challenger-1 Suite 4: QuestionBankService Adversarial Fuzzing & Mut
     // Null and empty object
     const resNull = queryQuestions(null);
     assert(Array.isArray(resNull), 'queryQuestions(null) must return array');
-    assertEqual(resNull.length, 210, 'queryQuestions(null) returns all questions');
+    assertEqual(resNull.length, 320, 'queryQuestions(null) returns all questions');
   });
 
   test('4.2: Limit parameter clamping bounds [1, 2000]', () => {
@@ -393,8 +393,8 @@ describe('T5-Challenger-1 Suite 4: QuestionBankService Adversarial Fuzzing & Mut
     assertEqual(resNeg.length, 1, 'Count -10 clamped to 1');
 
     const resExcess = getRandomExamSet(1000);
-    assertGreaterThanOrEqual(resExcess.length, 210, 'Count 1000 returns all available questions without crash');
-    assertLessThanOrEqual(resExcess.length, 300);
+    assertGreaterThanOrEqual(resExcess.length, 320, 'Count 1000 returns all available questions without crash');
+    assertLessThanOrEqual(resExcess.length, 320);
   });
 
   test('4.5: Custom question XSS sanitization removes scripts and javascript: URLs', () => {
@@ -456,12 +456,12 @@ describe('T5-Challenger-1 Suite 4: QuestionBankService Adversarial Fuzzing & Mut
       questionEn: 'Temporary Question'
     });
     assert(addRes.success);
-    assertGreaterThanOrEqual(getAllQuestions().length, 211);
+    assertGreaterThanOrEqual(getAllQuestions().length, 321);
 
     // Reset
     const resetRes = resetToFactoryDefaults();
     assert(resetRes.success);
-    assertEqual(getAllQuestions().length, 210, 'After factory reset, exactly 210 base questions remain');
+    assertEqual(getAllQuestions().length, 320, 'After factory reset, exactly 320 base questions remain');
   });
 });
 
@@ -746,7 +746,7 @@ describe('T5-Challenger-1 Suite 8: Client-Side AI Agent Sandbox & Tool Security'
     // 1. Summary intent
     const sumRes = await handleDeterministicFallback('题库概况统计');
     assertEqual(sumRes.toolUsed, 'get_question_bank_summary');
-    assertIncludes(sumRes.content, '210');
+    assertIncludes(sumRes.content, '320');
 
     // 2. Query intent
     const queryRes = await handleDeterministicFallback('搜索关于蒙德里安的考题');

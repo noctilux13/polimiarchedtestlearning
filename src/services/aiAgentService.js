@@ -164,8 +164,8 @@ const CURATED_GENERATION_TEMPLATES = {
         'Realism → Impressionism → Neoclassicism → Romanticism'
       ],
       correctAnswer: 0,
-      explanationZh: '新古典主义兴起于18世纪中后期（庞贝发掘与启蒙理性）；浪漫主义继起于18世纪末至19世纪初；19世纪中叶库尔贝确立写实主义；1874年第一次印象派画展标志印象派诞生。',
-      explanationEn: 'Neoclassicism emerged in the mid-18th century, followed by Romanticism around 1800, Courbet\'s Realism in the 1850s, and Impressionism in 1874.',
+      explanationZh: '新古典主义兴起于18世纪中后期（庞贝发掘与启蒙理性）；浪漫主义继起于18世纪末至19世纪初；19世纪中叶现实主义蓬勃发展；1874年第一次印象派画展标志印象派诞生。',
+      explanationEn: 'Neoclassicism emerged in the mid-18th century, followed by Romanticism around 1800, Realism in the 1850s, and Impressionism in 1874.',
       tags: ['Chronology', 'Neoclassicism', 'Romanticism', 'Realism', 'Impressionism'],
       difficulty: 1
     },
@@ -201,15 +201,15 @@ const CURATED_GENERATION_TEMPLATES = {
       questionEn: 'Which postwar Italian avant-garde artist published the "Manifesto Spaziale" and created the "Concetto Spaziale" series by puncturing and slashing monochrome canvases?',
       optionsZh: [
         '卢齐欧·封塔纳 (Lucio Fontana)',
-        '阿尔贝托·布里 (Alberto Burri)',
+        '保罗·杰克逊·波洛克 (Paul Jackson Pollock)',
         '皮耶罗·曼佐尼 (Piero Manzoni)',
-        '马里奥·梅尔茨 (Mario Merz)'
+        '罗伊·利希滕斯坦 (Roy Lichtenstein)'
       ],
       optionsEn: [
         'Lucio Fontana',
-        'Alberto Burri',
+        'Paul Jackson Pollock',
         'Piero Manzoni',
-        'Mario Merz'
+        'Roy Lichtenstein'
       ],
       correctAnswer: 0,
       explanationZh: '卢齐欧·封塔纳（Lucio Fontana）于1947年在米兰创立空间主义。他通过刀割（tagli）和孔洞（buchi）划破二维画幅，将画布后的真实物理空间与光线引入作品，颠覆传统绘画的幻觉平面。',
@@ -218,27 +218,27 @@ const CURATED_GENERATION_TEMPLATES = {
       difficulty: 2
     },
     {
-      subCategory: 'Suprematism & Geometric Abstraction',
+      subCategory: 'De Stijl & Neo-Plasticism',
       era: '20th_century',
-      questionZh: '在1915年彼得格勒举办的「0,10 最后的未来主义画展」上，卡济米尔·马列维奇将其代表作《黑方块》（Black Square）悬挂在展厅的何种特殊位置？',
-      questionEn: 'At the "0.10: The Last Futurist Exhibition" in Petrograd (1915), in what specific room location did Kazimir Malevich hang his seminal "Black Square"?',
+      questionZh: '荷兰风格派（De Stijl）核心代表皮特·蒙德里安（Piet Mondrian）在其成熟期「新造型主义」绘画中，所采用的极简视觉语言特征是？',
+      questionEn: 'In his mature Neo-Plasticist paintings, what minimalist visual syntax was formulated by De Stijl master Piet Mondrian?',
       optionsZh: [
-        '东正教传统悬挂圣像的「红角 / 圣像角」(Beautiful Corner / Krasny Ugol)',
-        '展厅正中央的水泥雕塑展台上方',
-        '展厅入口两侧以形成对仗拱门',
-        '贴地放置象征艺术传统的终结与埋葬'
+        '仅使用垂直与水平黑线网格，搭配红、黄、蓝三原色与黑白灰非彩色色块',
+        '运用动态旋转的彩色同心圆与奔放流动的波浪曲线',
+        '利用厚重堆叠的油彩表现具象写实的人物肖像与风景',
+        '模拟机械印刷的网点拼贴与商业广告现成品'
       ],
       optionsEn: [
-        'The "red/beautiful corner" (krasny ugol) traditionally reserved for Russian Orthodox icons',
-        'Suspended from the center ceiling above sculptured reliefs',
-        'Flanking the main entrance doors as an archway',
-        'Placed directly on the floor symbolizing the burial of tradition'
+        'Exclusively perpendicular black grids enclosing primary colors (red, yellow, blue) and non-colors (white, gray, black)',
+        'Dynamic concentric circles and free-flowing gestural undulating curves',
+        'Heavy impasto layers depicting realistic figurative portraits and landscapes',
+        'Commercial advertisement collages simulating mechanical halftone Ben-Day dots'
       ],
       correctAnswer: 0,
-      explanationZh: '马列维奇将《黑方块》悬挂在俄罗斯民居传统放置东正教圣像的高处墙角（Krasny Ugol），宣称至上主义（Suprematism）是超越具象叙事的新时代纯粹艺术情感的最高体现。',
-      explanationEn: 'Malevich hung the Black Square across the high corner reserved for sacred icons in Russian homes, designating Suprematism as the zero degree of pure pictorial sensation.',
-      tags: ['Malevich', 'Suprematism', 'Black Square', 'Russian Avant-Garde'],
-      difficulty: 3
+      explanationZh: '蒙德里安彻底剔除具象叙事与多余装饰，将宇宙法则提炼为纯粹的垂直与水平正交黑线骨架，并在网格间填入红黄蓝三原色以及白、灰底色，以纯粹造型（Neo-Plasticism）表达永恒的动态平衡。',
+      explanationEn: 'Mondrian eliminated figurative representation, reducing visual reality to orthogonal black grids and primary color planes (red, yellow, blue) to achieve universal dynamic equilibrium.',
+      tags: ['Mondrian', 'De Stijl', 'NeoPlasticism', 'Dutch Avant-Garde'],
+      difficulty: 2
     }
   ],
   avant_garde: [
@@ -339,49 +339,49 @@ const CURATED_GENERATION_TEMPLATES = {
   ],
   renaissance_classical: [
     {
-      subCategory: 'Early Renaissance Linear Perspective',
+      subCategory: 'Early Renaissance Classical Order',
       era: 'renaissance',
-      questionZh: '在佛罗伦萨新圣母大殿的壁画《圣三位一体》（Holy Trinity, 约1427）中，马萨乔（Masaccio）与哪位建筑大师合作，首次将精确的单点数学透视法则应用于大型壁画中？',
-      questionEn: 'In the fresco "Holy Trinity" (c. 1427) at Santa Maria Novella in Florence, with which architect did Masaccio collaborate to construct the first rigorously mathematically precise single-point perspective?',
+      questionZh: '菲利波·布鲁内莱斯基（Filippo Brunelleschi）在佛罗伦萨圣十字圣殿建造的帕齐礼拜堂（Pazzi Chapel, 约1429-1443），其开创性的立面与内部空间模数特征是？',
+      questionEn: 'In the Pazzi Chapel (c. 1429–1443) at Santa Croce in Florence, what pioneering modular design did Filippo Brunelleschi achieve?',
       optionsZh: [
-        '菲利波·布鲁内莱斯基 (Filippo Brunelleschi)',
-        '莱昂·巴蒂斯塔·阿尔伯蒂 (Leon Battista Alberti)',
-        '米开罗佐 (Michelozzo)',
-        '多纳泰罗 (Donatello)'
+        '以灰色陶立克砂岩（Pietra Serena）线条清晰勾勒出基于正方形与圆形的古典严谨数学模数比例',
+        '完全模仿法国哥特式大教堂的多束柱与高耸尖券十字交叉肋拱',
+        '采用不对称自由曲面外墙与重型巴洛克动态旋转大理石雕塑',
+        '使用未粉刷的粗粝清水混凝土框架与全玻璃幕墙外立面'
       ],
       optionsEn: [
-        'Filippo Brunelleschi',
-        'Leon Battista Alberti',
-        'Michelozzo',
-        'Donatello'
+        'Articulating strict square-and-circle mathematical modules framed by grey pietra serena pilasters and entablatures',
+        'Directly copying French High Gothic bundled piers and towering pointed rib vaults',
+        'Deploying asymmetrical curvilinear facades and heavy dynamic Baroque marble statues',
+        'Using raw unadorned exposed concrete frames and full-height glass curtain walls'
       ],
       correctAnswer: 0,
-      explanationZh: '马萨乔在《圣三位一体》壁画中采用布鲁内莱斯基发明的几何单点透视法，描绘了一个仿佛嵌入墙壁深处的罗马桶形穹窿祈祷室，实现了古典幻觉空间与透视学的革命。',
-      explanationEn: 'Masaccio collaborated closely with Filippo Brunelleschi, who mathematically formulated one-point linear perspective, rendering a coffered barrel vault with precise scientific foreshortening.',
-      tags: ['Masaccio', 'Brunelleschi', 'Perspective', 'Early Renaissance', 'Florence'],
+      explanationZh: '布鲁内莱斯基在帕齐礼拜堂中利用灰色砂岩（Pietra Serena）构件勾勒出柱式、拱圈与圆顶的几何框架，白灰抹灰墙面与几何灰石形成鲜明对比，确立了文艺复兴基于几何理性与人体模数的比例系统。',
+      explanationEn: 'Brunelleschi established Renaissance architectural rationalism in the Pazzi Chapel by using pietra serena sandstone trims against white plaster to articulate proportional geometric modules based on the square and circle.',
+      tags: ['Brunelleschi', 'Pazzi Chapel', 'Renaissance Architecture', 'Florence', 'Pietra Serena'],
       difficulty: 2
     },
     {
-      subCategory: 'Baroque Dynamic Sculpture',
+      subCategory: 'Baroque Synthesis & Dynamic Tectonics',
       era: 'baroque',
-      questionZh: '吉安·洛伦佐·贝尔尼尼（Gian Lorenzo Bernini）在罗马博尔盖塞美术馆的大理石雕塑《阿波罗与达芙妮》（Apollo and Daphne, 1622-1625）捕捉了奥维德《变形记》中何种瞬时戏剧高潮？',
-      questionEn: 'Gian Lorenzo Bernini\'s marble masterpiece "Apollo and Daphne" (1622–1625) in the Galleria Borghese captures what dramatic split-second climax from Ovid\'s Metamorphoses?',
+      questionZh: '吉安·洛伦佐·贝尔尼尼（Gian Lorenzo Bernini）在梵蒂冈圣彼得大教堂穹顶下建造的青铜圣体伞（St. Peter\'s Baldacchino, 1624-1633），其开创性的巴洛克综合艺术特征是？',
+      questionEn: 'Erected beneath Michelangelo\'s dome in St. Peter\'s Basilica, what masterly synthesis of sculpture and architecture defines Bernini\'s Baldacchino (1624–1633)?',
       optionsZh: [
-        '达芙妮的手指化为月桂树叶、脚趾深扎入土地变为树根的肉体变形瞬间',
-        '阿波罗向宙斯祈求爱情胜利并摘取胜利桂冠的典礼',
-        '达芙妮逃脱后在河神父亲怀中安详入睡的静态场景',
-        '阿波罗射杀巨蟒皮同后的凯旋姿态'
+        '由四根盘旋缠绕着葡萄藤与蜜蜂徽章的螺旋扭转所罗门柱支撑起高达29米的动态祭坛华盖',
+        '完全模仿希腊帕特农神庙的平直山花与多立克圆柱石砌结构',
+        '由冷峻平整的不锈钢与全透明平板玻璃拼贴而成的极简立方体',
+        '采用未做任何雕刻装饰的粗粝红砖砌体与圆拱门廊'
       ],
       optionsEn: [
-        'The exact instantaneous metamorphosis where Daphne\'s fingers sprout laurel leaves and toes root into bark',
-        'Apollo\'s coronation with laurel wreath before the Olympic gods',
-        'Daphne resting peacefully by the riverbank with her father Peneus',
-        'Apollo\'s triumphant pose after slaying the serpent Python'
+        'A colossal 29-meter canopy supported by four dynamic helical Solomonic columns wrapped in laurel vines and Barberini bees',
+        'Directly copying the rectilinear pediments and Doric colonnades of the Greek Parthenon',
+        'A minimalist cube assembled from cold stainless steel panels and transparent float glass',
+        'An unadorned utilitarian red-brick arcade without sculptural ornamentation'
       ],
       correctAnswer: 0,
-      explanationZh: '贝尔尼尼以卓越的巴洛克技艺将坚硬大理石化作柔滑肌肤、飞舞秀发与初生树皮，凝固了达芙妮被阿波罗触碰瞬间化为月桂树的动态悲剧高潮。',
-      explanationEn: 'Bernini miraculously transmuted rigid Carrara marble into soft flesh, flying drapery, and emerging laurel leaves, freezing the exact fractional instant of metamorphosis.',
-      tags: ['Bernini', 'Baroque', 'Sculpture', 'Apollo and Daphne', 'Rome'],
+      explanationZh: '贝尔尼尼在圣体伞中融汇建筑与雕塑为一体（Bel Composto），利用四根螺旋盘旋的所罗门柱将地面祭坛与百米苍穹紧密衔接，展现了巴洛克艺术无与伦比的宏伟动态。',
+      explanationEn: 'Bernini unified architecture and sculpture (Bel Composto) in the Baldacchino, utilizing four soaring twisting Solomonic columns to mediate between the papal altar and the colossal dome.',
+      tags: ['Bernini', 'Baroque', 'Architecture', 'Baldacchino', 'Rome'],
       difficulty: 2
     }
   ]
@@ -950,14 +950,14 @@ export async function handleDeterministicFallback(promptText = '') {
     const data = res.data || {};
     const text = [
       '【离线规则引擎 / Offline Fallback Mode】题库权威统计如下：',
-      `📚 当前题库总题数: ${data.total || 210} 道（官方内置: 210，用户/AI增订: ${data.customCount || 0}）`,
+      `📚 当前题库总题数: ${data.total || 320} 道（官方内置: 320，用户/AI增订: ${data.customCount || 0}）`,
       '',
       '🏛️ 核心考纲五大领域分布：',
-      `• 时间轴排序 (Chronology): ${data.byDomain?.chronology || 40} 题`,
-      `• 艺术品/建筑识图 (Visual ID): ${data.byDomain?.visual_id || 45} 题`,
-      `• 20世纪前卫与现代建筑 (Avant-Garde & Modern): ${data.byDomain?.avant_garde || 45} 题`,
-      `• 流派归属与理论辨析 (Movement Classification): ${data.byDomain?.artist_movement || 35} 题`,
-      `• 文艺复兴与古典巨匠 (Renaissance & Classical): ${data.byDomain?.renaissance_classical || 45} 题`,
+      `• 时间轴排序 (Chronology): ${data.byDomain?.chronology || 64} 题`,
+      `• 艺术品/建筑识图 (Visual ID): ${data.byDomain?.visual_id || 64} 题`,
+      `• 20世纪前卫与现代建筑 (Avant-Garde & Modern): ${data.byDomain?.avant_garde || 64} 题`,
+      `• 流派归属与理论辨析 (Movement Classification): ${data.byDomain?.artist_movement || 64} 题`,
+      `• 文艺复兴与古典巨匠 (Renaissance & Classical): ${data.byDomain?.renaissance_classical || 64} 题`,
       '',
       '所有题目均具备中英双语对照、官方解析与维基共享高清图片。'
     ].join('\n');
@@ -979,7 +979,7 @@ export async function handleDeterministicFallback(promptText = '') {
         role: 'assistant',
         mode: 'fallback_offline',
         toolUsed: 'reset_question_bank',
-        content: '【离线规则引擎 / Offline Fallback Mode】题库已成功重置恢复至官方 210 道 ARCHED 经典母题！所有自定义增订已清空。',
+        content: '【离线规则引擎 / Offline Fallback Mode】题库已成功重置恢复至官方 320 道 ARCHED 经典母题！所有自定义增订已清空。',
         timestamp: Date.now()
       };
     }
@@ -1032,7 +1032,7 @@ export async function handleDeterministicFallback(promptText = '') {
   // 4. Generate Synthetic Questions Intent
   if (/出题|生成|造题|出考题|generate|synthetic|make question|create question/i.test(prompt)) {
     let domain = 'avant_garde';
-    if (/文艺复兴|古典|透视|拉斐尔|达芬奇|米开朗基罗|renaissance/i.test(prompt)) {
+    if (/文艺复兴|古典|透视|布鲁内莱斯基|达芬奇|米开朗基罗|renaissance/i.test(prompt)) {
       domain = 'renaissance_classical';
     } else if (/时间轴|排序|编年|年代|chronology/i.test(prompt)) {
       domain = 'chronology';
@@ -1058,7 +1058,7 @@ export async function handleDeterministicFallback(promptText = '') {
   }
 
   // 6. Question Search / Query Intent
-  if (/搜索|查找|列出|查|关于|search|find|questions?|look up|蒙德里安|包豪斯|卡拉瓦乔|达利|透视|封塔纳|巴洛克|文艺复兴/i.test(prompt)) {
+  if (/搜索|查找|列出|查|关于|search|find|questions?|look up|蒙德里安|包豪斯|布鲁内莱斯基|达利|透视|封塔纳|巴洛克|文艺复兴/i.test(prompt)) {
     const cleanKw = prompt
       .replace(/(?:请|帮我|麻烦|查一下|找一下|搜索|查找|寻找|查询|列出|关于|相关的?|题目|考题|试题)/g, ' ')
       .replace(/\b(?:questions?|find|search|show|get|look\s*up|about|for|on|of|the|a|an|me|some)\b/gi, ' ')
@@ -1077,7 +1077,7 @@ export async function handleDeterministicFallback(promptText = '') {
         role: 'assistant',
         mode: 'fallback_offline',
         toolUsed: 'query_questions',
-        content: `【离线规则引擎 / Offline Fallback Mode】未检索到包含「${cleanKw}」的相关考题。您可以尝试检索如“蒙德里安”、“包豪斯”、“卡拉瓦乔”、“透视”等核心关键词。`,
+        content: `【离线规则引擎 / Offline Fallback Mode】未检索到包含「${cleanKw}」的相关考题。您可以尝试检索如“蒙德里安”、“包豪斯”、“布鲁内莱斯基”、“透视”等核心关键词。`,
         timestamp: Date.now()
       };
     }

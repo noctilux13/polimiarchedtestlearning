@@ -454,7 +454,7 @@ async function main() {
     // Confirmed request executes factory reset
     const confirmedRes = await aiAgentService.handleDeterministicFallback('确认重置题库');
     assert.strictEqual(confirmedRes.toolUsed, 'reset_question_bank');
-    assert(confirmedRes.content.includes('官方 210 道 ARCHED 经典母题'), 'Must report reset success');
+    assert(confirmedRes.content.includes('官方 320 道 ARCHED 经典母题'), 'Must report reset success');
   });
 
   // 1.15b: Intent Shadowing / Hijacking Bug Reproduction
@@ -546,9 +546,9 @@ async function main() {
   });
 
   // 2.5: Large batch deduplication and merge
-  await runTest('Section 2', '2.5: getAllQuestions merges built-in 210 and 100 custom items to 310 total', async () => {
+  await runTest('Section 2', '2.5: getAllQuestions merges built-in 320 and 100 custom items to 420 total', async () => {
     const all = questionBankService.getAllQuestions();
-    assert.strictEqual(all.length, 310, 'Total merged questions must be exactly 310');
+    assert.strictEqual(all.length, 420, 'Total merged questions must be exactly 420');
 
     // Duplicate ID insertion updates existing question in-place without expanding length
     const updateRes = questionBankService.addCustomQuestion({
@@ -585,7 +585,7 @@ async function main() {
   await runTest('Section 2', '2.7: resetToFactoryDefaults clears custom items and overrides', async () => {
     questionBankService.resetToFactoryDefaults();
     assert.strictEqual(questionBankService.getCustomQuestions().length, 0);
-    assert.strictEqual(questionBankService.getAllQuestions().length, 210);
+    assert.strictEqual(questionBankService.getAllQuestions().length, 320);
   });
 
   // 2.8: Domain Balance: getRandomExamSet(20)
@@ -627,7 +627,7 @@ async function main() {
   });
 
   // 2.11: Domain Balance: Boundary and invalid count inputs
-  await runTest('Section 2', '2.11: getRandomExamSet handles 0, negative, NaN, 1, and 250 safely', async () => {
+  await runTest('Section 2', '2.11: getRandomExamSet handles 0, negative, NaN, 1, 320, and 400 safely', async () => {
     // 0 defaults to 20
     assert.strictEqual(questionBankService.getRandomExamSet(0).length, 20);
     // negative clamped to 1
@@ -636,11 +636,11 @@ async function main() {
     assert.strictEqual(questionBankService.getRandomExamSet(NaN).length, 20);
     // 1 question
     assert.strictEqual(questionBankService.getRandomExamSet(1).length, 1);
-    // 210 returns all
-    assert.strictEqual(questionBankService.getRandomExamSet(210).length, 210);
-    // 250 (exceeds pool) safely returns maximum available without infinite loop
-    const maxSet = questionBankService.getRandomExamSet(250);
-    assert.strictEqual(maxSet.length, 210);
+    // 320 returns all
+    assert.strictEqual(questionBankService.getRandomExamSet(320).length, 320);
+    // 400 (exceeds pool) safely returns maximum available without infinite loop
+    const maxSet = questionBankService.getRandomExamSet(400);
+    assert.strictEqual(maxSet.length, 320);
   });
 
   // 2.12: Compound query case-insensitive domain matching
@@ -648,9 +648,9 @@ async function main() {
     const lower = questionBankService.queryQuestions({ domain: 'chronology' });
     const upper = questionBankService.queryQuestions({ domain: 'CHRONOLOGY' });
     const mixed = questionBankService.queryQuestions({ domain: 'ChRoNoLoGy' });
-    assert.strictEqual(lower.length, 40);
-    assert.strictEqual(upper.length, 40);
-    assert.strictEqual(mixed.length, 40);
+    assert.strictEqual(lower.length, 64);
+    assert.strictEqual(upper.length, 64);
+    assert.strictEqual(mixed.length, 64);
   });
 
   // 2.13: Compound query multi-filter conjunction

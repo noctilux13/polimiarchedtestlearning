@@ -124,18 +124,18 @@ export async function runAdversarialM2Suite() {
   mockStorage.clear();
 
   // =========================================================================
-  // Section 1: Question Bank Static & Semantic Validation (210 Questions)
+  // Section 1: Question Bank Static & Semantic Validation (320 Questions)
   // =========================================================================
   console.log('\n--- Section 1: Question Bank Deep Schema & Asset Validation ---');
 
-  await testCase('1.1: Exact question count is 210', () => {
-    assertEqual(ARCHED_QUESTION_BANK.length, 210, 'Total questions');
+  await testCase('1.1: Exact question count is 320', () => {
+    assertEqual(ARCHED_QUESTION_BANK.length, 320, 'Total questions');
   });
 
-  await testCase('1.2: Question IDs are strictly sequential arched_001 to arched_210 without gaps, duplicates, or extra digits', () => {
+  await testCase('1.2: Question IDs are strictly sequential arched_001 to arched_320 without gaps, duplicates, or extra digits', () => {
     const seenIds = new Set();
     const badIds = [];
-    for (let i = 1; i <= 210; i++) {
+    for (let i = 1; i <= 320; i++) {
       const expectedId = `arched_${String(i).padStart(3, '0')}`;
       const q = ARCHED_QUESTION_BANK[i - 1];
       assert(q, `Question at index ${i - 1} must exist`);
@@ -149,7 +149,7 @@ export async function runAdversarialM2Suite() {
     }
   });
 
-  await testCase('1.3: All 210 questions have required schema keys without undefined/null properties', () => {
+  await testCase('1.3: All 320 questions have required schema keys without undefined/null properties', () => {
     const requiredKeys = [
       'id', 'domain', 'subCategory', 'era',
       'questionZh', 'questionEn',
@@ -238,7 +238,7 @@ export async function runAdversarialM2Suite() {
     });
   });
 
-  await testCase('1.10: 5 Syllabus domains have >= 30 questions each', () => {
+  await testCase('1.10: 5 Syllabus domains have >= 60 questions each', () => {
     const VALID_DOMAINS = ['chronology', 'visual_id', 'avant_garde', 'artist_movement', 'renaissance_classical'];
     const counts = {};
     VALID_DOMAINS.forEach(d => counts[d] = 0);
@@ -249,7 +249,7 @@ export async function runAdversarialM2Suite() {
     });
 
     VALID_DOMAINS.forEach(d => {
-      assert(counts[d] >= 30, `Domain '${d}' count ${counts[d]} < 30`);
+      assert(counts[d] >= 60, `Domain '${d}' count ${counts[d]} < 60`);
     });
   });
 
@@ -288,11 +288,11 @@ export async function runAdversarialM2Suite() {
 
   await testCase('1.13: Visual Stimulus Coverage in visual_id domain', () => {
     const visualQuestions = ARCHED_QUESTION_BANK.filter(q => q.domain === 'visual_id');
-    assertEqual(visualQuestions.length, 45, 'visual_id questions count');
+    assertEqual(visualQuestions.length, 64, 'visual_id questions count');
 
     const withoutImg = visualQuestions.filter(q => !q.image);
     if (withoutImg.length > 0) {
-      throw new Error(`${withoutImg.length} of 45 visual_id questions lack image stimulus: ${withoutImg.map(q => q.id).join(', ')}`);
+      throw new Error(`${withoutImg.length} of 64 visual_id questions lack image stimulus: ${withoutImg.map(q => q.id).join(', ')}`);
     }
   });
 
@@ -301,19 +301,19 @@ export async function runAdversarialM2Suite() {
   // =========================================================================
   console.log('\n--- Section 2: questionBankService Query & Filter Stress Testing ---');
 
-  await testCase('2.1: getAllQuestions() returns pristine 210 questions', () => {
+  await testCase('2.1: getAllQuestions() returns pristine 320 questions', () => {
     mockStorage.clear();
     const all = questionBankService.getAllQuestions();
-    assertEqual(all.length, 210, 'getAllQuestions count');
+    assertEqual(all.length, 320, 'getAllQuestions count');
   });
 
   await testCase('2.2: getQuestionsByDomain handles case-insensitivity and whitespace', () => {
     const upper = questionBankService.getQuestionsByDomain('CHRONOLOGY');
     const lower = questionBankService.getQuestionsByDomain('chronology');
     const padded = questionBankService.getQuestionsByDomain('  chronology  ');
-    assertEqual(upper.length, 40, 'Upper case domain');
-    assertEqual(lower.length, 40, 'Lower case domain');
-    assertEqual(padded.length, 40, 'Padded domain');
+    assertEqual(upper.length, 64, 'Upper case domain');
+    assertEqual(lower.length, 64, 'Lower case domain');
+    assertEqual(padded.length, 64, 'Padded domain');
   });
 
   await testCase('2.3: getQuestionsByDomain boundary inputs return empty array', () => {
@@ -371,15 +371,15 @@ export async function runAdversarialM2Suite() {
     assertEqual(zeroLimit.length, 10, 'Limit 0 falls back to 10');
 
     const overLimit = questionBankService.queryQuestions({ limit: 999999 });
-    assertEqual(overLimit.length, 210, 'Oversized limit returns all 210 questions');
+    assertEqual(overLimit.length, 320, 'Oversized limit returns all 320 questions');
   });
 
   await testCase('2.9: queryQuestions handles undefined or empty filter without error', () => {
     const resNoArgs = questionBankService.queryQuestions();
-    assertEqual(resNoArgs.length, 210, 'No args queryQuestions');
+    assertEqual(resNoArgs.length, 320, 'No args queryQuestions');
 
     const resEmptyObj = questionBankService.queryQuestions({});
-    assertEqual(resEmptyObj.length, 210, 'Empty object queryQuestions');
+    assertEqual(resEmptyObj.length, 320, 'Empty object queryQuestions');
   });
 
   await testCase('2.10: queryQuestions null filter vulnerability probe', () => {
@@ -393,13 +393,13 @@ export async function runAdversarialM2Suite() {
 
   await testCase('2.11: getSummary returns accurate statistics', () => {
     const summary = questionBankService.getSummary();
-    assertEqual(summary.total, 210, 'Summary total');
+    assertEqual(summary.total, 320, 'Summary total');
     assertEqual(summary.customCount, 0, 'Summary custom count');
-    assertEqual(summary.byDomain.chronology, 40, 'Summary chronology');
-    assertEqual(summary.byDomain.visual_id, 45, 'Summary visual_id');
-    assertEqual(summary.byDomain.avant_garde, 45, 'Summary avant_garde');
-    assertEqual(summary.byDomain.artist_movement, 35, 'Summary artist_movement');
-    assertEqual(summary.byDomain.renaissance_classical, 45, 'Summary renaissance_classical');
+    assertEqual(summary.byDomain.chronology, 64, 'Summary chronology');
+    assertEqual(summary.byDomain.visual_id, 64, 'Summary visual_id');
+    assertEqual(summary.byDomain.avant_garde, 64, 'Summary avant_garde');
+    assertEqual(summary.byDomain.artist_movement, 64, 'Summary artist_movement');
+    assertEqual(summary.byDomain.renaissance_classical, 64, 'Summary renaissance_classical');
     assert(Array.isArray(summary.tags) && summary.tags.length > 50, 'Summary tags list');
   });
 
@@ -413,8 +413,8 @@ export async function runAdversarialM2Suite() {
     assertEqual(exam.length, 20, 'Default count is 20');
   });
 
-  await testCase('3.2: getRandomExamSet with various counts (1, 5, 10, 20, 50, 100, 210)', () => {
-    [1, 5, 10, 20, 50, 100, 210].forEach(cnt => {
+  await testCase('3.2: getRandomExamSet with various counts (1, 5, 10, 20, 50, 100, 320)', () => {
+    [1, 5, 10, 20, 50, 100, 320].forEach(cnt => {
       const set = questionBankService.getRandomExamSet(cnt);
       assertEqual(set.length, cnt, `Exam set count ${cnt}`);
       const uniqueIds = new Set(set.map(q => q.id));
@@ -430,11 +430,11 @@ export async function runAdversarialM2Suite() {
     assertEqual(setNeg.length, 1, 'Negative count clamped to 1');
   });
 
-  await testCase('3.4: getRandomExamSet count > 210 caps at available pool without duplicates', () => {
-    const set300 = questionBankService.getRandomExamSet(300);
-    assertEqual(set300.length, 210, 'Set capped at total pool size 210');
-    const uniqueIds = new Set(set300.map(q => q.id));
-    assertEqual(uniqueIds.size, 210, 'No duplicates when overflowing available questions');
+  await testCase('3.4: getRandomExamSet count > 320 caps at available pool without duplicates', () => {
+    const set400 = questionBankService.getRandomExamSet(400);
+    assertEqual(set400.length, 320, 'Set capped at total pool size 320');
+    const uniqueIds = new Set(set400.map(q => q.id));
+    assertEqual(uniqueIds.size, 320, 'No duplicates when overflowing available questions');
   });
 
   await testCase('3.5: getRandomExamSet non-numeric inputs (null, undefined, string)', () => {
@@ -482,7 +482,7 @@ export async function runAdversarialM2Suite() {
   // =========================================================================
   console.log('\n--- Section 4: LocalStorage Lifecycle & Custom Questions ---');
 
-  await testCase('4.1: Add valid custom question increases total question count to 211', () => {
+  await testCase('4.1: Add valid custom question increases total question count to 321', () => {
     mockStorage.clear();
     const customPayload = {
       id: 'custom_001',
@@ -505,7 +505,7 @@ export async function runAdversarialM2Suite() {
     assertEqual(res.question.id, 'custom_001', 'Custom question ID');
 
     const all = questionBankService.getAllQuestions();
-    assertEqual(all.length, 211, 'Total questions after custom add');
+    assertEqual(all.length, 321, 'Total questions after custom add');
 
     const retrieved = all.find(q => q.id === 'custom_001');
     assert(retrieved, 'Custom question found in getAllQuestions()');
@@ -527,7 +527,7 @@ export async function runAdversarialM2Suite() {
     assert(res.success, 'Duplicate custom ID update succeeded');
 
     const all = questionBankService.getAllQuestions();
-    assertEqual(all.length, 211, 'Total questions remains 211');
+    assertEqual(all.length, 321, 'Total questions remains 321');
 
     const retrieved = all.find(q => q.id === 'custom_001');
     assertEqual(retrieved.questionZh, '更新后的自定义题目中文', 'Question text updated');
@@ -548,7 +548,7 @@ export async function runAdversarialM2Suite() {
     assert(res.success, 'Override built-in succeeded');
 
     const all = questionBankService.getAllQuestions();
-    assertEqual(all.length, 211, 'Total length is 211 (210 built-in with 1 overridden + 1 custom_001)');
+    assertEqual(all.length, 321, 'Total length is 321 (320 built-in with 1 overridden + 1 custom_001)');
 
     const overridden = all.find(q => q.id === 'arched_001');
     assertEqual(overridden.questionZh, '覆盖后的题目001', 'Overridden text matches');
@@ -570,7 +570,7 @@ export async function runAdversarialM2Suite() {
     assert(res.success, 'deleteQuestion custom succeeded');
 
     const all = questionBankService.getAllQuestions();
-    assertEqual(all.length, 210, 'Count decreased back to 210');
+    assertEqual(all.length, 320, 'Count decreased back to 320');
     assert(!all.some(q => q.id === 'custom_001'), 'custom_001 no longer present');
   });
 
@@ -579,7 +579,7 @@ export async function runAdversarialM2Suite() {
     assert(res.success, 'resetToFactoryDefaults succeeded');
 
     const all = questionBankService.getAllQuestions();
-    assertEqual(all.length, 210, 'Count is strictly 210');
+    assertEqual(all.length, 320, 'Count is strictly 320');
 
     const arched001 = all.find(q => q.id === 'arched_001');
     assert(arched001.questionZh !== '覆盖后的题目001', 'Original questionZh restored');
@@ -589,7 +589,7 @@ export async function runAdversarialM2Suite() {
     // 1. Invalid JSON in storage does not crash getAllQuestions()
     mockStorage.setItem('arched_custom_questions', '{ not valid json');
     const all1 = questionBankService.getAllQuestions();
-    assertEqual(all1.length, 210, 'getAllQuestions recovers from corrupt JSON');
+    assertEqual(all1.length, 320, 'getAllQuestions recovers from corrupt JSON');
 
     // Test getCustomQuestions named export directly
     if (typeof getCustomQuestions === 'function') {

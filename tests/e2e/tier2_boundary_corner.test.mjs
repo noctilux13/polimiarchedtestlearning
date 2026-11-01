@@ -575,10 +575,10 @@ describe('Tier 2: Boundary & Corner Cases (Features 1 - 21)', () => {
     });
 
     test('14.2: Quiz requested with count exceeding bank clamps to total bank size', () => {
-      const totalBankSize = 210;
+      const totalBankSize = 320;
       const requested = 500;
       const actual = Math.min(requested, totalBankSize);
-      assertEqual(actual, 210, 'Count must clamp to maximum available');
+      assertEqual(actual, 320, 'Count must clamp to maximum available');
     });
 
     test('14.3: Double-clicking option does not increment score twice', () => {

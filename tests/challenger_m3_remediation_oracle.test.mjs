@@ -118,15 +118,15 @@ async function runChallengerStressHarness() {
 
   const verifiedSearchCases = [
     { input: 'Find questions about the Renaissance' },
-    { input: 'Show me questions about Caravaggio' },
+    { input: 'Show me questions about Brunelleschi' },
     { input: 'Search for some questions on Bauhaus' },
     { input: 'Find questions about Bauhaus' },
-    { input: 'Questions about Caravaggio' },
+    { input: 'Questions about Brunelleschi' },
     { input: 'Search for Mondrian' },
     { input: '请搜索蒙德里安' },
-    { input: '帮我查找关于卡拉瓦乔的题目' },
+    { input: '帮我查找关于布鲁内莱斯基的题目' },
     { input: '帮我查一下关于蒙德里安的考题' },
-    { input: '请帮我寻找卡拉瓦乔相关的试题' },
+    { input: '请帮我寻找布鲁内莱斯基相关的试题' },
     { input: '搜索文艺复兴试题' }
   ];
 

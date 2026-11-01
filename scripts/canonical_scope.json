@@ -1,0 +1,1961 @@
+{
+  "periods": [
+    {
+      "id": "romanesque-architecture",
+      "name": "罗马式建筑",
+      "englishName": "Romanesque Architecture"
+    },
+    {
+      "id": "gothic-architecture",
+      "name": "哥特式建筑",
+      "englishName": "Gothic Architecture"
+    },
+    {
+      "id": "renaissance-architecture",
+      "name": "文艺复兴建筑",
+      "englishName": "Renaissance Architecture"
+    },
+    {
+      "id": "baroque-architecture",
+      "name": "巴洛克建筑",
+      "englishName": "Baroque Architecture"
+    },
+    {
+      "id": "neoclassical-architecture",
+      "name": "新古典主义建筑",
+      "englishName": "Neoclassical Architecture"
+    },
+    {
+      "id": "industrial-architecture",
+      "name": "工业革命铁构与玻璃建筑",
+      "englishName": "Industrial Revolution Architecture"
+    },
+    {
+      "id": "expressionist-and-gaudi",
+      "name": "表现主义建筑与高迪现代主义",
+      "englishName": "Expressionist Architecture & Catalan Modernisme"
+    },
+    {
+      "id": "art-nouveau-architecture",
+      "name": "新艺术运动建筑",
+      "englishName": "Art Nouveau Architecture"
+    },
+    {
+      "id": "modernist-architecture",
+      "name": "现代主义建筑",
+      "englishName": "Modernist Architecture"
+    },
+    {
+      "id": "futurism",
+      "name": "未来主义",
+      "englishName": "Futurism"
+    },
+    {
+      "id": "metaphysics",
+      "name": "形而上主义",
+      "englishName": "Metaphysics"
+    },
+    {
+      "id": "de-stijl",
+      "name": "荷兰风格派",
+      "englishName": "De Stijl (Neoplasticism)"
+    },
+    {
+      "id": "dadaism",
+      "name": "达达主义",
+      "englishName": "Dadaism"
+    },
+    {
+      "id": "surrealism",
+      "name": "超现实主义",
+      "englishName": "Surrealism"
+    },
+    {
+      "id": "rationalism-architecture",
+      "name": "理性主义建筑",
+      "englishName": "Rationalism Architecture"
+    },
+    {
+      "id": "pop-art",
+      "name": "波普艺术",
+      "englishName": "Pop Art"
+    },
+    {
+      "id": "neo-expressionism-architecture",
+      "name": "新表现主义建筑",
+      "englishName": "Neo-Expressionism Architecture"
+    },
+    {
+      "id": "contemporary-art",
+      "name": "当代艺术",
+      "englishName": "Contemporary Art"
+    },
+    {
+      "id": "high-tech-architecture",
+      "name": "高技派建筑",
+      "englishName": "High-Tech Architecture"
+    },
+    {
+      "id": "deconstructivism-architecture",
+      "name": "解构主义建筑",
+      "englishName": "Deconstructivism Architecture"
+    },
+    {
+      "id": "contemporary-architecture",
+      "name": "当代建筑",
+      "englishName": "Contemporary Architecture"
+    }
+  ],
+  "artists": [
+    {
+      "id": "lombard-romanesque-masters",
+      "name": "伦巴第罗曼建筑行会",
+      "englishName": "Lombard Romanesque Masters",
+      "periodId": "romanesque-architecture",
+      "periodName": "罗马式建筑"
+    },
+    {
+      "id": "pisan-romanesque-masters",
+      "name": "比萨罗曼建筑学派",
+      "englishName": "Pisan Romanesque Masters",
+      "periodId": "romanesque-architecture",
+      "periodName": "罗马式建筑"
+    },
+    {
+      "id": "french-romanesque-masters",
+      "name": "法兰西罗曼建筑行会",
+      "englishName": "French Romanesque Masters",
+      "periodId": "romanesque-architecture",
+      "periodName": "罗马式建筑"
+    },
+    {
+      "id": "arnolfo-di-cambio",
+      "name": "阿诺尔福·迪·坎比奥",
+      "englishName": "Arnolfo di Cambio",
+      "periodId": "romanesque-architecture",
+      "periodName": "罗马式建筑"
+    },
+    {
+      "id": "french-gothic-masters",
+      "name": "法兰西哥特大教堂工匠行会",
+      "englishName": "French High Gothic Masters",
+      "periodId": "gothic-architecture",
+      "periodName": "哥特式建筑"
+    },
+    {
+      "id": "german-gothic-masters",
+      "name": "德意志高耸哥特工匠行会",
+      "englishName": "German Gothic Masters",
+      "periodId": "gothic-architecture",
+      "periodName": "哥特式建筑"
+    },
+    {
+      "id": "italian-gothic-masters",
+      "name": "意大利哥特建筑学派",
+      "englishName": "Italian Gothic Masters",
+      "periodId": "gothic-architecture",
+      "periodName": "哥特式建筑"
+    },
+    {
+      "id": "filippo-brunelleschi",
+      "name": "菲利波·布鲁内莱斯基",
+      "englishName": "Filippo Brunelleschi",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "lorenzo-ghiberti",
+      "name": "洛伦佐·吉贝尔蒂",
+      "englishName": "Lorenzo Ghiberti",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "donato-bramante",
+      "name": "多纳托·伯拉孟特",
+      "englishName": "Donato Bramante",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "leon-battista-alberti",
+      "name": "莱昂·巴蒂斯塔·阿尔贝蒂",
+      "englishName": "Leon Battista Alberti",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "michelangelo-buonarroti-arch",
+      "name": "米开朗基罗·博那罗蒂",
+      "englishName": "Michelangelo Buonarroti",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "renaissance-palazzo-masters",
+      "name": "文艺复兴民用宫殿大师",
+      "englishName": "Renaissance Palazzo Masters",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "andrea-palladio",
+      "name": "安德烈亚·帕拉迪奥",
+      "englishName": "Andrea Palladio",
+      "periodId": "renaissance-architecture",
+      "periodName": "文艺复兴建筑"
+    },
+    {
+      "id": "giacomo-barozzi-da-vignola",
+      "name": "贾科莫·巴罗齐·达·维尼奥拉",
+      "englishName": "Giacomo Barozzi da Vignola",
+      "periodId": "baroque-architecture",
+      "periodName": "巴洛克建筑"
+    },
+    {
+      "id": "giacomo-della-porta",
+      "name": "贾科莫·德拉·波尔塔",
+      "englishName": "Giacomo della Porta",
+      "periodId": "baroque-architecture",
+      "periodName": "巴洛克建筑"
+    },
+    {
+      "id": "francesco-borromini",
+      "name": "弗朗切斯科·博罗米尼",
+      "englishName": "Francesco Borromini",
+      "periodId": "baroque-architecture",
+      "periodName": "巴洛克建筑"
+    },
+    {
+      "id": "gian-lorenzo-bernini",
+      "name": "吉安·洛伦佐·贝尔尼尼",
+      "englishName": "Gian Lorenzo Bernini",
+      "periodId": "baroque-architecture",
+      "periodName": "巴洛克建筑"
+    },
+    {
+      "id": "guarino-guarini",
+      "name": "瓜里诺·瓜里尼",
+      "englishName": "Guarino Guarini",
+      "periodId": "baroque-architecture",
+      "periodName": "巴洛克建筑"
+    },
+    {
+      "id": "filippo-juvarra",
+      "name": "菲利波·尤瓦拉",
+      "englishName": "Filippo Juvarra",
+      "periodId": "neoclassical-architecture",
+      "periodName": "新古典主义建筑"
+    },
+    {
+      "id": "luigi-vanvitelli",
+      "name": "路易吉·万维泰利",
+      "englishName": "Luigi Vanvitelli",
+      "periodId": "neoclassical-architecture",
+      "periodName": "新古典主义建筑"
+    },
+    {
+      "id": "giuseppe-piermarini",
+      "name": "朱塞佩·皮尔马里尼",
+      "englishName": "Giuseppe Piermarini",
+      "periodId": "neoclassical-architecture",
+      "periodName": "新古典主义建筑"
+    },
+    {
+      "id": "claude-nicolas-ledoux",
+      "name": "克洛德·尼古拉·勒杜",
+      "englishName": "Claude Nicolas Ledoux",
+      "periodId": "neoclassical-architecture",
+      "periodName": "新古典主义建筑"
+    },
+    {
+      "id": "neoclassical-monuments-group",
+      "name": "欧美新古典主义纪念碑群",
+      "englishName": "Neoclassical Monuments Masters",
+      "periodId": "neoclassical-architecture",
+      "periodName": "新古典主义建筑"
+    },
+    {
+      "id": "joseph-paxton",
+      "name": "约瑟夫·帕克斯顿",
+      "englishName": "Joseph Paxton",
+      "periodId": "industrial-architecture",
+      "periodName": "工业革命铁构与玻璃建筑"
+    },
+    {
+      "id": "gustave-eiffel",
+      "name": "居斯塔夫·埃菲尔",
+      "englishName": "Gustave Eiffel",
+      "periodId": "industrial-architecture",
+      "periodName": "工业革命铁构与玻璃建筑"
+    },
+    {
+      "id": "erich-mendelsohn",
+      "name": "埃里希·门德尔松",
+      "englishName": "Erich Mendelsohn",
+      "periodId": "expressionist-and-gaudi",
+      "periodName": "表现主义建筑与高迪现代主义"
+    },
+    {
+      "id": "bruno-taut",
+      "name": "布鲁诺·陶特",
+      "englishName": "Bruno Taut",
+      "periodId": "expressionist-and-gaudi",
+      "periodName": "表现主义建筑与高迪现代主义"
+    },
+    {
+      "id": "antoni-gaudi",
+      "name": "安东尼·高迪",
+      "englishName": "Antoni Gaudí",
+      "periodId": "expressionist-and-gaudi",
+      "periodName": "表现主义建筑与高迪现代主义"
+    },
+    {
+      "id": "victor-horta",
+      "name": "维克多·奥塔",
+      "englishName": "Victor Horta",
+      "periodId": "art-nouveau-architecture",
+      "periodName": "新艺术运动建筑"
+    },
+    {
+      "id": "joseph-maria-olbrich",
+      "name": "约瑟夫·玛丽亚·奥尔布里希",
+      "englishName": "Joseph Maria Olbrich",
+      "periodId": "art-nouveau-architecture",
+      "periodName": "新艺术运动建筑"
+    },
+    {
+      "id": "hector-guimard",
+      "name": "埃克托尔·吉马尔",
+      "englishName": "Hector Guimard",
+      "periodId": "art-nouveau-architecture",
+      "periodName": "新艺术运动建筑"
+    },
+    {
+      "id": "chicago-school-architects",
+      "name": "芝加哥建筑学派",
+      "englishName": "Chicago School of Architecture",
+      "periodId": "modernist-architecture",
+      "periodName": "现代主义建筑"
+    },
+    {
+      "id": "walter-gropius",
+      "name": "瓦尔特·格罗皮乌斯",
+      "englishName": "Walter Gropius",
+      "periodId": "modernist-architecture",
+      "periodName": "现代主义建筑"
+    },
+    {
+      "id": "mies-van-der-rohe",
+      "name": "路德维希·密斯·凡·德·罗",
+      "englishName": "Ludwig Mies van der Rohe",
+      "periodId": "modernist-architecture",
+      "periodName": "现代主义建筑"
+    },
+    {
+      "id": "frank-lloyd-wright",
+      "name": "弗兰克·劳埃德·赖特",
+      "englishName": "Frank Lloyd Wright",
+      "periodId": "modernist-architecture",
+      "periodName": "现代主义建筑"
+    },
+    {
+      "id": "le-corbusier",
+      "name": "勒·柯布西耶",
+      "englishName": "Le Corbusier",
+      "periodId": "modernist-architecture",
+      "periodName": "现代主义建筑"
+    },
+    {
+      "id": "adolf-loos",
+      "name": "阿道夫·洛斯",
+      "englishName": "Adolf Loos",
+      "periodId": "modernist-architecture",
+      "periodName": "现代主义建筑"
+    },
+    {
+      "id": "umberto-boccioni",
+      "name": "翁贝托·波丘尼",
+      "englishName": "Umberto Boccioni",
+      "periodId": "futurism",
+      "periodName": "未来主义"
+    },
+    {
+      "id": "carlo-carra",
+      "name": "卡洛·卡拉",
+      "englishName": "Carlo Carrà",
+      "periodId": "futurism",
+      "periodName": "未来主义"
+    },
+    {
+      "id": "giorgio-de-chirico",
+      "name": "乔治·德·基里科",
+      "englishName": "Giorgio de Chirico",
+      "periodId": "metaphysics",
+      "periodName": "形而上主义"
+    },
+    {
+      "id": "theo-van-doesburg",
+      "name": "特奥·范·杜斯堡",
+      "englishName": "Theo van Doesburg",
+      "periodId": "de-stijl",
+      "periodName": "荷兰风格派"
+    },
+    {
+      "id": "piet-mondrian",
+      "name": "皮特·蒙德里安",
+      "englishName": "Piet Mondrian",
+      "periodId": "de-stijl",
+      "periodName": "荷兰风格派"
+    },
+    {
+      "id": "marcel-duchamp",
+      "name": "马塞尔·杜尚",
+      "englishName": "Marcel Duchamp",
+      "periodId": "dadaism",
+      "periodName": "达达主义"
+    },
+    {
+      "id": "man-ray",
+      "name": "曼·雷",
+      "englishName": "Man Ray",
+      "periodId": "dadaism",
+      "periodName": "达达主义"
+    },
+    {
+      "id": "salvador-dali",
+      "name": "萨尔瓦多·达利",
+      "englishName": "Salvador Dalí",
+      "periodId": "surrealism",
+      "periodName": "超现实主义"
+    },
+    {
+      "id": "marc-chagall",
+      "name": "马克·夏加尔",
+      "englishName": "Marc Chagall",
+      "periodId": "surrealism",
+      "periodName": "超现实主义"
+    },
+    {
+      "id": "rene-magritte",
+      "name": "雷内·马格里特",
+      "englishName": "René Magritte",
+      "periodId": "surrealism",
+      "periodName": "超现实主义"
+    },
+    {
+      "id": "joan-miro",
+      "name": "胡安·米罗",
+      "englishName": "Joan Miró",
+      "periodId": "surrealism",
+      "periodName": "超现实主义"
+    },
+    {
+      "id": "alberto-giacometti",
+      "name": "阿尔贝托·贾科梅蒂",
+      "englishName": "Alberto Giacometti",
+      "periodId": "surrealism",
+      "periodName": "超现实主义"
+    },
+    {
+      "id": "giuseppe-terragni",
+      "name": "朱塞佩·泰拉尼",
+      "englishName": "Giuseppe Terragni",
+      "periodId": "rationalism-architecture",
+      "periodName": "理性主义建筑"
+    },
+    {
+      "id": "luigi-figini",
+      "name": "路易吉·菲吉尼",
+      "englishName": "Luigi Figini",
+      "periodId": "rationalism-architecture",
+      "periodName": "理性主义建筑"
+    },
+    {
+      "id": "gio-ponti",
+      "name": "吉奥·庞蒂",
+      "englishName": "Giò Ponti",
+      "periodId": "rationalism-architecture",
+      "periodName": "理性主义建筑"
+    },
+    {
+      "id": "bbrp",
+      "name": "BBPR 建筑事务所",
+      "englishName": "BBPR (Banfi, Belgiojoso, Peressutti, Rogers)",
+      "periodId": "rationalism-architecture",
+      "periodName": "理性主义建筑"
+    },
+    {
+      "id": "roy-lichtenstein",
+      "name": "罗伊·利希滕斯坦",
+      "englishName": "Roy Lichtenstein",
+      "periodId": "pop-art",
+      "periodName": "波普艺术"
+    },
+    {
+      "id": "andy-warhol",
+      "name": "安迪·沃霍尔",
+      "englishName": "Andy Warhol",
+      "periodId": "pop-art",
+      "periodName": "波普艺术"
+    },
+    {
+      "id": "oscar-niemeyer",
+      "name": "奥斯卡·尼迈耶",
+      "englishName": "Oscar Niemeyer",
+      "periodId": "neo-expressionism-architecture",
+      "periodName": "新表现主义建筑"
+    },
+    {
+      "id": "jackson-pollock",
+      "name": "保罗·杰克逊·波洛克",
+      "englishName": "Paul Jackson Pollock",
+      "periodId": "contemporary-art",
+      "periodName": "当代艺术"
+    },
+    {
+      "id": "lucio-fontana",
+      "name": "卢齐欧·封塔纳",
+      "englishName": "Lucio Fontana",
+      "periodId": "contemporary-art",
+      "periodName": "当代艺术"
+    },
+    {
+      "id": "piero-manzoni",
+      "name": "皮耶罗·曼佐尼",
+      "englishName": "Piero Manzoni",
+      "periodId": "contemporary-art",
+      "periodName": "当代艺术"
+    },
+    {
+      "id": "renzo-piano",
+      "name": "伦佐·皮亚诺",
+      "englishName": "Renzo Piano",
+      "periodId": "high-tech-architecture",
+      "periodName": "高技派建筑"
+    },
+    {
+      "id": "frank-gehry",
+      "name": "弗兰克·盖里",
+      "englishName": "Frank Gehry",
+      "periodId": "deconstructivism-architecture",
+      "periodName": "解构主义建筑"
+    },
+    {
+      "id": "daniel-libeskind",
+      "name": "丹尼尔·里伯斯金",
+      "englishName": "Daniel Libeskind",
+      "periodId": "contemporary-architecture",
+      "periodName": "当代建筑"
+    },
+    {
+      "id": "norman-foster",
+      "name": "诺曼·福斯特",
+      "englishName": "Norman Foster",
+      "periodId": "contemporary-architecture",
+      "periodName": "当代建筑"
+    },
+    {
+      "id": "santiago-calatrava",
+      "name": "圣地亚哥·卡拉特拉瓦",
+      "englishName": "Santiago Calatrava",
+      "periodId": "contemporary-architecture",
+      "periodName": "当代建筑"
+    },
+    {
+      "id": "zaha-hadid",
+      "name": "扎哈·哈迪德",
+      "englishName": "Zaha Hadid",
+      "periodId": "contemporary-architecture",
+      "periodName": "当代建筑"
+    }
+  ],
+  "artworks": [
+    {
+      "id": "sant-ambrogio-milan",
+      "title": "Basilica of Sant'Ambrogio (米兰圣安布罗焦圣殿)",
+      "date": "379 - 1099",
+      "location": "米兰 (Milan, Italy)",
+      "artistId": "lombard-romanesque-masters",
+      "artistName": "伦巴第罗曼建筑行会",
+      "periodId": "romanesque-architecture"
+    },
+    {
+      "id": "baptistery-parma",
+      "title": "Baptistery of Parma (帕尔马洗礼堂)",
+      "date": "1196 - 1270",
+      "location": "帕尔马 (Parma, Italy)",
+      "artistId": "lombard-romanesque-masters",
+      "artistName": "伦巴第罗曼建筑行会",
+      "periodId": "romanesque-architecture"
+    },
+    {
+      "id": "piazza-dei-miracoli-pisa",
+      "title": "Piazza dei Miracoli & Leaning Tower (比萨奇迹广场与比萨斜塔)",
+      "date": "1063 - 1350",
+      "location": "比萨 (Pisa, Italy)",
+      "artistId": "pisan-romanesque-masters",
+      "artistName": "比萨罗曼建筑学派",
+      "periodId": "romanesque-architecture"
+    },
+    {
+      "id": "basilica-saint-remi",
+      "title": "Basilica of Saint-Remi, Reims (兰斯圣雷米圣殿)",
+      "date": "c. 1000",
+      "location": "兰斯 (Reims, France)",
+      "artistId": "french-romanesque-masters",
+      "artistName": "法兰西罗曼建筑行会",
+      "periodId": "romanesque-architecture"
+    },
+    {
+      "id": "palazzo-vecchio",
+      "title": "Palazzo Vecchio / Old Palace (佛罗伦萨旧宫 / 领主宫)",
+      "date": "1299",
+      "location": "佛罗伦萨领主广场 (Florence, Italy)",
+      "artistId": "arnolfo-di-cambio",
+      "artistName": "阿诺尔福·迪·坎比奥",
+      "periodId": "romanesque-architecture"
+    },
+    {
+      "id": "amiens-cathedral",
+      "title": "Amiens Cathedral (亚眠大教堂)",
+      "date": "1220 - 1270",
+      "location": "亚眠 (Amiens, France)",
+      "artistId": "french-gothic-masters",
+      "artistName": "法兰西哥特大教堂工匠行会",
+      "periodId": "gothic-architecture"
+    },
+    {
+      "id": "notre-dame-paris",
+      "title": "Notre-Dame de Paris (巴黎圣母院)",
+      "date": "1163 - 1250",
+      "location": "巴黎西堤岛 (Paris, France)",
+      "artistId": "french-gothic-masters",
+      "artistName": "法兰西哥特大教堂工匠行会",
+      "periodId": "gothic-architecture"
+    },
+    {
+      "id": "cologne-cathedral",
+      "title": "Cologne Cathedral (科隆大教堂)",
+      "date": "1248 - 1880",
+      "location": "科隆 (Cologne, Germany)",
+      "artistId": "german-gothic-masters",
+      "artistName": "德意志高耸哥特工匠行会",
+      "periodId": "gothic-architecture"
+    },
+    {
+      "id": "duomo-milano",
+      "title": "Milan Cathedral / Duomo di Milano (米兰大教堂)",
+      "date": "1386 - 1965",
+      "location": "米兰主教堂广场 (Milan, Italy)",
+      "artistId": "italian-gothic-masters",
+      "artistName": "意大利哥特建筑学派",
+      "periodId": "gothic-architecture"
+    },
+    {
+      "id": "siena-cathedral",
+      "title": "Siena Cathedral (锡耶纳大教堂)",
+      "date": "1215 - 1263",
+      "location": "锡耶纳 (Siena, Italy)",
+      "artistId": "italian-gothic-masters",
+      "artistName": "意大利哥特建筑学派",
+      "periodId": "gothic-architecture"
+    },
+    {
+      "id": "doges-palace-venice",
+      "title": "Doge's Palace / Palazzo Ducale (威尼斯总督宫)",
+      "date": "1340 - 1424",
+      "location": "威尼斯圣马可广场 (Venice, Italy)",
+      "artistId": "italian-gothic-masters",
+      "artistName": "意大利哥特建筑学派",
+      "periodId": "gothic-architecture"
+    },
+    {
+      "id": "florence-cathedral-dome",
+      "title": "Dome of Florence Cathedral (佛罗伦萨圣母百花大教堂穹顶)",
+      "date": "1420 - 1436",
+      "location": "佛罗伦萨 (Florence, Italy)",
+      "artistId": "filippo-brunelleschi",
+      "artistName": "菲利波·布鲁内莱斯基",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "pazzi-chapel",
+      "title": "Pazzi Chapel (帕齐礼拜堂)",
+      "date": "1440",
+      "location": "佛罗伦萨圣十字大殿 (Florence, Italy)",
+      "artistId": "filippo-brunelleschi",
+      "artistName": "菲利波·布鲁内莱斯基",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "santo-spirito-florence",
+      "title": "Basilica of Santo Spirito (佛罗伦萨圣灵大教堂)",
+      "date": "1444",
+      "location": "佛罗伦萨 (Florence, Italy)",
+      "artistId": "filippo-brunelleschi",
+      "artistName": "菲利波·布鲁内莱斯基",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "doors-of-paradise",
+      "title": "Doors of Paradise (天堂之门)",
+      "date": "1425 - 1452",
+      "location": "佛罗伦萨圣若望洗礼堂 (Florence, Italy)",
+      "artistId": "lorenzo-ghiberti",
+      "artistName": "洛伦佐·吉贝尔蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "tempietto-san-pietro",
+      "title": "Tempietto di San Pietro in Montorio (蒙托里奥圣彼得坦比哀多)",
+      "date": "1502 - 1510",
+      "location": "罗马 (Rome, Italy)",
+      "artistId": "donato-bramante",
+      "artistName": "多纳托·伯拉孟特",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "santa-maria-delle-grazie-milan",
+      "title": "Santa Maria delle Grazie Tribune & Dome (米兰圣母感恩教堂东部穹顶后殿)",
+      "date": "1492 - 1497",
+      "location": "米兰 (Milan, Italy)",
+      "artistId": "donato-bramante",
+      "artistName": "多纳托·伯拉孟特",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "belvedere-courtyard",
+      "title": "Courtyard of the Belvedere (梵蒂冈美景宫庭院)",
+      "date": "1505",
+      "location": "梵蒂冈 (Vatican City)",
+      "artistId": "donato-bramante",
+      "artistName": "多纳托·伯拉孟特",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "sant-andrea-mantua",
+      "title": "Basilica of Sant'Andrea, Mantua (曼图亚圣安德烈亚大教堂)",
+      "date": "1472",
+      "location": "曼图亚 (Mantua, Italy)",
+      "artistId": "leon-battista-alberti",
+      "artistName": "莱昂·巴蒂斯塔·阿尔贝蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "tempio-malatestiano",
+      "title": "Tempio Malatestiano, Rimini (里米尼马拉泰斯塔圣殿)",
+      "date": "1468",
+      "location": "里米尼 (Rimini, Italy)",
+      "artistId": "leon-battista-alberti",
+      "artistName": "莱昂·巴蒂斯塔·阿尔贝蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "laurentian-library",
+      "title": "Laurentian Library & Staircase (劳伦齐阿纳图书馆与大台阶)",
+      "date": "1524 - 1559",
+      "location": "佛罗伦萨圣洛伦佐大殿 (Florence, Italy)",
+      "artistId": "michelangelo-buonarroti-arch",
+      "artistName": "米开朗基罗·博那罗蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "porta-pia",
+      "title": "Porta Pia, Rome (罗马皮亚门)",
+      "date": "1561 - 1565",
+      "location": "罗马奥勒良城墙 (Rome, Italy)",
+      "artistId": "michelangelo-buonarroti-arch",
+      "artistName": "米开朗基罗·博那罗蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "piazza-del-campidoglio",
+      "title": "Piazza del Campidoglio (罗马卡比托利欧广场)",
+      "date": "1536 - 1546",
+      "location": "罗马卡比托利欧山 (Rome, Italy)",
+      "artistId": "michelangelo-buonarroti-arch",
+      "artistName": "米开朗基罗·博那罗蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "st-peters-basilica-dome",
+      "title": "St. Peter's Basilica Dome & Plan (圣彼得大教堂穹顶与平面重构)",
+      "date": "1547 - 1564",
+      "location": "梵蒂冈 (Vatican City)",
+      "artistId": "michelangelo-buonarroti-arch",
+      "artistName": "米开朗基罗·博那罗蒂",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "palazzo-medici-riccardi",
+      "title": "Palazzo Medici Riccardi (美第奇-里卡迪宫)",
+      "date": "1430 - 1444",
+      "location": "佛罗伦萨 (Florence, Italy)",
+      "artistId": "renaissance-palazzo-masters",
+      "artistName": "文艺复兴民用宫殿大师",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "palazzo-dei-diamanti",
+      "title": "Palazzo dei Diamanti, Ferrara (费拉拉钻石宫)",
+      "date": "1493",
+      "location": "费拉拉 (Ferrara, Italy)",
+      "artistId": "renaissance-palazzo-masters",
+      "artistName": "文艺复兴民用宫殿大师",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "palazzo-farnese",
+      "title": "Palazzo Farnese, Rome (罗马法尔内塞宫)",
+      "date": "1517 - 1589",
+      "location": "罗马 (Rome, Italy)",
+      "artistId": "renaissance-palazzo-masters",
+      "artistName": "文艺复兴民用宫殿大师",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "basilica-palladiana",
+      "title": "Basilica Palladiana, Vicenza (维琴察帕拉迪奥巴西利卡)",
+      "date": "1549",
+      "location": "维琴察 (Vicenza, Italy)",
+      "artistId": "andrea-palladio",
+      "artistName": "安德烈亚·帕拉迪奥",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "villa-la-rotonda",
+      "title": "Villa La Rotonda / Villa Capra (圆厅别墅 / 卡普拉别墅)",
+      "date": "1551 - 1567",
+      "location": "维琴察 (Vicenza, Italy)",
+      "artistId": "andrea-palladio",
+      "artistName": "安德烈亚·帕拉迪奥",
+      "periodId": "renaissance-architecture"
+    },
+    {
+      "id": "church-of-the-gesu",
+      "title": "耶稣会总会教堂 (罗马耶稣堂)",
+      "date": "1568 - 1584",
+      "location": "罗马 (Rome)",
+      "artistId": "giacomo-barozzi-da-vignola",
+      "artistName": "贾科莫·巴罗齐·达·维尼奥拉",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "villa-giulia",
+      "title": "教宗朱利叶斯三世庄园 (茱莉亚别墅)",
+      "date": "1551 - 1553",
+      "location": "罗马 (Rome)",
+      "artistId": "giacomo-barozzi-da-vignola",
+      "artistName": "贾科莫·巴罗齐·达·维尼奥拉",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "gesu-facade",
+      "title": "Façade of the Church of the Gesù (耶稣堂立面)",
+      "date": "1571 - 1584",
+      "location": "罗马 (Rome)",
+      "artistId": "giacomo-della-porta",
+      "artistName": "贾科莫·德拉·波尔塔",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "san-carlo-quattro-fontane",
+      "title": "圣卡利诺 (四喷泉圣卡罗教堂)",
+      "date": "1638 - 1646",
+      "location": "罗马 (Rome)",
+      "artistId": "francesco-borromini",
+      "artistName": "弗朗切斯科·博罗米尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "sant-ivo-alla-sapienza",
+      "title": "罗马智慧大学教堂 (圣依佛堂)",
+      "date": "1642 - 1660",
+      "location": "罗马 (Rome)",
+      "artistId": "francesco-borromini",
+      "artistName": "弗朗切斯科·博罗米尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "piazza-san-pietro",
+      "title": "Piazza San Pietro (梵蒂冈圣伯多禄大广场)",
+      "date": "1656 - 1667",
+      "location": "梵蒂冈 / 罗马 (Vatican, Rome)",
+      "artistId": "gian-lorenzo-bernini",
+      "artistName": "吉安·洛伦佐·贝尔尼尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "sant-andrea-quirinale",
+      "title": "Sant'Andrea al Quirinale (奎里纳尔圣安德肋堂)",
+      "date": "1658 - 1670",
+      "location": "罗马 (Rome)",
+      "artistId": "gian-lorenzo-bernini",
+      "artistName": "吉安·洛伦佐·贝尔尼尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "palazzo-montecitorio",
+      "title": "Palazzo Montecitorio (蒙特奇托里奥宫)",
+      "date": "1653 - 1694",
+      "location": "罗马 (Rome)",
+      "artistId": "gian-lorenzo-bernini",
+      "artistName": "吉安·洛伦佐·贝尔尼尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "st-peters-baldachin",
+      "title": "St. Peter's Baldachin (圣彼得大教堂青铜华盖)",
+      "date": "1624 - 1633",
+      "location": "梵蒂冈圣彼得大教堂 (St. Peter's Basilica)",
+      "artistId": "gian-lorenzo-bernini",
+      "artistName": "吉安·洛伦佐·贝尔尼尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "palazzo-carignano",
+      "title": "Palazzo Carignano (都灵卡里尼亚诺宫)",
+      "date": "1679",
+      "location": "都灵 (Turin, Italy)",
+      "artistId": "guarino-guarini",
+      "artistName": "瓜里诺·瓜里尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "chapel-holy-shroud",
+      "title": "圣裹尸布小堂 (裹尸布礼拜堂)",
+      "date": "1668 - 1694",
+      "location": "都灵主教座堂 (Turin Cathedral)",
+      "artistId": "guarino-guarini",
+      "artistName": "瓜里诺·瓜里尼",
+      "periodId": "baroque-architecture"
+    },
+    {
+      "id": "basilica-of-superga",
+      "title": "Basilica of Superga (苏佩尔加大教堂)",
+      "date": "1717 - 1731",
+      "location": "都灵苏佩尔加山顶 (Turin, Italy)",
+      "artistId": "filippo-juvarra",
+      "artistName": "菲利波·尤瓦拉",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "palace-of-caserta",
+      "title": "Royal Palace of Caserta (卡塞塔王宫)",
+      "date": "1752 - 1774",
+      "location": "卡塞塔 (Caserta, Italy)",
+      "artistId": "luigi-vanvitelli",
+      "artistName": "路易吉·万维泰利",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "palace-of-naples",
+      "title": "Royal Palace of Naples (那不勒斯王宫)",
+      "date": "1600 / 1753 修复",
+      "location": "那不勒斯保民广场 (Piazza del Plebiscito)",
+      "artistId": "luigi-vanvitelli",
+      "artistName": "路易吉·万维泰利",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "teatro-alla-scala",
+      "title": "Teatro alla Scala (米兰斯卡拉大剧院)",
+      "date": "1776 - 1778",
+      "location": "米兰 (Milan, Italy)",
+      "artistId": "giuseppe-piermarini",
+      "artistName": "朱塞佩·皮尔马里尼",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "royal-palace-milan",
+      "title": "Palazzo Reale (米兰王宫)",
+      "date": "1773 - 1778",
+      "location": "米兰大教堂广场旁 (Piazza del Duomo, Milan)",
+      "artistId": "giuseppe-piermarini",
+      "artistName": "朱塞佩·皮尔马里尼",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "rotonde-de-la-villette",
+      "title": "La Rotonde de la Villette (巴黎拉维莱特圆亭)",
+      "date": "1788",
+      "location": "巴黎 (Paris, France)",
+      "artistId": "claude-nicolas-ledoux",
+      "artistName": "克洛德·尼古拉·勒杜",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "arc-de-triomphe",
+      "title": "Arc de Triomphe (巴黎雄狮凯旋门)",
+      "date": "1806 - 1836",
+      "location": "巴黎戴高乐星形广场 (Place Charles de Gaulle, Paris)",
+      "artistId": "neoclassical-monuments-group",
+      "artistName": "欧美新古典主义纪念碑群",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "simplon-gate",
+      "title": "辛普朗门 (米兰和平门)",
+      "date": "1807 - 1838",
+      "location": "米兰森皮奥内公园 (Parco Sempione, Milan)",
+      "artistId": "neoclassical-monuments-group",
+      "artistName": "欧美新古典主义纪念碑群",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "uva-rotunda",
+      "title": "University of Virginia Rotunda (弗吉尼亚大学圆厅)",
+      "date": "1817 - 1826",
+      "location": "美国夏洛茨维尔 (Charlottesville, Virginia, USA)",
+      "artistId": "neoclassical-monuments-group",
+      "artistName": "欧美新古典主义纪念碑群",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "white-house",
+      "title": "The White House (美国白宫)",
+      "date": "1792 - 1800",
+      "location": "华盛顿哥伦比亚特区 (Washington, D.C., USA)",
+      "artistId": "neoclassical-monuments-group",
+      "artistName": "欧美新古典主义纪念碑群",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "propylaea-munich",
+      "title": "Propylaea (慕尼黑国王广场山门)",
+      "date": "1854 - 1862",
+      "location": "慕尼黑国王广场 (Königsplatz, Munich, Germany)",
+      "artistId": "neoclassical-monuments-group",
+      "artistName": "欧美新古典主义纪念碑群",
+      "periodId": "neoclassical-architecture"
+    },
+    {
+      "id": "crystal-palace",
+      "title": "The Crystal Palace (伦敦水晶宫)",
+      "date": "1851",
+      "location": "伦敦海德公园 (Hyde Park, London / 1851世博会)",
+      "artistId": "joseph-paxton",
+      "artistName": "约瑟夫·帕克斯顿",
+      "periodId": "industrial-architecture"
+    },
+    {
+      "id": "eiffel-tower",
+      "title": "Eiffel Tower (埃菲尔铁塔)",
+      "date": "1887 - 1889",
+      "location": "巴黎战神广场 (Champ de Mars, Paris)",
+      "artistId": "gustave-eiffel",
+      "artistName": "居斯塔夫·埃菲尔",
+      "periodId": "industrial-architecture"
+    },
+    {
+      "id": "einstein-tower",
+      "title": "Einstein Tower (Einsteinturm) (爱因斯坦天文台)",
+      "date": "1920 - 1921",
+      "location": "德国波茨坦 (Potsdam, Germany)",
+      "artistId": "erich-mendelsohn",
+      "artistName": "埃里希·门德尔松",
+      "periodId": "expressionist-and-gaudi"
+    },
+    {
+      "id": "glass-pavilion",
+      "title": "Glass Pavilion (Glashaus) (科隆玻璃展馆)",
+      "date": "1914",
+      "location": "德国科隆德意志制造联盟展 (Cologne, Germany)",
+      "artistId": "bruno-taut",
+      "artistName": "布鲁诺·陶特",
+      "periodId": "expressionist-and-gaudi"
+    },
+    {
+      "id": "sagrada-familia",
+      "title": "圣家堂 (圣家族大教堂)",
+      "date": "1882 - 至今在建",
+      "location": "西班牙巴塞罗那 (Barcelona, Spain)",
+      "artistId": "antoni-gaudi",
+      "artistName": "安东尼·高迪",
+      "periodId": "expressionist-and-gaudi"
+    },
+    {
+      "id": "casa-mila",
+      "title": "采石场 (米拉之家)",
+      "date": "1906 - 1912",
+      "location": "西班牙巴塞罗那格拉西亚大道 (Passeig de Gràcia, Barcelona)",
+      "artistId": "antoni-gaudi",
+      "artistName": "安东尼·高迪",
+      "periodId": "expressionist-and-gaudi"
+    },
+    {
+      "id": "casa-batllo",
+      "title": "Casa Batlló (巴特罗之家 (骨之屋)",
+      "date": "1904 - 1906",
+      "location": "西班牙巴塞罗那格拉西亚大道 (Passeig de Gràcia, Barcelona)",
+      "artistId": "antoni-gaudi",
+      "artistName": "安东尼·高迪",
+      "periodId": "expressionist-and-gaudi"
+    },
+    {
+      "id": "hotel-tassel",
+      "title": "Hôtel Tassel (塔塞尔公馆)",
+      "date": "1893",
+      "location": "布鲁塞尔 (Brussels, Belgium)",
+      "artistId": "victor-horta",
+      "artistName": "维克多·奥塔",
+      "periodId": "art-nouveau-architecture"
+    },
+    {
+      "id": "secession-building",
+      "title": "Secession Building (维也纳分离派展览馆)",
+      "date": "1897 - 1898",
+      "location": "维也纳 (Vienna, Austria)",
+      "artistId": "joseph-maria-olbrich",
+      "artistName": "约瑟夫·玛丽亚·奥尔布里希",
+      "periodId": "art-nouveau-architecture"
+    },
+    {
+      "id": "paris-metro-entrances",
+      "title": "Stazione metropolitana (巴黎地铁站出入口)",
+      "date": "1899 - 1904",
+      "location": "巴黎各主要地铁站 (Paris, France)",
+      "artistId": "hector-guimard",
+      "artistName": "埃克托尔·吉马尔",
+      "periodId": "art-nouveau-architecture"
+    },
+    {
+      "id": "chicago-skyscraper-movement",
+      "title": "First Chicago School Skyscraper Era (芝加哥第一学派摩天大楼时代)",
+      "date": "1885 - 1904",
+      "location": "芝加哥 (Chicago, USA)",
+      "artistId": "chicago-school-architects",
+      "artistName": "芝加哥建筑学派",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "bauhaus-dessau",
+      "title": "Bauhaus Building, Dessau (德绍包豪斯校舍)",
+      "date": "1925 - 1932",
+      "location": "德绍 (Dessau, Germany)",
+      "artistId": "walter-gropius",
+      "artistName": "瓦尔特·格罗皮乌斯",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "brick-country-house",
+      "title": "Brick Country House Project (砖造乡村住宅方案)",
+      "date": "1923",
+      "location": "柏林/纸上建筑 (Berlin, Germany)",
+      "artistId": "mies-van-der-rohe",
+      "artistName": "路德维希·密斯·凡·德·罗",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "barcelona-pavilion",
+      "title": "Barcelona Pavilion (巴塞罗那德国馆)",
+      "date": "1928 - 1929",
+      "location": "巴塞罗那蒙特惠奇 (Barcelona, Spain)",
+      "artistId": "mies-van-der-rohe",
+      "artistName": "路德维希·密斯·凡·德·罗",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "farnsworth-house",
+      "title": "Farnsworth House (范斯沃斯住宅)",
+      "date": "1951",
+      "location": "伊利诺伊州普莱诺 (Plano, Illinois, USA)",
+      "artistId": "mies-van-der-rohe",
+      "artistName": "路德维希·密斯·凡·德·罗",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "seagram-building",
+      "title": "Seagram Building (西格拉姆大厦)",
+      "date": "1958",
+      "location": "纽约曼哈顿公园大道 (New York, USA)",
+      "artistId": "mies-van-der-rohe",
+      "artistName": "路德维希·密斯·凡·德·罗",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "neue-nationalgalerie",
+      "title": "Neue Nationalgalerie (柏林新国家美术馆)",
+      "date": "1968",
+      "location": "柏林文化广场 (Berlin, Germany)",
+      "artistId": "mies-van-der-rohe",
+      "artistName": "路德维希·密斯·凡·德·罗",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "robie-house",
+      "title": "Robie House (罗比住宅)",
+      "date": "1909",
+      "location": "芝加哥海德公园 (Chicago, Illinois, USA)",
+      "artistId": "frank-lloyd-wright",
+      "artistName": "弗兰克·劳埃德·赖特",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "fallingwater",
+      "title": "Fallingwater (流水别墅 / 落水山庄)",
+      "date": "1936 - 1937",
+      "location": "宾夕法尼亚熊跑溪 (Mill Run, Pennsylvania, USA)",
+      "artistId": "frank-lloyd-wright",
+      "artistName": "弗兰克·劳埃德·赖特",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "guggenheim-museum-ny",
+      "title": "The Solomon R. Guggenheim Museum (纽约古根海姆博物馆)",
+      "date": "1937 / 1959",
+      "location": "纽约曼哈顿第五大道 (New York, USA)",
+      "artistId": "frank-lloyd-wright",
+      "artistName": "弗兰克·劳埃德·赖特",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "villa-savoye",
+      "title": "Villa Savoye (萨伏伊别墅)",
+      "date": "1928 - 1931",
+      "location": "普瓦西 (Poissy, France)",
+      "artistId": "le-corbusier",
+      "artistName": "勒·柯布西耶",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "unite-dhabitation",
+      "title": "Unité d'Habitation, Marseille (马赛公寓)",
+      "date": "1952",
+      "location": "马赛 (Marseille, France)",
+      "artistId": "le-corbusier",
+      "artistName": "勒·柯布西耶",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "notre-dame-du-haut",
+      "title": "Chapelle Notre-Dame du Haut, Ronchamp (朗香教堂 / 穹顶圣母圣殿)",
+      "date": "1955",
+      "location": "朗香 (Ronchamp, France)",
+      "artistId": "le-corbusier",
+      "artistName": "勒·柯布西耶",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "rufer-house",
+      "title": "Rufer House (鲁弗住宅)",
+      "date": "1922",
+      "location": "维也纳 (Vienna, Austria)",
+      "artistId": "adolf-loos",
+      "artistName": "阿道夫·洛斯",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "villa-muller",
+      "title": "Villa Müller, Prague (米勒别墅)",
+      "date": "1930",
+      "location": "布拉格 (Prague, Czech Republic)",
+      "artistId": "adolf-loos",
+      "artistName": "阿道夫·洛斯",
+      "periodId": "modernist-architecture"
+    },
+    {
+      "id": "city-rises",
+      "title": "The City Rises (崛起中的城市)",
+      "date": "1910 - 1911",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "umberto-boccioni",
+      "artistName": "翁贝托·波丘尼",
+      "periodId": "futurism"
+    },
+    {
+      "id": "riot-gallery",
+      "title": "Riot in the Gallery (长廊骚乱)",
+      "date": "1910",
+      "location": "米兰布雷拉画廊 (Pinacoteca di Brera)",
+      "artistId": "umberto-boccioni",
+      "artistName": "翁贝托·波丘尼",
+      "periodId": "futurism"
+    },
+    {
+      "id": "simultaneous-visions",
+      "title": "Simultaneous Visions (同时发生的景象)",
+      "date": "1911",
+      "location": "德国伍珀塔尔冯德海特博物馆",
+      "artistId": "umberto-boccioni",
+      "artistName": "翁贝托·波丘尼",
+      "periodId": "futurism"
+    },
+    {
+      "id": "dynamism-cyclist",
+      "title": "Dynamism of a Cyclist (自行车手的动力)",
+      "date": "1913",
+      "location": "米兰二十世纪博物馆 (Museo del Novecento)",
+      "artistId": "umberto-boccioni",
+      "artistName": "翁贝托·波丘尼",
+      "periodId": "futurism"
+    },
+    {
+      "id": "unique-forms",
+      "title": "Unique Forms of Continuity in Space (空间中连续性的独特形式)",
+      "date": "1913",
+      "location": "圣保罗大学当代艺术博物馆 / 莫奈等多处",
+      "artistId": "umberto-boccioni",
+      "artistName": "翁贝托·波丘尼",
+      "periodId": "futurism"
+    },
+    {
+      "id": "development-bottle",
+      "title": "Development of a Bottle in Space (瓶子在空间中的展开)",
+      "date": "1913",
+      "location": "纽约MoMA / 米兰二十世纪博物馆",
+      "artistId": "umberto-boccioni",
+      "artistName": "翁贝托·波丘尼",
+      "periodId": "futurism"
+    },
+    {
+      "id": "piazza-duomo",
+      "title": "Piazza del Duomo a Milano (米兰大教堂广场)",
+      "date": "1909",
+      "location": "私人收藏",
+      "artistId": "carlo-carra",
+      "artistName": "卡洛·卡拉",
+      "periodId": "futurism"
+    },
+    {
+      "id": "theater-exit",
+      "title": "Theater Exit (剧院出口)",
+      "date": "1910",
+      "location": "伦敦埃斯托里克意大利现代艺术收藏馆",
+      "artistId": "carlo-carra",
+      "artistName": "卡洛·卡拉",
+      "periodId": "futurism"
+    },
+    {
+      "id": "funeral-galli",
+      "title": "The Funeral of the Anarchist Galli (无政府主义者加里之葬)",
+      "date": "1910 - 1911",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "carlo-carra",
+      "artistName": "卡洛·卡拉",
+      "periodId": "futurism"
+    },
+    {
+      "id": "interventionist-demo",
+      "title": "Interventionist Demonstration (主张参战的示威)",
+      "date": "1914",
+      "location": "米兰马蒂奥利收藏馆",
+      "artistId": "carlo-carra",
+      "artistName": "卡洛·卡拉",
+      "periodId": "futurism"
+    },
+    {
+      "id": "knight-western-spirit",
+      "title": "Il cavaliere dello spirito occidentale (西方精神骑士)",
+      "date": "1917",
+      "location": "私人收藏",
+      "artistId": "carlo-carra",
+      "artistName": "卡洛·卡拉",
+      "periodId": "futurism"
+    },
+    {
+      "id": "metaphysical-muse",
+      "title": "The Metaphysical Muse (形而上缪斯)",
+      "date": "1917",
+      "location": "米兰马蒂奥利收藏馆",
+      "artistId": "carlo-carra",
+      "artistName": "卡洛·卡拉",
+      "periodId": "futurism"
+    },
+    {
+      "id": "nostalgia-infinite",
+      "title": "The Nostalgia of the Infinite (无限的乡愁)",
+      "date": "1912 - 1913",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "giorgio-de-chirico",
+      "artistName": "乔治·德·基里科",
+      "periodId": "metaphysics"
+    },
+    {
+      "id": "piazza-d-italia",
+      "title": "Piazza of Italy (意大利广场)",
+      "date": "1913",
+      "location": "安大略美术馆",
+      "artistId": "giorgio-de-chirico",
+      "artistName": "乔治·德·基里科",
+      "periodId": "metaphysics"
+    },
+    {
+      "id": "mystery-melancholy-street",
+      "title": "Mystery and Melancholy of a Street (一条街的神秘与忧郁)",
+      "date": "1914",
+      "location": "私人收藏",
+      "artistId": "giorgio-de-chirico",
+      "artistName": "乔治·德·基里科",
+      "periodId": "metaphysics"
+    },
+    {
+      "id": "disquieting-muses",
+      "title": "The Disquieting Muses (令人不安的缪斯)",
+      "date": "1916 - 1918",
+      "location": "米兰马蒂奥利收藏馆",
+      "artistId": "giorgio-de-chirico",
+      "artistName": "乔治·德·基里科",
+      "periodId": "metaphysics"
+    },
+    {
+      "id": "hector-and-andromache",
+      "title": "Hector and Andromache (赫克托尔与安德洛玛刻)",
+      "date": "1912",
+      "location": "私人收藏",
+      "artistId": "giorgio-de-chirico",
+      "artistName": "乔治·德·基里科",
+      "periodId": "metaphysics"
+    },
+    {
+      "id": "song-of-love",
+      "title": "The Song of Love (爱之歌)",
+      "date": "1914",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "giorgio-de-chirico",
+      "artistName": "乔治·德·基里科",
+      "periodId": "metaphysics"
+    },
+    {
+      "id": "counter-composition-xiii",
+      "title": "Counter Composition XIII (反向构图第13号)",
+      "date": "1929",
+      "location": "荷兰阿姆斯特丹市立博物馆",
+      "artistId": "theo-van-doesburg",
+      "artistName": "特奥·范·杜斯堡",
+      "periodId": "de-stijl"
+    },
+    {
+      "id": "composition-decentralisee",
+      "title": "Composition decentralizzata (分散构图)",
+      "date": "1924",
+      "location": "私人收藏",
+      "artistId": "theo-van-doesburg",
+      "artistName": "特奥·范·杜斯堡",
+      "periodId": "de-stijl"
+    },
+    {
+      "id": "gray-tree",
+      "title": "Albero grigio (灰树)",
+      "date": "1911",
+      "location": "荷兰海牙市立博物馆",
+      "artistId": "piet-mondrian",
+      "artistName": "皮特·蒙德里安",
+      "periodId": "de-stijl"
+    },
+    {
+      "id": "composition-red-blue-yellow",
+      "title": "Composition with Red, Blue and Yellow (红黄蓝构图)",
+      "date": "1930",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "piet-mondrian",
+      "artistName": "皮特·蒙德里安",
+      "periodId": "de-stijl"
+    },
+    {
+      "id": "broadway-boogie-woogie",
+      "title": "Broadway Boogie-Woogie (百老汇爵士乐)",
+      "date": "1942 - 1943",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "piet-mondrian",
+      "artistName": "皮特·蒙德里安",
+      "periodId": "de-stijl"
+    },
+    {
+      "id": "nude-descending",
+      "title": "Nudo che scende le scale n. 2 (炸弹般的名作《下楼梯的裸女2号)",
+      "date": "1912",
+      "location": "费城艺术博物馆 (Philadelphia Museum of Art)",
+      "artistId": "marcel-duchamp",
+      "artistName": "马塞尔·杜尚",
+      "periodId": "dadaism"
+    },
+    {
+      "id": "fountain",
+      "title": "Fountain - 现成品艺术终极形态 (泉)",
+      "date": "1917",
+      "location": "原件丢失 / 复制品存于泰特现代美术馆等",
+      "artistId": "marcel-duchamp",
+      "artistName": "马塞尔·杜尚",
+      "periodId": "dadaism"
+    },
+    {
+      "id": "lhooq",
+      "title": "L.H.O.O.Q. (带有胡须的蒙娜丽莎)",
+      "date": "1919",
+      "location": "巴黎蓬皮杜艺术中心 (Centre Pompidou)",
+      "artistId": "marcel-duchamp",
+      "artistName": "马塞尔·杜尚",
+      "periodId": "dadaism"
+    },
+    {
+      "id": "shelter",
+      "title": "Shelter (遮蔽物)",
+      "date": "1919",
+      "location": "私人收藏",
+      "artistId": "marcel-duchamp",
+      "artistName": "马塞尔·杜尚",
+      "periodId": "dadaism"
+    },
+    {
+      "id": "bicycle-wheel",
+      "title": "Bicycle Wheel (自行车轮)",
+      "date": "1913",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "marcel-duchamp",
+      "artistName": "马塞尔·杜尚",
+      "periodId": "dadaism"
+    },
+    {
+      "id": "violon-dingres",
+      "title": "Ingres's Violin (安格尔的小提琴)",
+      "date": "1924",
+      "location": "洛杉矶保罗·盖蒂博物馆",
+      "artistId": "man-ray",
+      "artistName": "曼·雷",
+      "periodId": "dadaism"
+    },
+    {
+      "id": "persistence-of-memory",
+      "title": "The Persistence of Memory (记忆的永恒)",
+      "date": "1931",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "salvador-dali",
+      "artistName": "萨尔瓦多·达利",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "great-masturbator",
+      "title": "The Great Masturbator (伟大的手淫者)",
+      "date": "1929",
+      "location": "马德里索菲亚王后国家艺术中心博物馆",
+      "artistId": "salvador-dali",
+      "artistName": "萨尔瓦多·达利",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "temptation-st-anthony",
+      "title": "The Temptation of St. Anthony (圣安东尼的诱惑)",
+      "date": "1946",
+      "location": "布鲁塞尔比利时皇家美术馆",
+      "artistId": "salvador-dali",
+      "artistName": "萨尔瓦多·达利",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "i-and-the-village",
+      "title": "I and the Village (我与村庄)",
+      "date": "1911",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "marc-chagall",
+      "artistName": "马克·夏加尔",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "chagall-birthday",
+      "title": "Birthday (生日)",
+      "date": "1915",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "marc-chagall",
+      "artistName": "马克·夏加尔",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "romeo-juliette",
+      "title": "Romeo and Juliette (罗密欧与朱丽叶)",
+      "date": "1964",
+      "location": "巴黎歌剧院穹顶画草稿/私人收藏",
+      "artistId": "marc-chagall",
+      "artistName": "马克·夏加尔",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "treachery-of-images",
+      "title": "The Treachery of Images - 这不是烟斗 (形象的叛逆)",
+      "date": "1929",
+      "location": "洛杉矶县立艺术博物馆 (LACMA)",
+      "artistId": "rene-magritte",
+      "artistName": "雷内·马格里特",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "the-lovers",
+      "title": "The Lovers (恋人)",
+      "date": "1928",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "rene-magritte",
+      "artistName": "雷内·马格里特",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "golconda",
+      "title": "雨般降落的圆顶帽子绅士 (戈尔孔达)",
+      "date": "1953",
+      "location": "休斯顿梅尼尔收藏馆 (The Menil Collection)",
+      "artistId": "rene-magritte",
+      "artistName": "雷内·马格里特",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "menaced-assassin",
+      "title": "The Menaced Assassin (受威胁的凶手)",
+      "date": "1927",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "rene-magritte",
+      "artistName": "雷内·马格里特",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "not-to-be-reproduced",
+      "title": "Not to Be Reproduced (禁止复制)",
+      "date": "1937",
+      "location": "鹿特丹博伊曼斯·范伯宁恩美术馆",
+      "artistId": "rene-magritte",
+      "artistName": "雷内·马格里特",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "son-of-man",
+      "title": "The Son of Man (人子)",
+      "date": "1964",
+      "location": "私人收藏",
+      "artistId": "rene-magritte",
+      "artistName": "雷内·马格里特",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "the-farm",
+      "title": "The Farm (农场)",
+      "date": "1921 - 1922",
+      "location": "华盛顿国家美术馆 (National Gallery of Art)",
+      "artistId": "joan-miro",
+      "artistName": "胡安·米罗",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "the-tilled-field",
+      "title": "The Tilled Field (耕地)",
+      "date": "1924",
+      "location": "纽约古根海姆博物馆",
+      "artistId": "joan-miro",
+      "artistName": "胡安·米罗",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "maternity",
+      "title": "Maternity (母性)",
+      "date": "1924",
+      "location": "苏格兰国家画廊",
+      "artistId": "joan-miro",
+      "artistName": "胡安·米罗",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "smile-flamboyant-wings",
+      "title": "The Smile of the Flamboyant Wings (绚丽翅膀的微笑)",
+      "date": "1953",
+      "location": "私人收藏",
+      "artistId": "joan-miro",
+      "artistName": "胡安·米罗",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "woman-and-bird",
+      "title": "Woman and Bird 巨型户外雕塑 (女人与鸟)",
+      "date": "1983",
+      "location": "巴塞罗那胡安·米罗公园",
+      "artistId": "joan-miro",
+      "artistName": "胡安·米罗",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "walking-man-i",
+      "title": "L'Homme qui marche I (行走的人)",
+      "date": "1960",
+      "location": "多处顶级博物馆/拍卖史上最高价雕塑之一",
+      "artistId": "alberto-giacometti",
+      "artistName": "阿尔贝托·贾科梅蒂",
+      "periodId": "surrealism"
+    },
+    {
+      "id": "casa-del-fascio",
+      "title": "Casa del Fascio of Como (科莫法西斯宫 / 现普契尼之家)",
+      "date": "1932 - 1936",
+      "location": "科莫 (Como, Italy)",
+      "artistId": "giuseppe-terragni",
+      "artistName": "朱塞佩·泰拉尼",
+      "periodId": "rationalism-architecture"
+    },
+    {
+      "id": "villa-figini",
+      "title": "Villa Figini (菲吉尼别墅)",
+      "date": "1934",
+      "location": "米兰记者村 (Villaggio dei Giornalisti, Milan)",
+      "artistId": "luigi-figini",
+      "artistName": "路易吉·菲吉尼",
+      "periodId": "rationalism-architecture"
+    },
+    {
+      "id": "pirelli-tower",
+      "title": "Pirelli Tower (倍耐力大厦 / 普雷利大楼)",
+      "date": "1956 - 1958 (1960)",
+      "location": "米兰中央车站前广场 (Piazza Duca d'Aosta, Milan)",
+      "artistId": "gio-ponti",
+      "artistName": "吉奥·庞蒂",
+      "periodId": "rationalism-architecture"
+    },
+    {
+      "id": "velasca-tower",
+      "title": "Velasca Tower (维拉斯加塔 / 韦拉斯卡大楼)",
+      "date": "1956 - 1958",
+      "location": "米兰市中心 (Piazza Velasca, Milan)",
+      "artistId": "bbrp",
+      "artistName": "BBPR 建筑事务所",
+      "periodId": "rationalism-architecture"
+    },
+    {
+      "id": "girls-romances",
+      "title": "Girls' Romances (少女浪漫连环画)",
+      "date": "1950 - 1971",
+      "location": "多处私人收藏",
+      "artistId": "roy-lichtenstein",
+      "artistName": "罗伊·利希滕斯坦",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "look-mickey",
+      "title": "Look Mickey (看，米奇！)",
+      "date": "1961",
+      "location": "华盛顿国家美术馆",
+      "artistId": "roy-lichtenstein",
+      "artistName": "罗伊·利希滕斯坦",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "campbell-soup",
+      "title": "Campbell's Soup I (坎贝尔罐头汤)",
+      "date": "1968",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "andy-warhol",
+      "artistName": "安迪·沃霍尔",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "shot-marilyns",
+      "title": "Shot Marilyns (枪击玛丽莲·梦露)",
+      "date": "1964",
+      "location": "私人收藏 / 2022年以1.95亿美元刷新公开拍卖纪录",
+      "artistId": "andy-warhol",
+      "artistName": "安迪·沃霍尔",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "la-banana",
+      "title": "地下丝绒乐队专辑封面 (著名的黄色大香蕉)",
+      "date": "1967",
+      "location": "专辑封面与设计艺术",
+      "artistId": "andy-warhol",
+      "artistName": "安迪·沃霍尔",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "elvis-presley",
+      "title": "Elvis Presley (猫王埃尔维斯·普雷斯利)",
+      "date": "1963",
+      "location": "多处博物馆",
+      "artistId": "andy-warhol",
+      "artistName": "安迪·沃霍尔",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "coca-cola",
+      "title": "Coca cola (绿色可口可乐瓶)",
+      "date": "1962",
+      "location": "惠特尼美国艺术博物馆",
+      "artistId": "andy-warhol",
+      "artistName": "安迪·沃霍尔",
+      "periodId": "pop-art"
+    },
+    {
+      "id": "cathedral-of-brasilia",
+      "title": "Cathedral of Brasília (巴西利亚大教堂)",
+      "date": "1958 - 1970",
+      "location": "巴西利亚 (Brasília, Brazil)",
+      "artistId": "oscar-niemeyer",
+      "artistName": "奥斯卡·尼迈耶",
+      "periodId": "neo-expressionism-architecture"
+    },
+    {
+      "id": "niteroi-contemporary-art-museum",
+      "title": "Niterói Contemporary Art Museum (尼泰罗伊当代艺术博物馆 / MAC)",
+      "date": "1996",
+      "location": "里约热内卢尼泰罗伊 (Niterói, Rio de Janeiro, Brazil)",
+      "artistId": "oscar-niemeyer",
+      "artistName": "奥斯卡·尼迈耶",
+      "periodId": "neo-expressionism-architecture"
+    },
+    {
+      "id": "autumn-rhythm",
+      "title": "Autumn Rhythm: Number 30 (秋天的节奏)",
+      "date": "1950",
+      "location": "纽约大都会艺术博物馆 (Metropolitan Museum of Art)",
+      "artistId": "jackson-pollock",
+      "artistName": "保罗·杰克逊·波洛克",
+      "periodId": "contemporary-art"
+    },
+    {
+      "id": "one-number-31",
+      "title": "One: Number 31, 1950 (第一号：1950年第31号)",
+      "date": "1950",
+      "location": "纽约现代艺术博物馆 (MoMA)",
+      "artistId": "jackson-pollock",
+      "artistName": "保罗·杰克逊·波洛克",
+      "periodId": "contemporary-art"
+    },
+    {
+      "id": "concetto-spaziale-punctures",
+      "title": "打孔系列 (空间概念)",
+      "date": "1950s",
+      "location": "多处博物馆收藏",
+      "artistId": "lucio-fontana",
+      "artistName": "卢齐欧·封塔纳",
+      "periodId": "contemporary-art"
+    },
+    {
+      "id": "concetto-spaziale-slashes",
+      "title": "割痕系列 - 划破画布 (空间概念)",
+      "date": "1960s",
+      "location": "多处顶级博物馆收藏",
+      "artistId": "lucio-fontana",
+      "artistName": "卢齐欧·封塔纳",
+      "periodId": "contemporary-art"
+    },
+    {
+      "id": "artists-shit",
+      "title": "Artist's Shit (艺术家之粪)",
+      "date": "1961",
+      "location": "泰特现代美术馆/蓬皮杜等",
+      "artistId": "piero-manzoni",
+      "artistName": "皮耶罗·曼佐尼",
+      "periodId": "contemporary-art"
+    },
+    {
+      "id": "centre-pompidou",
+      "title": "Centre Georges Pompidou (巴黎蓬皮杜艺术中心)",
+      "date": "1971 - 1977",
+      "location": "巴黎博堡区 (Paris, France)",
+      "artistId": "renzo-piano",
+      "artistName": "伦佐·皮亚诺",
+      "periodId": "high-tech-architecture"
+    },
+    {
+      "id": "tjibaou-cultural-centre",
+      "title": "Jean-Marie Tjibaou Cultural Centre (吉巴欧文化中心)",
+      "date": "1991 - 1998",
+      "location": "努美阿 (Nouméa, New Caledonia)",
+      "artistId": "renzo-piano",
+      "artistName": "伦佐·皮亚诺",
+      "periodId": "high-tech-architecture"
+    },
+    {
+      "id": "auditorium-parco-della-musica",
+      "title": "Auditorium Parco della Musica (罗马音乐公园礼堂)",
+      "date": "1995 - 2002",
+      "location": "罗马 (Rome, Italy)",
+      "artistId": "renzo-piano",
+      "artistName": "伦佐·皮亚诺",
+      "periodId": "high-tech-architecture"
+    },
+    {
+      "id": "dancing-house",
+      "title": "Dancing House (跳舞的房子 / 布拉格弗莱德与琴吉大楼)",
+      "date": "1992 - 1996",
+      "location": "布拉格伏尔塔瓦河畔 (Prague, Czech Republic)",
+      "artistId": "frank-gehry",
+      "artistName": "弗兰克·盖里",
+      "periodId": "deconstructivism-architecture"
+    },
+    {
+      "id": "guggenheim-bilbao",
+      "title": "Guggenheim Museum Bilbao (毕尔巴鄂古根海姆博物馆)",
+      "date": "1997",
+      "location": "毕尔巴鄂 (Bilbao, Spain)",
+      "artistId": "frank-gehry",
+      "artistName": "弗兰克·盖里",
+      "periodId": "deconstructivism-architecture"
+    },
+    {
+      "id": "walt-disney-concert-hall",
+      "title": "Walt Disney Concert Hall (洛杉矶华特·迪士尼音乐厅)",
+      "date": "1999 - 2003",
+      "location": "洛杉矶市中心 (Los Angeles, California, USA)",
+      "artistId": "frank-gehry",
+      "artistName": "弗兰克·盖里",
+      "periodId": "deconstructivism-architecture"
+    },
+    {
+      "id": "jewish-museum-berlin",
+      "title": "Jewish Museum Berlin (柏林犹太博物馆)",
+      "date": "1999 - 2001",
+      "location": "柏林 (Berlin, Germany)",
+      "artistId": "daniel-libeskind",
+      "artistName": "丹尼尔·里伯斯金",
+      "periodId": "contemporary-architecture"
+    },
+    {
+      "id": "one-world-trade-center",
+      "title": "One World Trade Center (世界贸易中心一号大楼 / 自由塔总体规划)",
+      "date": "2002 - 2014",
+      "location": "纽约曼哈顿下城 (New York City, USA)",
+      "artistId": "daniel-libeskind",
+      "artistName": "丹尼尔·里伯斯金",
+      "periodId": "contemporary-architecture"
+    },
+    {
+      "id": "reichstag-dome",
+      "title": "Reichstag Dome (柏林德国国会大厦玻璃穹顶)",
+      "date": "1995 - 1999",
+      "location": "柏林 (Berlin, Germany)",
+      "artistId": "norman-foster",
+      "artistName": "诺曼·福斯特",
+      "periodId": "contemporary-architecture"
+    },
+    {
+      "id": "bac-de-roda-bridge",
+      "title": "Bac de Roda Bridge (巴克·德·罗达桥 / 菲利佩二世大桥)",
+      "date": "1984 - 1987",
+      "location": "巴塞罗那 (Barcelona, Spain)",
+      "artistId": "santiago-calatrava",
+      "artistName": "圣地亚哥·卡拉特拉瓦",
+      "periodId": "contemporary-architecture"
+    },
+    {
+      "id": "zurich-stadelhofen-station",
+      "title": "Zurich Stadelhofen Railway Station (苏黎世施塔德霍芬火车站)",
+      "date": "1983 - 1990",
+      "location": "苏黎世市中心 (Zurich, Switzerland)",
+      "artistId": "santiago-calatrava",
+      "artistName": "圣地亚哥·卡拉特拉瓦",
+      "periodId": "contemporary-architecture"
+    },
+    {
+      "id": "maxxi-rome",
+      "title": "MAXXI (罗马国立二十一世纪艺术博物馆)",
+      "date": "1998 - 2009 (2010)",
+      "location": "罗马弗拉米尼奥区 (Rome, Italy)",
+      "artistId": "zaha-hadid",
+      "artistName": "扎哈·哈迪德",
+      "periodId": "contemporary-architecture"
+    },
+    {
+      "id": "citylife-milan",
+      "title": "CityLife Milan - Hadid Tower & Residences (米兰CityLife 哈迪德塔与流线公寓群)",
+      "date": "2014 - 2020 (2025)",
+      "location": "米兰三塔城 (CityLife, Milan, Italy)",
+      "artistId": "zaha-hadid",
+      "artistName": "扎哈·哈迪德",
+      "periodId": "contemporary-architecture"
+    }
+  ]
+}

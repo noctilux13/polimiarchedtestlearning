@@ -125,7 +125,7 @@ async function runAdversarialChallenge() {
     // Direct sandboxed tool call with confirm: true
     const directConfirmed = await aiService.executeSandboxedTool('reset_question_bank', { confirm: true });
     assert.strictEqual(directConfirmed.success, true);
-    assert.strictEqual(qbService.getAllQuestions().length, 210, 'Confirmed reset must restore exactly 210 base questions');
+    assert.strictEqual(qbService.getAllQuestions().length, 320, 'Confirmed reset must restore exactly 320 base questions');
   });
 
   testCase('1.4: Confirmation card action in AIFloatingAssistant handles pending confirm flow', () => {
@@ -268,8 +268,8 @@ async function runAdversarialChallenge() {
     // Call factory reset
     const resetRes = qbService.resetToFactoryDefaults();
     assert.strictEqual(resetRes.success, true);
-    assert.strictEqual(resetRes.count, 210);
-    assert.strictEqual(qbService.getAllQuestions().length, 210);
+    assert.strictEqual(resetRes.count, 320);
+    assert.strictEqual(qbService.getAllQuestions().length, 320);
     assert.strictEqual(qbService.getSummary().customCount, 0);
   });
 
@@ -278,10 +278,10 @@ async function runAdversarialChallenge() {
   // ─────────────────────────────────────────────────────────────
   console.log('\n[Target 3: Practice Modes & Question Bank Regression Check]');
 
-  testCase('3.1: Canonical ARCHED question bank contains >= 200 items (found 210)', () => {
+  testCase('3.1: Canonical ARCHED question bank contains >= 200 items (found 320)', () => {
     assert(Array.isArray(archedBank), 'archedQuestionBank must be an array');
     assert(archedBank.length >= 200, `Expected at least 200 questions, got ${archedBank.length}`);
-    assert.strictEqual(archedBank.length, 210, 'Expected exactly 210 canonical ARCHED questions');
+    assert.strictEqual(archedBank.length, 320, 'Expected exactly 320 canonical ARCHED questions');
   });
 
   testCase('3.2: Domain distribution satisfies Polimi ARCHED exam coverage across all 5 syllabus areas', () => {
@@ -322,7 +322,7 @@ async function runAdversarialChallenge() {
 
   testCase('3.4: Practice module query methods: getAllQuestions, getQuestionsByDomain, queryQuestions', () => {
     const all = qbService.getAllQuestions();
-    assert.strictEqual(all.length, 210);
+    assert.strictEqual(all.length, 320);
 
     const chrono = qbService.getQuestionsByDomain('chronology');
     assert(chrono.length >= 40);

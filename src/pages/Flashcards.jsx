@@ -98,7 +98,7 @@ export default function Flashcards() {
 
   const CATEGORIES = activeDeckType === 'arched'
     ? [
-        { key: 'all', label: isZh ? '全部考点 (210)' : 'All Syllabus' },
+        { key: 'all', label: isZh ? '全部考点 (320)' : 'All Syllabus' },
         { key: 'chronology', label: isZh ? '年代序列' : 'Chronology' },
         { key: 'visual_id', label: isZh ? '图像识别' : 'Visual ID' },
         { key: 'avant_garde', label: isZh ? '20世纪先锋' : 'Avant-Garde' },
@@ -284,7 +284,7 @@ export default function Flashcards() {
               style={{ borderRadius: 'var(--radius-pill)', padding: '5px 16px', fontSize: '0.82rem', border: 'none' }}
               onClick={() => handleDeckTypeChange('arched')}
             >
-              <Sparkles size={13} /> {isZh ? 'ARCHED 考纲考点卡 (210)' : 'ARCHED Syllabus Cards'}
+              <Sparkles size={13} /> {isZh ? 'ARCHED 考纲考点卡 (320)' : 'ARCHED Syllabus Cards'}
             </button>
             <button
               type="button"

@@ -256,7 +256,7 @@ export default function Settings() {
   };
 
   const handleResetFactoryQuestionBank = async () => {
-    if (!window.confirm('⚠️ 确认恢复出厂设置？这将清空所有自定义添加的考题，并恢复至官方 210 道 ARCHED 题库母题。')) {
+    if (!window.confirm('⚠️ 确认恢复出厂设置？这将清空所有自定义添加的考题，并恢复至官方 320 道 ARCHED 题库母题。')) {
       return;
     }
     setResettingBank(true);
@@ -266,7 +266,7 @@ export default function Settings() {
       if (res.success) {
         setResetResult({
           success: true,
-          message: '题库已成功重置！官方 210 道 ARCHED 经典母题已就绪。'
+          message: '题库已成功重置！官方 320 道 ARCHED 经典母题已就绪。'
         });
       } else {
         setResetResult({
@@ -847,7 +847,7 @@ export default function Settings() {
             </h2>
           </div>
           <p style={{ fontSize: '0.84rem', color: 'var(--text-tertiary)', marginBottom: '1.35rem' }}>
-            清空所有在本地浏览器中通过 AI 助教或手动添加的自定义考题，并将练习与模拟题库完全恢复至官方 210 道 ARCHED 题库母题。
+            清空所有在本地浏览器中通过 AI 助教或手动添加的自定义考题，并将练习与模拟题库完全恢复至官方 320 道 ARCHED 题库母题。
           </p>
 
           <button
@@ -865,7 +865,7 @@ export default function Settings() {
             }}
           >
             {resettingBank ? <Loader2 size={14} className="animate-spin" /> : <AlertTriangle size={14} />}
-            <span>重置恢复官方 210 道 ARCHED 题库母题</span>
+            <span>重置恢复官方 320 道 ARCHED 题库母题</span>
           </button>
 
           {resetResult && (

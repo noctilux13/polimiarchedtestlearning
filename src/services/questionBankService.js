@@ -2,7 +2,7 @@
  * src/services/questionBankService.js
  * 
  * Central question repository service for the Art & Architecture Learning Platform.
- * Manages the built-in 210 ARCHED questions, custom LocalStorage overrides/additions,
+ * Manages the built-in 320 ARCHED questions, custom LocalStorage overrides/additions,
  * compound queries, domain balancing, exam set generation, and factory resets.
  */
 
@@ -76,7 +76,7 @@ function saveCustomQuestions(questions) {
 }
 
 /**
- * Get all questions (built-in 210 questions + custom LocalStorage questions).
+ * Get all questions (built-in 320 questions + custom LocalStorage questions).
  * Custom questions with matching IDs override built-in ones; new IDs are appended.
  */
 export function getAllQuestions() {

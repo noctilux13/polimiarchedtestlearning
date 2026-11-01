@@ -82,7 +82,7 @@ Every requirement and survey finding is cataloged and assigned to a milestone:
 | M2 | ARCHED 200+ Core Question Bank & Practice Modes | `archedQuestionBank.js` (210 items), `questionBankService.js`, Quiz refactor, Flashcards route & gestures, ExamSimulator build, Navbar integration | M1 | DONE |
 | M3 | Safe Embedded AI Agent Platform | `aiAgentService.js`, 8-tool whitelist, Gemini & OpenAI client, Deterministic Fallback, security sandbox, AI chat UI & Settings UI | M2 | DONE |
 | M4 | Dual-Track E2E Testing Track | Test harness, automated schema validation, Tiers 1-4 test suites, `TEST_READY.md` | Started in parallel | DONE |
-| M5 | Final Milestone: E2E Pass, Hardening & Audit | Phase 1 (100% E2E pass), Phase 2 (Tier 5 adversarial hardening), Forensic Integrity Audit veto check | M1, M2, M3, M4 | READY_TO_DISPATCH |
+| M5 | Final Milestone: E2E Pass, Hardening & Audit | Phase 1 (100% E2E pass), Phase 2 (Tier 5 adversarial hardening), Forensic Integrity Audit veto check | M1, M2, M3, M4 | DONE |
 
 ---
 

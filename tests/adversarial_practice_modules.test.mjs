@@ -658,9 +658,9 @@ test('4.3: Quiz Progression through All Questions and Terminal Completion', () =
 // =========================================================================
 console.log('\n--- Suite 5: Question Bank Service & ARCHED Domain Balance ---');
 
-test('5.1: 210 Questions Built-in Integrity', () => {
+test('5.1: 320 Questions Built-in Integrity', () => {
   const all = questionBankService.getAllQuestions();
-  assert.strictEqual(all.length, 210, 'Expected exactly 210 ARCHED questions');
+  assert.strictEqual(all.length, 320, 'Expected exactly 320 ARCHED questions');
 });
 
 test('5.2: getRandomExamSet(20) generates strictly balanced 4-per-domain exam sets', () => {
